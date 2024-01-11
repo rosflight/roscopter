@@ -2,4 +2,4 @@
 
 int32 index # The index of the waypoint to be removed
 ---
-bool Success
+bool success

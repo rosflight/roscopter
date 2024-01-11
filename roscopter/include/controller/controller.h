@@ -1,17 +1,20 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <ros/ros.h>
-#include <roscopter_msgs/Command.h>
-#include <rosflight_msgs/Command.h>
-#include <rosflight_msgs/Status.h>
+#include <rclcpp/rclcpp.hpp>
+#include <roscopter_msgs/msg/command.hpp>
+#include <rosflight_msgs/msg/command.hpp>
+#include <rosflight_msgs/msg/status.hpp>
 #include <controller/simple_pid.h>
-#include <nav_msgs/Odometry.h>
-#include <std_msgs/Bool.h>
-#include <tf/tf.h>
+#include <nav_msgs/msg/odometry.hpp>
+#include <roscopter_msgs/msg/bool.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <stdint.h>
-#include <dynamic_reconfigure/server.h>
-#include <roscopter/ControllerConfig.h>
+// #include <dynamic_reconfigure/server.h>
+// #include <roscopter/ControllerConfig.h>
+
+using std::placeholders::_1;
 
 namespace controller
 {
@@ -69,7 +72,7 @@ typedef struct
   double d_dot;
 } max_t;
 
-class Controller
+class Controller : public rclcpp::Node
 {
 
 public:
@@ -79,17 +82,17 @@ public:
 private:
 
   // Node handles, publishers, subscribers
-  ros::NodeHandle nh_;
-  ros::NodeHandle nh_private_;
-  ros::NodeHandle nh_param_;
+  // rclcpp::NodeHandle nh_;
+  // rclcpp::NodeHandle nh_private_;
+  // rclcpp::NodeHandle nh_param_;
 
   // Publishers and Subscribers
-  ros::Subscriber state_sub_;
-  ros::Subscriber is_flying_sub_;
-  ros::Subscriber cmd_sub_;
-  ros::Subscriber status_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_sub_;
+  rclcpp::Subscription<roscopter_msgs::msg::Bool>::SharedPtr is_flying_sub_;
+  rclcpp::Subscription<roscopter_msgs::msg::Command>::SharedPtr cmd_sub_;
+  rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
 
-  ros::Publisher command_pub_;
+  rclcpp::Publisher<rosflight_msgs::msg::Command>::SharedPtr command_pub_;
 
   // Paramters
   double throttle_eq_;
@@ -112,24 +115,24 @@ private:
   controller::SimplePID PID_psi_;
 
   // Dynamic Reconfigure Hooks
-  dynamic_reconfigure::Server<roscopter::ControllerConfig> _server;
-  dynamic_reconfigure::Server<roscopter::ControllerConfig>::CallbackType _func;
-  void reconfigure_callback(roscopter::ControllerConfig& config,
-                            uint32_t level);
+  // dynamic_reconfigure::Server<roscopter::ControllerConfig> _server;
+  // dynamic_reconfigure::Server<roscopter::ControllerConfig>::CallbackType _func;
+  // void reconfigure_callback(roscopter::ControllerConfig& config,
+                            // uint32_t level);
 
   // Memory for sharing information between functions
   state_t xhat_ = {}; // estimate
   max_t max_ = {};
-  rosflight_msgs::Command command_;
+  rosflight_msgs::msg::Command command_;
   command_t xc_ = {}; // command
   double prev_time_;
   uint8_t control_mode_;
 
   // Functions
-  void stateCallback(const nav_msgs::OdometryConstPtr &msg);
-  void isFlyingCallback(const std_msgs::BoolConstPtr &msg);
-  void cmdCallback(const roscopter_msgs::CommandConstPtr &msg);
-  void statusCallback(const rosflight_msgs::StatusConstPtr &msg);
+  void stateCallback(const nav_msgs::msg::Odometry &msg);
+  void isFlyingCallback(const roscopter_msgs::msg::Bool &msg);
+  void cmdCallback(const roscopter_msgs::msg::Command &msg);
+  void statusCallback(const rosflight_msgs::msg::Status &msg);
 
   void computeControl(double dt);
   void resetIntegrators();

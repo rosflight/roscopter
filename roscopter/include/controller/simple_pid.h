@@ -39,7 +39,8 @@
 #define ROTOR_CONTROLLER_SIMPLE_PID_H
 
 #include <cmath>
-#include <ros/ros.h>  // included temporarily for debug statements
+#include <cfloat>
+#include <rclcpp/rclcpp.hpp>  // included temporarily for debug statements
 
 namespace controller
 {

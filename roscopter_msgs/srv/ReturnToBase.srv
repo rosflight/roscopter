@@ -1,4 +1,4 @@
 # Has the multirotor land at [0,0]
 
 ---
-bool Success
+bool success

@@ -1,14 +1,13 @@
-#include <ros/ros.h>
-#include "ekf/ekf_ros.h"
+#include <rclcpp/rclcpp.hpp>
+#include "ekf/ekf_rclcpp.hpp"
 
 int main(int argc, char** argv)
 {
-  ros::init(argc, argv, "estimator");
+  rclcpp::init(argc, argv);
 
-  roscopter::ekf::EKF_ROS estimator;
-  estimator.initROS();
+  auto node = std::make_shared<EKF_ROS::EKF_ROS>();
 
-  ros::spin();
+  rclcpp::spin(node);
 
   return 0;
 }

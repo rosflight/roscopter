@@ -28,8 +28,8 @@
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
-#include <ros/callback_queue.h>
-#include <ros/ros.h>
+#include <rclcpp/callback_queue.h>
+#include <rclcpp/rclcpp.hpp>
 
 #include <rosflight_msgs/Command.h>
 #include <rosflight_msgs/Attitude.h>

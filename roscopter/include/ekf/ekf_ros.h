@@ -29,7 +29,8 @@
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 
-#pragma once
+#ifndef EKF_ROS_H
+#define EKF_ROS_H
 
 
 #include "ekf.h"
@@ -38,18 +39,18 @@
 #include <deque>
 #include <vector>
 
-#include <ros/ros.h>
-#include <ros/package.h>
-#include <sensor_msgs/Imu.h>
-#include <sensor_msgs/Range.h>
-#include <nav_msgs/Odometry.h>
-#include <rosflight_msgs/Barometer.h>
-#include <rosflight_msgs/Status.h>
-#include <rosflight_msgs/GNSS.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/TransformStamped.h>
-#include <geometry_msgs/Vector3Stamped.h>
-#include <std_msgs/Bool.h>
+#include <rclcpp/rclcpp.hpp>
+// #include <rclcpp/package.h>
+#include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/range.hpp>
+#include <nav_msgs/msg/odometry.hpp>
+#include <rosflight_msgs/msg/barometer.hpp>
+#include <rosflight_msgs/msg/status.hpp>
+#include <rosflight_msgs/msg/gnss.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/transform_stamped.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
+#include <roscopter_msgs/msg/bool.hpp>
 
 #ifdef UBLOX
 #include "ublox/PosVelEcef.h"
@@ -59,9 +60,11 @@
 #include "inertial_sense/GPS.h"
 #endif
 
+using std::placeholders::_1;
+
 namespace roscopter::ekf
 {
-class EKF_ROS
+class EKF_ROS : public rclcpp::Node
 {
 public:
 
@@ -70,14 +73,15 @@ public:
   void init(const std::string& param_file, const std::string& param_dictionary);
   void initROS();
 
-  void imuCallback(const sensor_msgs::ImuConstPtr& msg);
-  void baroCallback(const rosflight_msgs::BarometerConstPtr& msg);
-  void rangeCallback(const sensor_msgs::RangeConstPtr& msg);
-  void poseCallback(const geometry_msgs::PoseStampedConstPtr &msg);
-  void odomCallback(const nav_msgs::OdometryConstPtr &msg);
-  void gnssCallback(const rosflight_msgs::GNSSConstPtr& msg);
-  void mocapCallback(const ros::Time& time, const xform::Xformd &z);
-  void statusCallback(const rosflight_msgs::StatusConstPtr& msg);
+  void imuCallback(const sensor_msgs::msg::Imu& msg);
+  void baroCallback(const rosflight_msgs::msg::Barometer& msg);
+  void rangeCallback(const sensor_msgs::msg::Range& msg);
+  void poseCallback(const geometry_msgs::msg::PoseStamped &msg);
+  void odomCallback(const nav_msgs::msg::Odometry &msg);
+  void gnssCallback(const rosflight_msgs::msg::GNSS& msg);
+  void mocapCallback(const rclcpp::Time& time, const xform::Xformd &z);
+  void statusCallback(const rosflight_msgs::msg::Status& msg);
+  int32_t calculateTime(rclcpp::Time);
 
 #ifdef UBLOX
   void gnssCallbackUblox(const ublox::PosVelEcefConstPtr& msg);
@@ -91,36 +95,36 @@ public:
 private:
   EKF ekf_;
 
-  ros::Time last_imu_update_;
+  rclcpp::Time last_imu_update_;
 
-  ros::NodeHandle nh_;
-  ros::NodeHandle nh_private_;
-  ros::NodeHandle nh_param_;
+  // rclcpp::NodeHandle nh_;
+  // rclcpp::NodeHandle nh_private_;
+  // rclcpp::NodeHandle nh_param_;
 
-  ros::Subscriber imu_sub_;
-  ros::Subscriber baro_sub_;
-  ros::Subscriber pose_sub_;
-  ros::Subscriber odom_sub_;
-  ros::Subscriber gnss_sub_;
-  ros::Subscriber status_sub_;
-  ros::Subscriber range_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
+  rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr pose_sub_;
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;
+  rclcpp::Subscription<rosflight_msgs::msg::GNSS>::SharedPtr gnss_sub_;
+  rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr range_sub_;
 
-  ros::Publisher odometry_pub_;
-  ros::Publisher euler_pub_;
-  ros::Publisher imu_bias_pub_;
-  ros::Publisher is_flying_pub_;
+  rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odometry_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Vector3Stamped>::SharedPtr euler_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::Imu>::SharedPtr imu_bias_pub_;
+  rclcpp::Publisher<roscopter_msgs::msg::Bool>::SharedPtr is_flying_pub_;
 
-  sensor_msgs::Imu imu_bias_msg_;
-  nav_msgs::Odometry odom_msg_;
-  geometry_msgs::Vector3Stamped euler_msg_;
-  std_msgs::Bool is_flying_msg_;
+  sensor_msgs::msg::Imu imu_bias_msg_;
+  nav_msgs::msg::Odometry odom_msg_;
+  geometry_msgs::msg::Vector3Stamped euler_msg_;
+  roscopter_msgs::msg::Bool is_flying_msg_;
 
 #ifdef UBLOX
-  ros::Subscriber ublox_gnss_sub_;
+  rclcpp::Subscription ublox_gnss_sub_;
 #endif
 
 #ifdef INERTIAL_SENSE
-  ros::Subscriber is_gnss_sub_;
+  rclcpp::Subscription is_gnss_sub_;
 #endif
 
   std::mutex ekf_mtx_;
@@ -135,8 +139,8 @@ private:
   
   bool is_flying_ = false;
   bool armed_ = false;
-  ros::Time time_took_off_;
-  ros::Time start_time_;
+  rclcpp::Time time_took_off_;
+  int32_t start_time_;
 
   Vector6d imu_;
   
@@ -150,11 +154,11 @@ private:
   double gps_vertical_stdev_;
   double gps_speed_stdev_;
 
-  void publishEstimates(const sensor_msgs::ImuConstPtr &msg);
+  void publishEstimates(const sensor_msgs::msg::Imu &msg);
 };
 
 }
 
-
+#endif
 
 

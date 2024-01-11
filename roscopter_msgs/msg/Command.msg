@@ -15,7 +15,8 @@ uint8 MODE_NPOS_EPOS_DVEL_YAW = 4
 
 # ros2
 # builtin_interfaces/Time stamp
-time stamp
+# time stamp
+std_msgs/Header header
 
 uint8 mode
 

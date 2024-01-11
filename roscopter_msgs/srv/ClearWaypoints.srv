@@ -1,4 +1,4 @@
 # Clears the current waypoint list
 
 ---
-bool Success
+bool success

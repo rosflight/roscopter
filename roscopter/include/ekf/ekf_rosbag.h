@@ -4,7 +4,7 @@
 #include <rosbag/view.h>
 #include <rosbag/view.h>
 
-#include "ekf/ekf_ros.h"
+#include "ekf/ekf_rclcpp.hpp"
 
 #include "roscopter_utils/yaml.h"
 #include "roscopter_utils/logger.h"

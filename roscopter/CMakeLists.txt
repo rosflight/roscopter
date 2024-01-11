@@ -1,23 +1,55 @@
-cmake_minimum_required(VERSION 2.8.3)
+set(CMAKE_CXX_STANDARD 14)
+cmake_minimum_required(VERSION 3.8)
 project(roscopter)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  dynamic_reconfigure
-  roscopter_msgs
-  rosflight_msgs
-  rosflight_utils
-  roscopter_utils
-  std_msgs
-  nav_msgs
-  sensor_msgs
-  rosbag
-  roslib
-)
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif(NOT CMAKE_BUILD_TYPE)
+
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+# find_package(catkin REQUIRED COMPONENTS
+#   roscpp
+#   rospy
+#   dynamic_reconfigure
+#   roscopter_msgs
+#   rosflight_msgs
+#   rosflight_utils
+#   roscopter_utils
+#   std_msgs
+#   nav_msgs
+#   sensor_msgs
+#   rosbag
+#   roslib
+# )
 find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(inertial_sense QUIET)
+find_package(rosidl_default_generators REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
+find_package(roscopter_msgs REQUIRED)
+find_package(roscopter_utils REQUIRED)
+find_package(rosflight_msgs REQUIRED)
+find_package(rosflight_utils REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+# find_package(rosbag REQUIRED)
+# find_package(roslib REQUIRED)
+# find_package(dynamic_reconfigure REQUIRED)
 
 if (${inertial_sense_FOUND})
     message(WARNING "found inertial sense library")
@@ -35,28 +67,37 @@ else()
     message(WARNING "Did NOT find ublox library")
 endif()
 
-generate_dynamic_reconfigure_options(
-  cfg/Controller.cfg
-)
+# generate_dynamic_reconfigure_options(
+#   cfg/Controller.cfg
+# )
 
-catkin_package(
-  INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIRS}
-  CATKIN_DEPENDS roscpp rospy dynamic_reconfigure eigen_conversions
-    roscopter_msgs rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs roslib
-  DEPENDS EIGEN3
-)
+# catkin_package(
+#   INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIRS}
+#   CATKIN_DEPENDS roscpp rospy dynamic_reconfigure eigen_conversions
+#     roscopter_msgs rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs roslib
+#   DEPENDS EIGEN3
+# )
+ament_export_include_directories(include ${EIGEN3_INCLUDE_DIRS})
+ament_export_dependencies(rclcpp rclpy roscopter_utils roscopter_msgs rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
 
 add_definitions(-DROSCOPTER_DIR="${CMAKE_CURRENT_LIST_DIR}")
+
+# Included from ROSPlane
+install(
+  DIRECTORY launch params 
+  DESTINATION share/${PROJECT_NAME}/)
 
 ###########
 ## Build ##
 ###########
 
-include_directories(include 
+include_directories(
+  include 
   ${EIGEN3_INCLUDE_DIRS} 
-  ${catkin_INCLUDE_DIRS}
+  ${ament_INCLUDE_DIRS}
+  # ${catkin_INCLUDE_DIRS}
   )
-message (STATUS "catkin include dirs" ${catkin_INCLUDE_DIRS})
+# message (STATUS "catkin include dirs" ${catkin_INCLUDE_DIRS})
 
 ## Declare cpp executables
 add_executable(controller
@@ -64,27 +105,47 @@ add_executable(controller
   src/controller/controller.cpp
   include/controller/controller.h
   src/controller/simple_pid.cpp)
-add_dependencies(controller ${catkin_EXPORTED_TARGETS})
-target_link_libraries(controller ${catkin_LIBRARIES})
+ament_target_dependencies(controller rclcpp rclpy tf2 tf2_geometry_msgs roscopter_msgs roscopter_utils rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs EIGEN3)
+target_link_libraries(controller ${ament_LIBRARIES})
+install(
+  TARGETS controller
+  DESTINATION lib/${PROJECT_NAME})
 
 add_library(ekf
   src/ekf/state.cpp
   src/ekf/dynamics.cpp
   src/ekf/ekf.cpp
   src/ekf/meas.cpp
-  src/ekf/log.cpp
-)
-target_include_directories(ekf PUBLIC include ${catkin_INCLUDE_DIRS})
+  src/ekf/log.cpp)
+target_include_directories(ekf PUBLIC include lib/geometry/include)
 target_link_libraries(ekf ${YAML_CPP_LIBRARIES} stdc++fs)
 
 add_library(ekf_ros src/ekf/ekf_ros.cpp)
-target_link_libraries(ekf_ros ekf ${catkin_LIBRARIES})
-add_dependencies(ekf_ros ${catkin_EXPORTED_TARGETS})
+target_link_libraries(ekf_ros ekf ${ament_LIBRARIES})
+ament_target_dependencies(ekf_ros rclcpp rclpy roscopter_msgs roscopter_utils rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
 
 add_executable(ekf_node src/ekf/ekf_node.cpp)
-target_link_libraries(ekf_node ekf_ros ${catkin_LIBRARIES})
-add_dependencies(ekf_node ${catkin_EXPORTED_TARGETS})
+target_link_libraries(ekf_node ekf_ros ${ament_LIBRARIES})
+ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs roscopter_utils rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
+install(
+  TARGETS ekf_node
+  DESTINATION lib/${PROJECT_NAME})
 
-add_executable(ekf_rosbag src/ekf/ekf_rosbag.cpp)
-target_link_libraries(ekf_rosbag ekf_ros ${catkin_LIBRARIES})
-add_dependencies(ekf_rosbag ${catkin_EXPORTED_TARGETS})
+# add_executable(ekf_rosbag src/ekf/ekf_rosbag.cpp)
+# # target_link_libraries(ekf_rosbag ekf_ros ${catkin_LIBRARIES})
+# ament_target_dependencies(ekf_rosbag rclcpp rclpy roscopter_msgs rosflight_msgs rosflight_utils std_msgs nav_msgs sensor_msgs EIGEN3)
+
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # comment the line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # comment the line when this package is in a git repo and when
+  # a copyright and license is added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

@@ -1,6 +1,6 @@
 # Add waypoints from a .txt/.csv file.  This will overwrite whatever waypoints
 # are currently loaded
 
-string Filename # The filename of the file to read
+string filename # The filename of the file to read
 ---
-bool Success # Whether or not the waypoint list addition was successful
+bool success # Whether or not the waypoint list addition was successful
