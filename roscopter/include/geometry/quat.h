@@ -101,6 +101,7 @@ public:
   Quat& operator+= (const Vec3& v)
   {
     arr_ = boxplus(v).elements();
+    return *this;
   }
 
   template<typename T2>

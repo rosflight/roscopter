@@ -2,15 +2,13 @@
 #include <stdio.h>
 #include <string.h>
 
+using std::placeholders::_1;
+
 namespace controller
 {
 
 Controller::Controller() : Node("controller")
 {
-  //TODO  Reimplement this in ROS2
-  // if (!nh_param_.getParam("equilibrium_throttle", throttle_eq_))
-  //   ROS_ERROR("[Controller] MAV equilibrium_throttle not found!");
-    
   // Calculate max accelerations. Assuming that equilibrium throttle produces
   // 1 g of acceleration and a linear thrust model, these max acceleration
   // values are computed in g's as well.
@@ -20,14 +18,99 @@ Controller::Controller() : Node("controller")
   is_flying_ = false;
   received_cmd_ = false;
 
-  // nh_param_.getParam("max_roll", max_.roll);
-  // nh_param_.getParam("max_pitch", max_.pitch);
-  // nh_param_.getParam("max_yaw_rate", max_.yaw_rate);
-  // nh_param_.getParam("max_throttle", max_.throttle);
-  // nh_param_.getParam("max_n_dot", max_.n_dot);
-  // nh_param_.getParam("max_e_dot", max_.e_dot);
-  // nh_param_.getParam("max_d_dot", max_.d_dot);
-  this->declare_parameter("max_roll", 0.15);  // Dummy variables
+  declareParams();
+
+  if (!this->get_parameter("equilibrium_throttle", throttle_eq_)) {
+    RCLCPP_ERROR(this->get_logger(), "Controller MAV equilibrium throttle not found!");
+  }
+
+  // Set up Publisher and Subscribers
+  state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("estimate", 1, std::bind(&Controller::stateCallback, this, _1));
+  is_flying_sub_ = this->create_subscription<roscopter_msgs::msg::Bool>("is_flying", 1, std::bind(&Controller::isFlyingCallback, this, _1));
+  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::Command>("high_level_command", 1, std::bind(&Controller::cmdCallback, this, _1));
+  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&Controller::statusCallback, this, _1));
+  
+  command_pub_ = this->create_publisher<rosflight_msgs::msg::Command>("command", 1);
+
+  // Register parameter callback
+  parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&Controller::parametersCallback, this, _1));
+
+}
+
+rcl_interfaces::msg::SetParametersResult Controller::parametersCallback(const std::vector<rclcpp::Parameter> & parameters)
+{
+  rcl_interfaces::msg::SetParametersResult result;
+  result.successful = true;
+  result.reason = "TODO: Implement parameter manager";
+
+  for (auto param : parameters) {
+    RCLCPP_INFO_STREAM(this->get_logger(), param.get_name() << " was not changed internally!");
+  }
+
+// TODO:
+//   double P, I, D, tau;
+//   tau = config.tau;
+//   P = config.x_dot_P;
+//   I = config.x_dot_I;
+//   D = config.x_dot_D;
+//   PID_x_dot_.setGains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
+
+//   P = config.y_dot_P;
+//   I = config.y_dot_I;
+//   D = config.y_dot_D;
+//   PID_y_dot_.setGains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
+
+//   P = config.z_dot_P;
+//   I = config.z_dot_I;
+//   D = config.z_dot_D;
+//   // set max z accelerations so that we can't fall faster than 1 gravity
+//   PID_z_dot_.setGains(P, I, D, tau, 1.0, -max_accel_z_);
+
+//   P = config.north_P;
+//   I = config.north_I;
+//   D = config.north_D;
+//   max_.n_dot = config.max_n_dot;
+//   PID_n_.setGains(P, I, D, tau, max_.n_dot, -max_.n_dot);
+
+//   P = config.east_P;
+//   I = config.east_I;
+//   D = config.east_D;
+//   max_.e_dot = config.max_e_dot;
+//   PID_e_.setGains(P, I, D, tau, max_.e_dot, -max_.e_dot);
+
+//   P = config.down_P;
+//   I = config.down_I;
+//   D = config.down_D;
+//   max_.d_dot = config.max_d_dot;
+//   PID_d_.setGains(P, I, D, tau, max_.d_dot, -max_.d_dot);
+
+//   P = config.psi_P;
+//   I = config.psi_I;
+//   D = config.psi_D;
+//   PID_psi_.setGains(P, I, D, tau);
+
+//   max_.roll = config.max_roll;
+//   max_.pitch = config.max_pitch;
+//   max_.yaw_rate = config.max_yaw_rate;
+//   max_.throttle = config.max_throttle;
+
+//   max_.n_dot = config.max_n_dot;
+//   max_.e_dot = config.max_e_dot;
+//   max_.d_dot = config.max_d_dot;
+
+//   throttle_eq_ = config.equilibrium_throttle;
+
+//   ROS_INFO("new gains");
+
+//   resetIntegrators();
+
+  return result;
+} 
+
+void Controller::declareParams()
+{
+  this->declare_parameter("equilibrium_throttle", 0.5); // Default values
+  this->declare_parameter("max_roll", 0.15);  
   this->declare_parameter("max_pitch", 0.15);
   this->declare_parameter("max_yaw_rate", 0.15);
   this->declare_parameter("max_throttle", 0.85);
@@ -35,7 +118,6 @@ Controller::Controller() : Node("controller")
   this->declare_parameter("max_e_dot", 0.15);
   this->declare_parameter("max_d_dot", 0.15);
 
-  // nh_param_.getParam("min_altitude", min_altitude_);
   this->declare_parameter("min_altitude", 0.15);
 
   this->get_parameter("max_roll", max_.roll);
@@ -46,17 +128,6 @@ Controller::Controller() : Node("controller")
   this->get_parameter("max_e_dot", max_.e_dot);
   this->get_parameter("max_d_dot", max_.d_dot);
   this->get_parameter("min_altitude", min_altitude_);
-
-  // _func = boost::bind(&Controller::reconfigure_callback, this, _1, _2);
-  // _server.setCallback(_func);
-
-  // Set up Publisher and Subscribers
-  state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("estimate", 1, std::bind(&Controller::stateCallback, this, _1));
-  is_flying_sub_ = this->create_subscription<roscopter_msgs::msg::Bool>("is_flying", 1, std::bind(&Controller::isFlyingCallback, this, _1));
-  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::Command>("high_level_command", 1, std::bind(&Controller::cmdCallback, this, _1));
-  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&Controller::statusCallback, this, _1));
-  
-  command_pub_ = this->create_publisher<rosflight_msgs::msg::Command>("command", 1);
 }
 
 
@@ -65,12 +136,12 @@ void Controller::stateCallback(const nav_msgs::msg::Odometry &msg)
   static double prev_time = 0;
   if(prev_time == 0)
   {
-    prev_time = msg.header.stamp.sec;
+    prev_time = msg.header.stamp.sec; // TODO: add nanosecs
     return;
   }
 
   // Calculate time
-  double now = msg.header.stamp.sec;
+  double now = msg.header.stamp.sec;  // TODO: add nanosecs
   double dt = now - prev_time;
   prev_time = now;
 
@@ -90,8 +161,8 @@ void Controller::stateCallback(const nav_msgs::msg::Odometry &msg)
   tf2::Quaternion tf_quat;
   tf2::fromMsg(msg.pose.pose.orientation, tf_quat);
   tf2::Matrix3x3(tf_quat).getRPY(xhat_.phi, xhat_.theta, xhat_.psi);
-  xhat_.theta = xhat_.theta;
-  xhat_.psi = xhat_.psi;
+  xhat_.theta = xhat_.theta;  // TODO: Why?
+  xhat_.psi = xhat_.psi;      // TODO: Why?
 
   xhat_.p = msg.twist.twist.angular.x;
   xhat_.q = msg.twist.twist.angular.y;
@@ -173,67 +244,6 @@ void Controller::cmdCallback(const roscopter_msgs::msg::Command &msg)
   if (!received_cmd_)
     received_cmd_ = true;
 }
-
-// void Controller::reconfigure_callback(roscopter::ControllerConfig& config,
-//                                       uint32_t level)
-// {
-//   double P, I, D, tau;
-//   tau = config.tau;
-//   P = config.x_dot_P;
-//   I = config.x_dot_I;
-//   D = config.x_dot_D;
-//   PID_x_dot_.setGains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
-
-//   P = config.y_dot_P;
-//   I = config.y_dot_I;
-//   D = config.y_dot_D;
-//   PID_y_dot_.setGains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
-
-//   P = config.z_dot_P;
-//   I = config.z_dot_I;
-//   D = config.z_dot_D;
-//   // set max z accelerations so that we can't fall faster than 1 gravity
-//   PID_z_dot_.setGains(P, I, D, tau, 1.0, -max_accel_z_);
-
-//   P = config.north_P;
-//   I = config.north_I;
-//   D = config.north_D;
-//   max_.n_dot = config.max_n_dot;
-//   PID_n_.setGains(P, I, D, tau, max_.n_dot, -max_.n_dot);
-
-//   P = config.east_P;
-//   I = config.east_I;
-//   D = config.east_D;
-//   max_.e_dot = config.max_e_dot;
-//   PID_e_.setGains(P, I, D, tau, max_.e_dot, -max_.e_dot);
-
-//   P = config.down_P;
-//   I = config.down_I;
-//   D = config.down_D;
-//   max_.d_dot = config.max_d_dot;
-//   PID_d_.setGains(P, I, D, tau, max_.d_dot, -max_.d_dot);
-
-//   P = config.psi_P;
-//   I = config.psi_I;
-//   D = config.psi_D;
-//   PID_psi_.setGains(P, I, D, tau);
-
-//   max_.roll = config.max_roll;
-//   max_.pitch = config.max_pitch;
-//   max_.yaw_rate = config.max_yaw_rate;
-//   max_.throttle = config.max_throttle;
-
-//   max_.n_dot = config.max_n_dot;
-//   max_.e_dot = config.max_e_dot;
-//   max_.d_dot = config.max_d_dot;
-
-//   throttle_eq_ = config.equilibrium_throttle;
-
-//   ROS_INFO("new gains");
-
-//   resetIntegrators();
-// }
-
 
 void Controller::computeControl(double dt)
 {

@@ -52,9 +52,9 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <roscopter_msgs/msg/bool.hpp>
 
-#ifdef UBLOX
-#include "ublox/PosVelEcef.h"
-#endif
+// #ifdef UBLOX
+// #include "ublox/PosVelEcef.h"
+// #endif
 
 #ifdef INERTIAL_SENSE
 #include "inertial_sense/GPS.h"
@@ -83,9 +83,9 @@ public:
   void statusCallback(const rosflight_msgs::msg::Status& msg);
   int32_t calculateTime(rclcpp::Time);
 
-#ifdef UBLOX
-  void gnssCallbackUblox(const ublox::PosVelEcefConstPtr& msg);
-#endif
+// #ifdef UBLOX
+//   void gnssCallbackUblox(const ublox::PosVelEcefConstPtr& msg);
+// #endif
 
 #ifdef INERTIAL_SENSE
   void gnssCallbackInertialSense(const inertial_sense::GPSConstPtr& msg);
@@ -119,9 +119,9 @@ private:
   geometry_msgs::msg::Vector3Stamped euler_msg_;
   roscopter_msgs::msg::Bool is_flying_msg_;
 
-#ifdef UBLOX
-  rclcpp::Subscription ublox_gnss_sub_;
-#endif
+// #ifdef UBLOX
+//   rclcpp::Subscription ublox_gnss_sub_;
+// #endif
 
 #ifdef INERTIAL_SENSE
   rclcpp::Subscription is_gnss_sub_;

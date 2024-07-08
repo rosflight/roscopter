@@ -81,11 +81,6 @@ public:
 
 private:
 
-  // Node handles, publishers, subscribers
-  // rclcpp::NodeHandle nh_;
-  // rclcpp::NodeHandle nh_private_;
-  // rclcpp::NodeHandle nh_param_;
-
   // Publishers and Subscribers
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr state_sub_;
   rclcpp::Subscription<roscopter_msgs::msg::Bool>::SharedPtr is_flying_sub_;
@@ -114,12 +109,6 @@ private:
   controller::SimplePID PID_d_;
   controller::SimplePID PID_psi_;
 
-  // Dynamic Reconfigure Hooks
-  // dynamic_reconfigure::Server<roscopter::ControllerConfig> _server;
-  // dynamic_reconfigure::Server<roscopter::ControllerConfig>::CallbackType _func;
-  // void reconfigure_callback(roscopter::ControllerConfig& config,
-                            // uint32_t level);
-
   // Memory for sharing information between functions
   state_t xhat_ = {}; // estimate
   max_t max_ = {};
@@ -138,6 +127,20 @@ private:
   void resetIntegrators();
   void publishCommand();
   double saturate(double x, double max, double min);
+
+  /**
+   * @brief Declares parameters with ROS2 and loads from a parameter file, if given
+   */
+  void declareParams();
+
+  OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
+
+  /**
+   * @brief Callback function to handle parameter changes
+   * 
+   * @param parameters: Vector of rclcpp::Parameter objects that were changed
+   */
+  rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> & parameters);
 
 };
 }

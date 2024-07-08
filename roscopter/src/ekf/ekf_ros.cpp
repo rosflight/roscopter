@@ -74,9 +74,9 @@ void EKF_ROS::initROS()
   gnss_sub_ = this->create_subscription<rosflight_msgs::msg::GNSS>("gnss", 10, std::bind(&EKF_ROS::gnssCallback, this, _1));
   range_sub_ = this->create_subscription<sensor_msgs::msg::Range>("range", 10, std::bind(&EKF_ROS::rangeCallback, this, _1));
 
-#ifdef UBLOX
-  ublox_gnss_sub_ = this-create_subscription<>("ublox_gnss", 10, &EKF_ROS::gnssCallbackUblox, this);
-#endif
+// #ifdef UBLOX
+//   ublox_gnss_sub_ = this-create_subscription<>("ublox_gnss", 10, &EKF_ROS::gnssCallbackUblox, this);
+// #endif
 #ifdef INERTIAL_SENSE
   is_gnss_sub_ = this-create_subscription<>("is_gnss", 10, &EKF_ROS::gnssCallbackInertialSense, this);
 #endif
@@ -137,7 +137,7 @@ void EKF_ROS::init(const std::string &param_file, const std::string &param_dicti
 
 int32_t EKF_ROS::calculateTime(rclcpp::Time time)
 {
-  return time.seconds + time.nanoseconds()*1e-9;
+  return time.seconds() + time.nanoseconds()*1e-9;
 }
 
 void EKF_ROS::publishEstimates(const sensor_msgs::msg::Imu &msg)
@@ -357,27 +357,27 @@ void EKF_ROS::gnssCallback(const rosflight_msgs::msg::GNSS &msg)
   ekf_.gnssCallback(t, z, Sigma_ecef);
 }
 
-#ifdef UBLOX
-void EKF_ROS::gnssCallbackUblox(const ublox::msg::PosVelEcef &msg)
-{
-  if (msg.fix == ublox::msg::PosVelEcef::FIX_TYPE_2D
-      || msg.fix == ublox::msg::PosVelEcef::FIX_TYPE_3D)
-  {
-    rosflight_msgs::msg::GNSS rf_msg;
-    rf_msg.header.stamp = msg.header.stamp;
-    rf_msg.position = msg.position;
-    rf_msg.velocity = msg.velocity;
-    rf_msg.horizontal_accuracy = msg.horizontal_accuracy;
-    rf_msg.vertical_accuracy = msg.vertical_accuracy;
-    rf_msg.speed_accuracy = msg.speed_accuracy;
-    gnssCallback(boost::make_shared<rosflight_msgs::msg::GNSS>(rf_msg));
-  }
-  else
-  {
-    ROS_WARN_THROTTLE(1., "Ublox GPS not in fix");
-  }
-}
-#endif
+// #ifdef UBLOX
+// void EKF_ROS::gnssCallbackUblox(const ublox::msg::PosVelEcef &msg)
+// {
+//   if (msg.fix == ublox::msg::PosVelEcef::FIX_TYPE_2D
+//       || msg.fix == ublox::msg::PosVelEcef::FIX_TYPE_3D)
+//   {
+//     rosflight_msgs::msg::GNSS rf_msg;
+//     rf_msg.header.stamp = msg.header.stamp;
+//     rf_msg.position = msg.position;
+//     rf_msg.velocity = msg.velocity;
+//     rf_msg.horizontal_accuracy = msg.horizontal_accuracy;
+//     rf_msg.vertical_accuracy = msg.vertical_accuracy;
+//     rf_msg.speed_accuracy = msg.speed_accuracy;
+//     gnssCallback(boost::make_shared<rosflight_msgs::msg::GNSS>(rf_msg));
+//   }
+//   else
+//   {
+//     ROS_WARN_THROTTLE(1., "Ublox GPS not in fix");
+//   }
+// }
+// #endif
 
 #ifdef INERTIAL_SENSE
 void EKF_ROS::gnssCallbackInertialSense(const inertial_sense::msg::GPS &msg)
