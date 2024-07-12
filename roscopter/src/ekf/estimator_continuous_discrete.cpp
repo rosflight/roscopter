@@ -1,8 +1,8 @@
 #include <functional>
 #include <tuple>
 
-#include "estimator_continuous_discrete.hpp"
-#include "estimator_ros.hpp"
+#include "ekf/estimator_continuous_discrete.hpp"
+#include "ekf/estimator_ros.hpp"
 
 namespace roscopter
 {

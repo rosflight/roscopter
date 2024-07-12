@@ -80,24 +80,55 @@ install(
   TARGETS controller
   DESTINATION lib/${PROJECT_NAME})
 
-add_library(ekf
-  src/ekf/state.cpp
-  src/ekf/dynamics.cpp
-  src/ekf/ekf.cpp
-  src/ekf/meas.cpp
-  src/ekf/log.cpp)
-target_include_directories(ekf PUBLIC include lib/geometry/include)
-target_link_libraries(ekf ${YAML_CPP_LIBRARIES} stdc++fs)
+# add_library(ekf
+#   src/ekf/state.cpp
+#   src/ekf/dynamics.cpp
+#   src/ekf/ekf.cpp
+#   src/ekf/meas.cpp
+#   src/ekf/log.cpp)
+# target_include_directories(ekf PUBLIC include lib/geometry/include)
+# target_link_libraries(ekf ${YAML_CPP_LIBRARIES} stdc++fs)
+#
+# add_library(ekf_ros src/ekf/ekf_ros.cpp)
+# target_link_libraries(ekf_ros ekf ${ament_LIBRARIES})
+# ament_target_dependencies(ekf_ros rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
+#
+# add_executable(ekf_node src/ekf/ekf_node.cpp)
+# target_link_libraries(ekf_node ekf_ros ${ament_LIBRARIES})
+# ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
+# install(
+#   TARGETS ekf_node
+#   DESTINATION lib/${PROJECT_NAME})
 
-add_library(ekf_ros src/ekf/ekf_ros.cpp)
-target_link_libraries(ekf_ros ekf ${ament_LIBRARIES})
-ament_target_dependencies(ekf_ros rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
+# Param Manager
+add_library(param_manager
+  include/param_manager/param_manager.hpp
+  src/param_manager/param_manager.cpp
+)
+ament_target_dependencies(param_manager rclcpp)
+ament_export_targets(param_manager HAS_LIBRARY_TARGET)
+install(DIRECTORY include/param_manager DESTINATION include)
+install(TARGETS param_manager
+  EXPORT param_manager
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
-add_executable(ekf_node src/ekf/ekf_node.cpp)
-target_link_libraries(ekf_node ekf_ros ${ament_LIBRARIES})
-ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
-install(
-  TARGETS ekf_node
+# Estimator
+add_executable(roscopter_estimator
+              src/ekf/estimator_ros.cpp
+              src/ekf/estimator_ekf.cpp
+              src/ekf/estimator_continuous_discrete.cpp)
+target_link_libraries(roscopter_estimator
+  ${YAML_CPP_LIBRARIES}
+)
+ament_target_dependencies(roscopter_estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3)
+target_link_libraries(roscopter_estimator param_manager)
+target_include_directories(roscopter_estimator PUBLIC include)
+install(TARGETS
+  roscopter_estimator
   DESTINATION lib/${PROJECT_NAME})
 
 

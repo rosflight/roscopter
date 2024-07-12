@@ -16,15 +16,15 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <rosflight_msgs/msg/airspeed.hpp>
 #include <rosflight_msgs/msg/barometer.hpp>
 #include <rosflight_msgs/msg/status.hpp>
+#include <sensor_msgs/msg/detail/magnetic_field__struct.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
+#include <sensor_msgs/msg/magnetic_field.hpp>
 #include <yaml-cpp/yaml.h>
 
-#include "param_manager.hpp"
-#include "rosplane_msgs/msg/state.hpp"
+#include "param_manager/param_manager.hpp"
 
 #define EARTH_RADIUS 6378145.0f
 
@@ -58,6 +58,9 @@ protected:
     float gps_course;
     bool status_armed;
     bool armed_init;
+    float mag_x;
+    float mag_y;
+    float mag_z;
   };
 
   struct Output
@@ -93,14 +96,14 @@ protected:
   float init_static_;                     /**< Initial static pressure (mbar)  */
 
 private:
-  rclcpp::Publisher<rosplane_msgs::msg::State>::SharedPtr vehicle_state_pub_;
+  // rclcpp::Publisher<rosplane_msgs::msg::State>::SharedPtr vehicle_state_pub_;
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_fix_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr
     gnss_vel_sub_; //used in conjunction with the gnss_fix_sub_
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
-  rclcpp::Subscription<rosflight_msgs::msg::Airspeed>::SharedPtr airspeed_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr magnetometer_sub_;
 
   std::string param_filepath_ = "estimator_params.yaml";
 
@@ -115,9 +118,9 @@ private:
    * @param param_name The name of the parameter.
    * @param param_val The value of the parameter.
    */
-  void saveParameter(std::string param_name, double param_val);
-  void airspeedCallback(const rosflight_msgs::msg::Airspeed::SharedPtr msg);
+  // void saveParameter(std::string param_name, double param_val);
   void statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg);
+  void magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg);
 
   rclcpp::TimerBase::SharedPtr update_timer_;
   std::chrono::microseconds update_period_;
@@ -126,8 +129,8 @@ private:
   std::string gnss_vel_topic_ = "navsat_compat/vel";
   std::string imu_topic_ = "imu/data";
   std::string baro_topic_ = "baro";
-  std::string airspeed_topic_ = "airspeed";
   std::string status_topic_ = "status";
+  std::string magnetometer_topic_ = "magnetometer";
 
   bool gps_new_;
   bool armed_first_time_;                 /**< Arm before starting estimation  */
