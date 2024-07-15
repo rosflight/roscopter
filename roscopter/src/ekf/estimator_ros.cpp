@@ -12,7 +12,7 @@ namespace roscopter
 EstimatorROS::EstimatorROS()
     : Node("estimator_ros"), params_(this), params_initialized_(false)
 {
-  // vehicle_state_pub_ = this->create_publisher<rosplane_msgs::msg::State>("estimated_state", 10);
+  vehicle_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("estimated_state", 10);
 
   gnss_fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
     gnss_fix_topic_, 10, std::bind(&EstimatorROS::gnssFixCallback, this, std::placeholders::_1));

@@ -18,6 +18,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rosflight_msgs/msg/barometer.hpp>
 #include <rosflight_msgs/msg/status.hpp>
+#include <roscopter_msgs/msg/state.hpp>
 #include <sensor_msgs/msg/detail/magnetic_field__struct.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
@@ -96,10 +97,10 @@ protected:
   float init_static_;                     /**< Initial static pressure (mbar)  */
 
 private:
-  // rclcpp::Publisher<rosplane_msgs::msg::State>::SharedPtr vehicle_state_pub_;
+  rclcpp::Publisher<roscopter_msgs::msg::State>::SharedPtr vehicle_state_pub_;
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_fix_sub_;
   rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr
-    gnss_vel_sub_; //used in conjunction with the gnss_fix_sub_
+  gnss_vel_sub_; //used in conjunction with the gnss_fix_sub_
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;

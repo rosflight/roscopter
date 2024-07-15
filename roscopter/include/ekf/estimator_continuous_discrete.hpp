@@ -43,59 +43,37 @@ private:
   float thetahat_;
   float psihat_;     // TODO: link to an inital condiditons param
   
+  Eigen::VectorXf multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
+  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_dynamics_model;
 
-  Eigen::VectorXf attitude_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> attitude_dynamics_model;
+  Eigen::MatrixXf multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
+  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> multirotor_jacobian_model;
 
-  Eigen::MatrixXf attitude_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& angular_rates);
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> attitude_jacobian_model;
+  Eigen::MatrixXf multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> multirotor_input_jacobian_model;
 
-  Eigen::MatrixXf attitude_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& angular_rates);
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> attitude_input_jacobian_model;
-  
-  Eigen::VectorXf attitude_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> attitude_measurement_model;
+  Eigen::VectorXf multirotor_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_model;
 
-  Eigen::MatrixXf attitude_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> attitude_measurement_jacobian_model;
-  
-  Eigen::VectorXf position_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> position_dynamics_model;
+  Eigen::MatrixXf multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_jacobian_model;
 
-  Eigen::MatrixXf position_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> position_jacobian_model;
+  Eigen::VectorXf xhat_; // 12
+  Eigen::MatrixXf P_;    // 12x12
 
-  Eigen::MatrixXf position_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> position_input_jacobian_model;
-
-  Eigen::VectorXf position_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> position_measurement_model;
-
-  Eigen::MatrixXf position_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> position_measurement_jacobian_model;
-
-  Eigen::Vector2f xhat_a_; // 2
-  Eigen::Matrix2f P_a_;    // 2x2
-
-  Eigen::VectorXf xhat_p_; // 7
-  Eigen::MatrixXf P_p_;    // 7x7
-
-  Eigen::Matrix2f Q_a_; // 2x2
   Eigen::Matrix3f Q_g_;
   Eigen::Matrix3f R_accel_;
 
-  Eigen::MatrixXf Q_p_; // 7x7
-  Eigen::MatrixXf R_p_; // 6x6
-  Eigen::VectorXf f_p_; // 7
-  Eigen::MatrixXf A_p_; // 7x7
-  float h_p_;
-  Eigen::VectorXf C_p_; // 7
-  Eigen::VectorXf L_p_; // 7
+  Eigen::MatrixXf Q_; // 7x7
+  Eigen::MatrixXf R_; // 6x6
+  Eigen::VectorXf f_; // 7
+  Eigen::MatrixXf A_; // 7x7
+  float h_;
+  Eigen::VectorXf C_; // 7
+  Eigen::VectorXf L_; // 7
 
   // TODO: not used
   float gate_threshold_ = 9.21; // chi2(q = .01, df = 2)
-
-  void check_xhat_a();
 
   void bind_functions();
 

@@ -62,6 +62,7 @@ set(msg_files
   "msg/Command.msg"
   "msg/PoseEuler.msg"
   "msg/Bool.msg"
+  "msg/State.msg"
 )
 
 # Generate services in the 'srv' folder
