@@ -3,9 +3,9 @@
 std_msgs/Header header
 
 float32[3] position	# north, east, down (m)
-float32 u       # Body x velocity (m/s)
-float32 v       # Body y velocity (m/s)
-float32 w       # Body z velocity (m/s)
+float32 v_n       # Inertial x velocity (m/s)
+float32 v_e       # Inertial y velocity (m/s)
+float32 v_d      # Inertial z velocity (m/s)
 float32 vg		# Groundspeed (m/s)
 
 float32 p		# Body frame rollrate (rad/s)
