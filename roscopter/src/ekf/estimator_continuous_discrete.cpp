@@ -1,3 +1,4 @@
+#include <cmath>
 #include <functional>
 #include <tuple>
 
@@ -191,15 +192,10 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Eigen::MatrixXf::Zero(6, 6), Ts); // TODO: replace 6x6 with the true 6x6 input process uncertainty.
   
     // Check wrapping of the heading and course.
-  xhat_(3) = wrap_within_180(0.0, xhat_(3));
-  xhat_(6) = wrap_within_180(0.0, xhat_(6));
-  if (xhat_(3) > radians(180.0f) || xhat_(3) < radians(-180.0f)) {
-    RCLCPP_WARN(this->get_logger(), "Course estimate not wrapped from -pi to pi");
-    xhat_(3) = 0;
-  }
-  if (xhat_(6) > radians(180.0f) || xhat_(6) < radians(-180.0f)) {
+  xhat_(8) = wrap_within_180(0.0, xhat_(8));
+  if (xhat_(8) > radians(180.0f) || xhat_(8) < radians(-180.0f)) {
     RCLCPP_WARN(this->get_logger(), "Psi estimate not wrapped from -pi to pi");
-    xhat_(6) = 0;
+    xhat_(8) = 0;
   }
 
   // Measurement updates.
@@ -328,38 +324,61 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::Ve
 
 Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements)
 {
-  double gravity = params_.get_double("gravity");
+  float accel_x = measurements(0);
+  float accel_y = measurements(1);
+  float accel_z = measurements(2);
+  float gyro_x = measurements(3);
+  float gyro_y = measurements(4);
+  float gyro_z = measurements(5);
 
-  float p = measurements(0);
-  float q = measurements(1);
-  float r = measurements(2);
-  float phi = measurements(3);
-  float theta = measurements(4);
-  float va = measurements(5);
-  
-  float Vg = state(2);
-  float chi = state(3);
-  float wn = state(4);
-  float we = state(5);
-  float psi = state(6);
-  
-  float psidot = (q * sinf(phi) + r * cosf(phi)) / cosf(theta);
-  
-  float tmp = -psidot * va * (state(4) * cosf(state(6)) + state(5) * sinf(state(6))) / state(2);
+  float phi = state(6);
+  float theta = state(7);
+  float psi = state(8);
 
-  float Vgdot = va / Vg * psidot * (wn * cosf(psi) - we * sinf(psi));
+  float bias_x = state(9);
+  float bias_y = state(10);
+  float bias_z = state(11);
 
   Eigen::MatrixXf A;
-  A = Eigen::MatrixXf::Zero(7, 7);
-  A(0, 2) = cos(state(3));
-  A(0, 3) = -state(2) * sinf(state(3));
-  A(1, 2) = sin(state(3));
-  A(1, 3) = state(2) * cosf(state(3));
-  A(2, 2) = -Vgdot / state(2);
-  A(2, 4) = -psidot * va * sinf(state(6)) / state(2);
-  A(2, 5) = psidot * va * cosf(state(6)) / state(2);
-  A(2, 6) = tmp;
-  A(3, 2) = -gravity / powf(state(2), 2) * tanf(phihat_);
+  A = Eigen::MatrixXf::Zero(12, 12);
+
+  // Identity matrix.
+  A(0,3) = 1;
+  A(1,4) = 1;
+  A(2,5) = 1;
+  
+  // del R(Theta)*y_accel / del Theta
+  A(3,6) = accel_y*(sinf(phi)*sinf(psi) + sinf(theta)*cos(phi)*cos(psi)) - accel_z *(sinf(phi)*sinf(theta)*cos(psi - sinf(psi)*cos(phi)));
+  A(3,7) = (- accel_x*sin(theta) + accel_y*sin(phi)*cos(theta) + accel_z*cos(phi)*cos(theta))*cos(psi);
+  A(3,8) = - accel_x*sinf(psi)*cosf(theta) - accel_y*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)) + accel_z*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi));
+  A(4,6) = - accel_y*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)) - accel_z*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi));
+  A(4,7) = (- accel_x*sinf(theta) + accel_y*sinf(phi)*cosf(theta) + accel_z*cosf(phi)*cosf(theta))*sinf(psi); 
+  A(4,8) = accel_x*cosf(psi)*cosf(theta) + accel_y*(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)) + accel_z*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi));
+  A(5,6) = (accel_y*cosf(phi) - accel_z*sinf(phi))*cosf(theta);
+  A(5,7) =  - accel_x*cosf(theta) - accel_y*sinf(phi)*sinf(theta) - accel_z*sinf(theta)*cosf(phi);
+  A(5,8) = 0.0;
+
+  // del S(Theta)(y_gyro - b) / del Theta
+  A(6,6) = ((- bias_y + gyro_y)*cosf(phi) + (bias_z - gyro_z)*sinf(phi))*tanf(theta);
+  A(6,7) = ((- bias_y + gyro_y)*sinf(phi) + (- bias_z + gyro_z)*cosf(phi))/(cosf(theta)*cosf(theta));
+  A(6,8) = 0.0;
+  A(7,6) = (bias_y - gyro_y)*sinf(phi) + (bias_z - gyro_z)*cosf(phi);
+  A(7,7) = 0.0;
+  A(7,8) = 0.0;
+  A(8,6) = ((- bias_y + gyro_y)*cosf(phi) + (bias_z - gyro_z)*sinf(phi))*(1.0/cosf(theta)); 
+  A(8,7) = ((- bias_y + gyro_y)*sinf(phi) + (- bias_z + gyro_z)*cosf(phi))*tanf(theta)*(1.0/cosf(theta)); 
+  A(8,8) = 0.0; 
+
+  // -S(theta)
+  A(6, 9) = -1.0;
+  A(6, 10) = -sinf(phi)*tanf(theta);
+  A(6, 11) = -cosf(phi)*tanf(theta);
+  A(7, 9) = 0.0;
+  A(7, 10) = -cosf(phi);
+  A(7, 11) = sinf(phi);
+  A(8, 9) = 0.0;
+  A(8, 10) = -sinf(phi)/cosf(theta);
+  A(8, 11) = -cosf(phi)/cosf(theta);
 
   return A;
 }
