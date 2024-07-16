@@ -412,9 +412,45 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
 
 Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
 {
+
+  // This uses both the accel and gyro. The associated jacobians have been combined.
+  
+  float phi = state(6);
+  float theta = state(7);
+  float psi = state(8);
   
   Eigen::MatrixXf G;
-  G = Eigen::MatrixXf::Zero(7, 7);
+  G = Eigen::MatrixXf::Zero(12, 6);
+
+  Eigen::Matrix3f R_theta;
+  R_theta << cosf(psi)*cosf(theta), sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi), sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi),
+             sinf(psi)*cosf(theta), sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi), - sinf(phi)*cosf(psi) + sinf(psi)*sinf(theta)*cosf(phi),
+             -sinf(theta), sinf(phi)*cosf(theta), cosf(phi)*cosf(theta);
+
+  Eigen::Matrix3f S_theta;
+  S_theta << 1.0, sinf(phi)*tanf(theta), cosf(phi)*tanf(theta),
+             0.0, cosf(phi), -sinf(phi),
+             0.0, sinf(phi)/cosf(theta), cosf(phi)/cosf(theta);
+
+  G(3,0) = -R_theta(0,0);
+  G(3,1) = -R_theta(0,1);
+  G(3,2) = -R_theta(0,2);
+  G(4,0) = -R_theta(1,0);
+  G(4,1) = -R_theta(1,1);
+  G(4,2) = -R_theta(1,2);
+  G(5,0) = -R_theta(2,0);
+  G(5,1) = -R_theta(2,1);
+  G(5,2) = -R_theta(2,2);
+
+  G(6,3) = -S_theta(0,0);
+  G(6,4) = -S_theta(0,1);
+  G(6,5) = -S_theta(0,2);
+  G(7,3) = -S_theta(1,0);
+  G(7,4) = -S_theta(1,1);
+  G(7,5) = -S_theta(1,2);
+  G(8,3) = -S_theta(2,0);
+  G(8,4) = -S_theta(2,1);
+  G(8,5) = -S_theta(2,2);
 
   return G;
 }
