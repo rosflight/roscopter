@@ -70,11 +70,10 @@ include_directories(
 
 ## Declare cpp executables
 add_executable(controller
-  src/controller/controller_node.cpp
+  src/controller/controller_ros.cpp
   src/controller/controller.cpp
-  include/controller/controller.h
   src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy tf2 tf2_geometry_msgs roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3)
+ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs EIGEN3)
 target_link_libraries(controller ${ament_LIBRARIES})
 install(
   TARGETS controller
