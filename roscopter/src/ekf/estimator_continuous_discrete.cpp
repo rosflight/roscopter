@@ -457,7 +457,11 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eig
 
 Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  float va = input(0);
+  float rho = params_.get_double("rho");
+  float gravity = params_.get_double("gravity");
+
+  float v_n = state(3);
+  float v_e = state(4);
   
   Eigen::VectorXf h = Eigen::VectorXf::Zero(6);
 
@@ -466,19 +470,19 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_measurement_prediction(c
 
   // GPS east
   h(1) = state(1);
+  
+  // Static pressure
+  h(2) = -rho*gravity*state(2);
 
   // GPS ground speed
-  h(2) = state(2);
+  h(3) = sqrt(v_n*v_n + v_e*v_e);
   
   // GPS course
-  h(3) = state(3);
+  h(4) = state(8);
   
-  // Pseudo Measurement north
-  h(4) = va * cosf(state(6)) + state(4) - state(2) * cosf(state(3));
+  // Magnetometer
+  h(5) = state(8);
   
-  // Pseudo Measurement east
-  h(5) = va * sinf(state(6)) + state(5) - state(2) * sinf(state(3));
-
   // To add a new measurement, simply use the state and any input you need as another entry to h. Be sure to update the measurement jacobian C.
    
   return h;
