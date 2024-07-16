@@ -293,31 +293,58 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::Ve
 
   double gravity = params_.get_double("gravity");
 
-  float Vg = state(2);
-  float chi = state(3);
-  float wn = state(4);
-  float we = state(5);
-  float psi = state(6);
+  float phi = state(6);
+  float theta = state(7);
+  float psi = state(8);
+  float bias_x = state(9);
+  float bias_y = state(10);
+  float bias_z = state(11);
+  
+  Eigen::Vector3f biases;
+  biases << bias_x, bias_y, bias_z;
+  
+  float accel_x = measurements(0);
+  float accel_y = measurements(1);
+  float accel_z = measurements(2);
+  float gyro_x = measurements(3);
+  float gyro_y = measurements(4);
+  float gyro_z = measurements(5);
+  
+  Eigen::Vector3f y_accel;
+  y_accel << accel_x, accel_y, accel_z;
+  
+  Eigen::Vector3f y_gyro;
+  y_gyro << gyro_x, gyro_y, gyro_z;
 
-  float p = measurements(0);
-  float q = measurements(1);
-  float r = measurements(2);
-  float phi = measurements(3);
-  float theta = measurements(4);
-  float va = measurements(5);
+  Eigen::Vector3f e_3;
+  e_3 << 0,0,1.0;
 
-  float psidot = (q * sinf(phi) + r * cosf(phi)) / cosf(theta);
+  Eigen::Matrix3f R_theta;
+  R_theta << cosf(psi)*cosf(theta), sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi), sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi),
+             sinf(psi)*cosf(theta), sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi), - sinf(phi)*cosf(psi) + sinf(psi)*sinf(theta)*cosf(phi),
+             -sinf(theta), sinf(phi)*cosf(theta), cosf(phi)*cosf(theta);
+  
+  Eigen::Vector3f velocity_dot = gravity*e_3 + R_theta*y_accel;
 
-  float Vgdot = va / Vg * psidot * (we * cosf(psi) - wn * sinf(psi));
+  Eigen::Matrix3f S_theta;
+  S_theta << 1.0, sinf(phi)*tanf(theta), cosf(phi)*tanf(theta),
+             0.0, cosf(phi), -sinf(phi),
+             0.0, sinf(phi)/cosf(theta), cosf(phi)/cosf(theta);
+
+  Eigen::Vector3f euler_angles_dot = S_theta*(y_gyro - biases);
   
   Eigen::VectorXf f;
-  f = Eigen::VectorXf::Zero(7);
+  f = Eigen::VectorXf::Zero(12);
 
-  f(0) = state(2) * cosf(state(3));
-  f(1) = state(2) * sinf(state(3));
-  f(2) = Vgdot;
-  f(3) = gravity / state(2) * tanf(phi) * cosf(chi - psi);
-  f(6) = psidot;
+  f(0) = state(3);
+  f(1) = state(4);
+  f(2) = state(5);
+  f(3) = velocity_dot(0);
+  f(4) = velocity_dot(1);
+  f(5) = velocity_dot(2);
+  f(6) = euler_angles_dot(0);
+  f(7) = euler_angles_dot(1);
+  f(8) = euler_angles_dot(2);
 
   return f;
 }
