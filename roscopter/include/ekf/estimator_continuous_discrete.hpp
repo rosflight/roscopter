@@ -59,12 +59,12 @@ private:
   std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_jacobian_model;
 
   Eigen::VectorXf xhat_; // 12
-  Eigen::MatrixXf P_;    // 12x12
+  Eigen::MatrixXf P_;    // 6x6
 
-  Eigen::Matrix3f Q_g_;
   Eigen::Matrix3f R_accel_;
 
-  Eigen::MatrixXf Q_; // 7x7
+  Eigen::MatrixXf Q_; // 7x7 // FIXME: fix the annotated sizes.
+  Eigen::MatrixXf Q_g_; // 7x7
   Eigen::MatrixXf R_; // 6x6
   Eigen::VectorXf f_; // 7
   Eigen::MatrixXf A_; // 7x7

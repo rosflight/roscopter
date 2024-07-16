@@ -19,15 +19,15 @@ double wrap_within_180(double fixed_heading, double wrapped_heading)
 
 EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     : EstimatorEKF()
-    , xhat_(Eigen::VectorXf::Zero(7))
-    , P_(Eigen::MatrixXf::Identity(7, 7))
-    , R_accel_(Eigen::Matrix3f::Identity())
-    , Q_(Eigen::MatrixXf::Identity(7, 7))
-    , R_(Eigen::MatrixXf::Zero(7, 7))
-    , f_(7)
-    , A_(7, 7)
-    , C_(7)
-    , L_(7)
+    , xhat_(Eigen::VectorXf::Zero(12))
+    , P_(Eigen::MatrixXf::Identity(6, 6))
+    , Q_g_(Eigen::MatrixXf::Identity(6, 6))
+    , Q_(Eigen::MatrixXf::Identity(6, 6))
+    , R_(Eigen::MatrixXf::Zero(12, 12))
+    , f_(12)
+    , A_(12, 12)
+    , C_(12)
+    , L_(12) // TODO: do we use this anymore?
 {
 
   bind_functions(); // TODO: Document what the _models are.
@@ -83,32 +83,32 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete(bool use_params) : Esti
 void EstimatorContinuousDiscrete::initialize_state_covariances() {
   double pos_n_initial_cov = params_.get_double("pos_n_initial_cov");
   double pos_e_initial_cov = params_.get_double("pos_e_initial_cov");
+  double static_press_initial_cov = params_.get_double("static_press_initial_cov");
   double vg_initial_cov = params_.get_double("vg_initial_cov");
-  double chi_initial_cov = params_.get_double("chi_initial_cov");
-  double wind_n_initial_cov = params_.get_double("wind_n_initial_cov");
-  double wind_e_initial_cov = params_.get_double("wind_e_initial_cov");
-  double psi_initial_cov = params_.get_double("psi_initial_cov");
+  double gps_course_initial_cov = params_.get_double("gps_course_initial_cov");
+  double mag_initial_cov = params_.get_double("mag_initial_cov");
 
-  P_ = Eigen::MatrixXf::Identity(7, 7);
+  P_ = Eigen::MatrixXf::Identity(6, 6);
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
-  P_(2, 2) = vg_initial_cov;
-  P_(3, 3) = radians(chi_initial_cov);
-  P_(4, 4) = wind_n_initial_cov;
-  P_(5, 5) = wind_e_initial_cov;
-  P_(6, 6) = radians(psi_initial_cov);
+  P_(2, 2) = static_press_initial_cov;
+  P_(3, 3) = vg_initial_cov;
+  P_(4, 4) = radians(gps_course_initial_cov);
+  P_(5, 5) = radians(mag_initial_cov);
 }
 
 void EstimatorContinuousDiscrete::initialize_uncertainties() {
-  double roll_process_noise = params_.get_double("roll_process_noise");
-  double pitch_process_noise = params_.get_double("pitch_process_noise");
   double gyro_process_noise = params_.get_double("gyro_process_noise");
+  double accel_process_noise = params_.get_double("accel_process_noise");
   double position_process_noise = params_.get_double("pos_process_noise");
-  double attitude_initial_cov = params_.get_double("attitude_initial_cov");
 
-  Q_g_ *= pow(radians(gyro_process_noise), 2);
+  Eigen::VectorXf imu_process_noises;
+  imu_process_noises << pow(accel_process_noise,2), pow(accel_process_noise,2), pow(accel_process_noise,2),
+                        pow(radians(gyro_process_noise), 7), pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2);
 
-  Q_ *= position_process_noise;
+  Q_g_ = Q_g_ * imu_process_noises;
+
+  Q_ = Q_*position_process_noise; // FIXME: put in real process noises
 
   initialize_state_covariances();
 }
@@ -189,7 +189,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   
   // ESTIMATION
   // Prediction step
-  std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Eigen::MatrixXf::Zero(6, 6), Ts); // TODO: replace 6x6 with the true 6x6 input process uncertainty.
+  std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Q_g_, Ts); // TODO: replace 6x6 with the true 6x6 input process uncertainty.
   
     // Check wrapping of the heading and course.
   xhat_(8) = wrap_within_180(0.0, xhat_(8));
@@ -504,7 +504,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_measurement_jacobian(con
   // GPS east
   C(1,1) = 1;
   
-  // Static pressure
+  // Static pressure TODO: Move this and the magenetometer to a seperate update. 
   C(2,2) = rho*gravity;
 
   // GPS ground speed
@@ -528,6 +528,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_e_gps", .01);
   params_.declare_double("sigma_Vg_gps", .005);
   params_.declare_double("sigma_course_gps", .005 / 20);
+  params_.declare_double("sigma_mag", .005 / 20); // TODO: Put in the correct default.
   params_.declare_double("sigma_accel", .0025 * 9.81);
   params_.declare_double("sigma_pseudo_wind_n", 0.01);
   params_.declare_double("sigma_pseudo_wind_e", 0.01);
@@ -540,6 +541,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("roll_process_noise", 0.0001);   // Radians?, should be already squared
   params_.declare_double("pitch_process_noise", 0.0000001);   // Radians?, already squared
   params_.declare_double("gyro_process_noise", 0.13);   // Deg, not squared
+  params_.declare_double("accel_process_noise", 0.13);   // m/s^2 not squared
   params_.declare_double("pos_process_noise", 0.1);   // already squared
 
   params_.declare_double("attitude_initial_cov", 5.0); // Deg, not squared
