@@ -58,28 +58,6 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   N_ = params_.get_int("num_propagation_steps");
 }
 
-EstimatorContinuousDiscrete::EstimatorContinuousDiscrete(bool use_params) : EstimatorContinuousDiscrete()
-{
-  double init_lat = params_.get_double("init_lat");
-  double init_long = params_.get_double("init_lon");
-  double init_alt = params_.get_double("init_alt");
-  double init_static = params_.get_double("baro_calibration_val");
-
-  RCLCPP_INFO_STREAM(this->get_logger(), "Using seeded estimator values.");
-  RCLCPP_INFO_STREAM(this->get_logger(), "Seeded initial latitude: " << init_lat);
-  RCLCPP_INFO_STREAM(this->get_logger(), "Seeded initial longitude: " << init_long);
-  RCLCPP_INFO_STREAM(this->get_logger(), "Seeded initial altitude: " << init_alt);
-  RCLCPP_INFO_STREAM(this->get_logger(), "Seeded barometer calibration value: " << init_static);
-
-  gps_init_ = true;
-  init_lat_ = init_lat;
-  init_lon_ = init_long;
-  init_alt_ = init_alt;
-
-  baro_init_ = true;
-  init_static_ = init_static;
-}
-
 void EstimatorContinuousDiscrete::initialize_state_covariances() {
   double pos_n_initial_cov = params_.get_double("pos_n_initial_cov");
   double pos_e_initial_cov = params_.get_double("pos_e_initial_cov");
@@ -103,6 +81,7 @@ void EstimatorContinuousDiscrete::initialize_uncertainties() {
   double position_process_noise = params_.get_double("pos_process_noise");
 
   Eigen::VectorXf imu_process_noises;
+  imu_process_noises = Eigen::VectorXf::Zero(6);
   imu_process_noises << pow(accel_process_noise,2), pow(accel_process_noise,2), pow(accel_process_noise,2),
                         pow(radians(gyro_process_noise), 7), pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2);
 
@@ -118,26 +97,21 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   // For readability, declare the parameters used in the function here
   double sigma_n_gps = params_.get_double("sigma_n_gps");
   double sigma_e_gps = params_.get_double("sigma_e_gps");
+  double sigma_static_press = params_.get_double("sigma_static_press");
   double sigma_Vg_gps = params_.get_double("sigma_Vg_gps");
   double sigma_course_gps = params_.get_double("sigma_course_gps");
-  double sigma_accel = params_.get_double("sigma_accel");
-  double sigma_pseudo_wind_n = params_.get_double("sigma_pseudo_wind_n");
-  double sigma_pseudo_wind_e = params_.get_double("sigma_pseudo_wind_e");
-  double sigma_heading = params_.get_double("sigma_heading");
+  double sigma_mag = params_.get_double("sigma_mag");
   double frequency = params_.get_double("estimator_update_frequency");
   double Ts = 1.0 / frequency;
   float lpf_a = params_.get_double("lpf_a");
   float lpf_a1 = params_.get_double("lpf_a1");
 
-  R_accel_ = Eigen::Matrix3f::Identity() * pow(sigma_accel, 2);
-
   R_(0, 0) = powf(sigma_n_gps, 2);
   R_(1, 1) = powf(sigma_e_gps, 2);
-  R_(2, 2) = powf(sigma_Vg_gps, 2);
-  R_(3, 3) = powf(sigma_course_gps, 2);
-  R_(4, 4) = sigma_pseudo_wind_n;
-  R_(5, 5) = sigma_pseudo_wind_e;
-  R_(6, 6) = sigma_heading;
+  R_(2, 2) = powf(sigma_static_press, 2);
+  R_(3, 3) = powf(sigma_Vg_gps, 2);
+  R_(4, 4) = powf(sigma_course_gps, 2);
+  R_(5, 5) = powf(sigma_mag, 2);
 
   alpha_ = exp(-lpf_a * Ts);
   alpha1_ = exp(-lpf_a1 * Ts);
@@ -164,24 +138,10 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   float phat = lpf_gyro_x_;
   float qhat = lpf_gyro_y_;
   float rhat = lpf_gyro_z_;
-  
-  // These states will allow us to propagate our state model for pitch and roll.
-  Eigen::Vector3f angular_rates;
-  angular_rates << phat, qhat, rhat;
 
-  // low pass filter static pressure sensor and invert to esimate altitude
-  lpf_static_ = alpha1_ * lpf_static_ + (1 - alpha1_) * input.static_pres;
-  float hhat = lpf_static_ / rho / gravity;
+  // Use magenetometer measures to produce a heading measurement.
 
-  if (input.static_pres == 0.0
-      || baro_init_ == false) { // Catch the edge case for if pressure measured is zero.
-    hhat = 0.0;
-  }
-
-  // low pass filter accelerometers
-  lpf_accel_x_ = alpha_ * lpf_accel_x_ + (1 - alpha_) * input.accel_x;
-  lpf_accel_y_ = alpha_ * lpf_accel_y_ + (1 - alpha_) * input.accel_y;
-  lpf_accel_z_ = alpha_ * lpf_accel_z_ + (1 - alpha_) * input.accel_z;
+  double mag_course = 0.0;
 
   Eigen::VectorXf imu_measurements;
   imu_measurements = Eigen::VectorXf::Zero(6);
@@ -209,7 +169,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
     
     // Measurements for the postional states.
     Eigen::Vector<float, 6> y_pos;
-    y_pos << input.gps_n, input.gps_e, input.gps_Vg, gps_course, 0.0, 0.0;
+    y_pos << input.gps_n, input.gps_e, input.static_pres, input.gps_Vg, gps_course, mag_course;
     
     // Update the state and covariance with based on the predicted and actual measurements.
     std::tie(P_, xhat_) = measurement_update(xhat_, pos_curr_state_info, multirotor_measurement_model, y_pos, multirotor_measurement_jacobian_model, R_, P_);
@@ -271,21 +231,8 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   float wehat = xhat_(5);
   float psihat = xhat_(6);
 
-  output.pn = pnhat;
-  output.pe = pehat;
-  output.h = hhat;
-  output.alpha = 0;
-  output.beta = 0;
-  output.phi = phihat_;
-  output.theta = thetahat_;
-  output.chi = chihat;
-  output.p = phat;
-  output.q = qhat;
-  output.r = rhat;
-  output.Vg = Vghat;
-  output.wn = wnhat;
-  output.we = wehat;
-  output.psi = psihat;
+  // TODO: Add in state output.
+
 }
 
 Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements)
@@ -526,12 +473,11 @@ void EstimatorContinuousDiscrete::declare_parameters()
 {
   params_.declare_double("sigma_n_gps", .01);
   params_.declare_double("sigma_e_gps", .01);
+  params_.declare_double("sigma_static_press", .01);
   params_.declare_double("sigma_Vg_gps", .005);
   params_.declare_double("sigma_course_gps", .005 / 20);
   params_.declare_double("sigma_mag", .005 / 20); // TODO: Put in the correct default.
   params_.declare_double("sigma_accel", .0025 * 9.81);
-  params_.declare_double("sigma_pseudo_wind_n", 0.01);
-  params_.declare_double("sigma_pseudo_wind_e", 0.01);
   params_.declare_double("sigma_heading", 0.01);
   params_.declare_double("lpf_a", 50.0);
   params_.declare_double("lpf_a1", 8.0);

@@ -2,6 +2,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <rclcpp/logging.hpp>
 
 #include "ekf/estimator_ros.hpp"
 #include "ekf/estimator_continuous_discrete.hpp"
@@ -291,27 +292,7 @@ int main(int argc, char ** argv)
   
   rclcpp::init(argc, argv);
 
-  char* use_params; // HACK: Fix in a more permanant way.
-  if (argc >= 1) {
-    use_params = argv[1];
-  }
-
-
-  if (!strcmp(use_params, "true"))
-  {
-    rclcpp::spin(std::make_shared<roscopter::EstimatorContinuousDiscrete>(use_params));
-  }
-  else if(strcmp(use_params, "false")) // If the string is not true or false print error.
-  {
-    auto estimator_node = std::make_shared<roscopter::EstimatorContinuousDiscrete>();
-    RCLCPP_WARN(estimator_node->get_logger(), "Invalid option for seeding estimator, defaulting to unseeded.");
-    rclcpp::spin(estimator_node);
-  }
-  else 
-  {
-    rclcpp::spin(std::make_shared<roscopter::EstimatorContinuousDiscrete>());
-  }
-
+  rclcpp::spin(std::make_shared<roscopter::EstimatorContinuousDiscrete>());
 
   return 0;
 }
