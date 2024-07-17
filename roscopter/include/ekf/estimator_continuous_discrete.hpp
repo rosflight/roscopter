@@ -6,6 +6,7 @@
 #include <Eigen/Geometry>
 #include <yaml-cpp/yaml.h>
 
+#include "Eigen/src/Core/Matrix.h"
 #include "estimator_ekf.hpp"
 #include "estimator_ros.hpp"
 
@@ -18,8 +19,17 @@ public:
   EstimatorContinuousDiscrete();
   EstimatorContinuousDiscrete(bool use_params);
 
-private:
+  Eigen::MatrixXf get_Q_(){return Q_;};
+  Eigen::MatrixXf get_Q_g_(){return Q_g_;};
+  Eigen::MatrixXf get_P_(){return P_;};
+  Eigen::MatrixXf get_xhat_(){return xhat_;};
+  auto get_dynamics(){return multirotor_dynamics_model;};
+  auto get_jacobian(){return multirotor_jacobian_model;};
+  auto get_input_jacobian(){return multirotor_input_jacobian_model;};
+
+protected:
   virtual void estimate(const Input & input, Output & output);
+private:
 
   double lpf_a_;
   float alpha_;

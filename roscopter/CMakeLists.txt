@@ -17,6 +17,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+find_package(ament_cmake REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(inertial_sense QUIET)
@@ -131,8 +132,21 @@ install(TARGETS
   roscopter_estimator
   DESTINATION lib/${PROJECT_NAME})
 
+add_library(estimator_lib src/ekf/estimator_node.cpp src/ekf/estimator_ros.cpp src/ekf/estimator_ekf.cpp src/ekf/estimator_continuous_discrete.cpp include/ekf/estimator_ros.hpp include/ekf/estimator_ekf.hpp include/ekf/estimator_continuous_discrete.hpp)
+target_link_libraries(roscopter_estimator estimator_lib)
+target_link_libraries(estimator_lib param_manager)
+ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
 
 if(BUILD_TESTING)
+
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(estimator_test test/estimator_test.cpp)
+  ament_target_dependencies(estimator_test rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
+  target_include_directories(estimator_test PUBLIC
+    include
+  )
+  target_link_libraries(estimator_test estimator_lib) 
+
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
   # comment the line when a copyright and license is added to all source files

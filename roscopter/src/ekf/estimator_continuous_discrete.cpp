@@ -6,6 +6,11 @@
 #include "Eigen/src/Core/Matrix.h"
 #include "ekf/estimator_ros.hpp"
 
+// TODO:
+// Finalize size of all matrices, (Trace the mult.) - A is correct
+// Remove unnecessary matrices (L_, C_, etc.)
+// Ensure propagation and model stuff work.
+
 namespace roscopter
 {
 
@@ -20,10 +25,10 @@ double wrap_within_180(double fixed_heading, double wrapped_heading)
 EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     : EstimatorEKF()
     , xhat_(Eigen::VectorXf::Zero(12))
-    , P_(Eigen::MatrixXf::Identity(6, 6))
+    , P_(Eigen::MatrixXf::Identity(12, 12))
     , Q_g_(Eigen::MatrixXf::Identity(6, 6))
-    , Q_(Eigen::MatrixXf::Identity(6, 6))
-    , R_(Eigen::MatrixXf::Zero(12, 12))
+    , Q_(Eigen::MatrixXf::Identity(12, 12))
+    , R_(Eigen::MatrixXf::Zero(6, 6))
     , f_(12)
     , A_(12, 12)
     , C_(12)
@@ -61,18 +66,30 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
 void EstimatorContinuousDiscrete::initialize_state_covariances() {
   double pos_n_initial_cov = params_.get_double("pos_n_initial_cov");
   double pos_e_initial_cov = params_.get_double("pos_e_initial_cov");
-  double static_press_initial_cov = params_.get_double("static_press_initial_cov");
-  double vg_initial_cov = params_.get_double("vg_initial_cov");
-  double gps_course_initial_cov = params_.get_double("gps_course_initial_cov");
-  double mag_initial_cov = params_.get_double("mag_initial_cov");
+  double pos_d_initial_cov = params_.get_double("pos_d_initial_cov");
+  double vn_initial_cov = params_.get_double("vn_initial_cov");
+  double ve_initial_cov = params_.get_double("ve_initial_cov");
+  double vd_initial_cov = params_.get_double("vd_initial_cov");
+  double phi_initial_cov = params_.get_double("phi_initial_cov");
+  double theta_initial_cov = params_.get_double("theta_initial_cov");
+  double psi_initial_cov = params_.get_double("psi_initial_cov");
+  double bias_x_initial_cov = params_.get_double("bias_x_initial_cov");
+  double bias_y_initial_cov = params_.get_double("bias_y_initial_cov");
+  double bias_z_initial_cov = params_.get_double("bias_z_initial_cov");
 
-  P_ = Eigen::MatrixXf::Identity(6, 6);
+  P_ = Eigen::MatrixXf::Identity(6, 6); 
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
-  P_(2, 2) = static_press_initial_cov;
-  P_(3, 3) = vg_initial_cov;
-  P_(4, 4) = radians(gps_course_initial_cov);
-  P_(5, 5) = radians(mag_initial_cov);
+  P_(2, 2) = pos_d_initial_cov;
+  P_(3, 3) = vn_initial_cov;
+  P_(4, 4) = ve_initial_cov;
+  P_(5, 5) = vd_initial_cov;
+  P_(6, 6) = phi_initial_cov; 
+  P_(7, 7) = theta_initial_cov; 
+  P_(8, 8) = psi_initial_cov; 
+  P_(9, 9) = bias_x_initial_cov; 
+  P_(10, 10) = bias_y_initial_cov; 
+  P_(11, 11) = bias_z_initial_cov; 
 }
 
 void EstimatorContinuousDiscrete::initialize_uncertainties() {
@@ -141,7 +158,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 
   // Use magenetometer measures to produce a heading measurement.
 
-  double mag_course = 0.0;
+  double mag_course = input.gps_course;
 
   Eigen::VectorXf imu_measurements;
   imu_measurements = Eigen::VectorXf::Zero(6);
@@ -149,7 +166,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   
   // ESTIMATION
   // Prediction step
-  std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Q_g_, Ts); // TODO: replace 6x6 with the true 6x6 input process uncertainty.
+  std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Q_g_, Ts);
   
     // Check wrapping of the heading and course.
   xhat_(8) = wrap_within_180(0.0, xhat_(8));
@@ -322,7 +339,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
   A(2,5) = 1;
   
   // del R(Theta)*y_accel / del Theta
-  A(3,6) = accel_y*(sinf(phi)*sinf(psi) + sinf(theta)*cos(phi)*cos(psi)) - accel_z *(sinf(phi)*sinf(theta)*cos(psi - sinf(psi)*cos(phi)));
+  A(3,6) = accel_y*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)) - accel_z *(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi));
   A(3,7) = (- accel_x*sin(theta) + accel_y*sin(phi)*cos(theta) + accel_z*cos(phi)*cos(theta))*cos(psi);
   A(3,8) = - accel_x*sinf(psi)*cosf(theta) - accel_y*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)) + accel_z*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi));
   A(4,6) = - accel_y*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)) - accel_z*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi));
@@ -490,14 +507,18 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("accel_process_noise", 0.13);   // m/s^2 not squared
   params_.declare_double("pos_process_noise", 0.1);   // already squared
 
-  params_.declare_double("attitude_initial_cov", 5.0); // Deg, not squared
   params_.declare_double("pos_n_initial_cov", 0.03);
   params_.declare_double("pos_e_initial_cov", 0.03);
-  params_.declare_double("vg_initial_cov", 0.01);
-  params_.declare_double("chi_initial_cov", 5.0);  // Deg
-  params_.declare_double("wind_n_initial_cov", 0.04);
-  params_.declare_double("wind_e_initial_cov", 0.04);
-  params_.declare_double("psi_initial_cov", 5.0);  // Deg
+  params_.declare_double("pos_d_initial_cov", 0.01);
+  params_.declare_double("vn_initial_cov", 0.01);
+  params_.declare_double("ve_initial_cov", 0.01);
+  params_.declare_double("vd_initial_cov", 0.01);
+  params_.declare_double("phi_initial_cov", 0.01);
+  params_.declare_double("theta_initial_cov", 0.01);
+  params_.declare_double("psi_initial_cov", 0.01);
+  params_.declare_double("bias_x_initial_cov", 0.01);
+  params_.declare_double("bias_y_initial_cov", 0.01);
+  params_.declare_double("bias_z_initial_cov", 0.01);
 
   params_.declare_int("num_propagation_steps", 10);
 

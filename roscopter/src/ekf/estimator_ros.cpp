@@ -286,13 +286,3 @@ void EstimatorROS::statusCallback(const rosflight_msgs::msg::Status::SharedPtr m
 }
 
 } // namespace roscopter
-
-int main(int argc, char ** argv)
-{
-  
-  rclcpp::init(argc, argv);
-
-  rclcpp::spin(std::make_shared<roscopter::EstimatorContinuousDiscrete>());
-
-  return 0;
-}
