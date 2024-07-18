@@ -10,11 +10,11 @@ Controller::Controller() : ControllerROS()
   // Calculate max accelerations. Assuming that equilibrium throttle produces
   // 1 g of acceleration and a linear thrust model, these max acceleration
   // values are computed in g's as well.
-  double equilibrium_throttle = this->get_parameter("equilibrium_throttle").as_double();
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
   max_accel_z_ = 1.0 / equilibrium_throttle;
   max_accel_xy_ = sin(acos(equilibrium_throttle)) / equilibrium_throttle / sqrt(2.);
 
-  // Define parameters
+  // Fill out the max_ struct
   this->get_parameter("max_roll", max_.roll);
   this->get_parameter("max_pitch", max_.pitch);
   this->get_parameter("max_yaw_rate", max_.yaw_rate);
@@ -23,65 +23,67 @@ Controller::Controller() : ControllerROS()
   this->get_parameter("max_e_dot", max_.e_dot);
   this->get_parameter("max_d_dot", max_.d_dot);
   this->get_parameter("min_altitude", min_altitude_);
+
+  update_gains();
 }
 
-void Controller::set_gains() {
+void Controller::update_gains() {
   double P, I, D, tau;
-  tau = this->get_parameter("tau").as_double();
-  P = this->get_parameter("x_dot_P").as_double();
-  I = this->get_parameter("x_dot_I").as_double();
-  D = this->get_parameter("x_dot_D").as_double();
+  tau = params.get_double("tau");
+  P = params.get_double("x_dot_P");
+  I = params.get_double("x_dot_I");
+  D = params.get_double("x_dot_D");
   PID_x_dot_.set_gains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
 
-  P = this->get_parameter("y_dot_P").as_double();
-  I = this->get_parameter("y_dot_I").as_double();
-  D = this->get_parameter("y_dot_D").as_double();
+  P = params.get_double("y_dot_P");
+  I = params.get_double("y_dot_I");
+  D = params.get_double("y_dot_D");
   PID_y_dot_.set_gains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
 
-  P = this->get_parameter("z_dot_P").as_double();
-  I = this->get_parameter("z_dot_I").as_double();
-  D = this->get_parameter("z_dot_D").as_double();
+  P = params.get_double("z_dot_P");
+  I = params.get_double("z_dot_I");
+  D = params.get_double("z_dot_D");
   // set max z accelerations so that we can't fall faster than 1 gravity
   PID_z_dot_.set_gains(P, I, D, tau, 1.0, -max_accel_z_);
 
-  P = this->get_parameter("north_P").as_double();
-  I = this->get_parameter("north_I").as_double();
-  D = this->get_parameter("north_D").as_double();
-  max_.n_dot = this->get_parameter("max_n_dot").as_double();
+  P = params.get_double("north_P");
+  I = params.get_double("north_I");
+  D = params.get_double("north_D");
+  max_.n_dot = params.get_double("max_n_dot");
   PID_n_.set_gains(P, I, D, tau, max_.n_dot, -max_.n_dot);
 
-  P = this->get_parameter("east_P").as_double();
-  I = this->get_parameter("east_I").as_double();
-  D = this->get_parameter("east_D").as_double();
-  max_.e_dot = this->get_parameter("max_e_dot").as_double();
+  P = params.get_double("east_P");
+  I = params.get_double("east_I");
+  D = params.get_double("east_D");
+  max_.e_dot = params.get_double("max_e_dot");
   PID_e_.set_gains(P, I, D, tau, max_.e_dot, -max_.e_dot);
 
-  P = this->get_parameter("down_P").as_double();
-  I = this->get_parameter("down_I").as_double();
-  D = this->get_parameter("down_D").as_double();
-  max_.d_dot = this->get_parameter("max_d_dot").as_double();
+  P = params.get_double("down_P");
+  I = params.get_double("down_I");
+  D = params.get_double("down_D");
+  max_.d_dot = params.get_double("max_d_dot");
   PID_d_.set_gains(P, I, D, tau, max_.d_dot, -max_.d_dot);
 
-  P = this->get_parameter("psi_P").as_double();
-  I = this->get_parameter("psi_I").as_double();
-  D = this->get_parameter("psi_D").as_double();
+  P = params.get_double("psi_P");
+  I = params.get_double("psi_I");
+  D = params.get_double("psi_D");
   PID_psi_.set_gains(P, I, D, tau);
 
-  max_.roll = this->get_parameter("max_roll").as_double();
-  max_.pitch = this->get_parameter("max_pitch").as_double();
-  max_.yaw_rate = this->get_parameter("max_yaw_rate").as_double();
-  max_.throttle = this->get_parameter("max_throttle").as_double();
+  max_.roll = params.get_double("max_roll");
+  max_.pitch = params.get_double("max_pitch");
+  max_.yaw_rate = params.get_double("max_yaw_rate");
+  max_.throttle = params.get_double("max_throttle");
 
-  max_.n_dot = this->get_parameter("max_n_dot").as_double();
-  max_.e_dot = this->get_parameter("max_e_dot").as_double();
-  max_.d_dot = this->get_parameter("max_d_dot").as_double();
+  max_.n_dot = params.get_double("max_n_dot");
+  max_.e_dot = params.get_double("max_e_dot");
+  max_.d_dot = params.get_double("max_d_dot");
 }
 
 
 rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt)
 {
   // Define parameters here for clarity
-  double equilibrium_throttle = this->get_parameter("equilibrium_throttle").as_double();
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
 
   uint8_t mode_flag = input_cmd.mode;
   roscopter_msgs::msg::Command transition_cmd = input_cmd;

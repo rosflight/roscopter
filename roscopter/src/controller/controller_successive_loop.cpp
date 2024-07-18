@@ -10,105 +10,107 @@ ControllerSuccessiveLoop::ControllerSuccessiveLoop() : ControllerROS()
   // Calculate max accelerations. Assuming that equilibrium throttle produces
   // 1 g of acceleration and a linear thrust model, these max acceleration
   // values are computed in g's as well.
-//   double equilibrium_throttle = this->get_parameter("equilibrium_throttle").as_double();
+//   double equilibrium_throttle = params.get_double("equilibrium_throttle");
 //   max_accel_z_ = 1.0 / equilibrium_throttle;
 //   max_accel_xy_ = sin(acos(equilibrium_throttle)) / equilibrium_throttle / sqrt(2.);
 
+  // Define and declare parameters here that pertain to the ControllerSuccessiveLoop
   declare_params();
-  set_gains();
+  params.set_parameters();
 
+  update_gains();
   reset_integrators();
 }
 
 void ControllerSuccessiveLoop::declare_params() {
-  this->declare_parameter("phi_kp", 0.2);
-  this->declare_parameter("phi_ki", 0.0);
-  this->declare_parameter("phi_kd", 0.2);
-  this->declare_parameter("max_phi_dot", 5.0);
+  params.declare_double("phi_kp", 0.2);
+  params.declare_double("phi_ki", 0.0);
+  params.declare_double("phi_kd", 0.2);
+  params.declare_double("max_phi_dot", 5.0);
 
-  this->declare_parameter("theta_kp", 0.2);
-  this->declare_parameter("theta_ki", 0.0);
-  this->declare_parameter("theta_kd", 0.2);
-  this->declare_parameter("max_theta_dot", 5.0);
+  params.declare_double("theta_kp", 0.2);
+  params.declare_double("theta_ki", 0.0);
+  params.declare_double("theta_kd", 0.2);
+  params.declare_double("max_theta_dot", 5.0);
 
-  this->declare_parameter("psi_kp", 0.2);
-  this->declare_parameter("psi_ki", 0.002);
-  this->declare_parameter("psi_kd", 0.2);
-  this->declare_parameter("max_psi_dot", 5.0);
+  params.declare_double("psi_kp", 0.2);
+  params.declare_double("psi_ki", 0.002);
+  params.declare_double("psi_kd", 0.2);
+  params.declare_double("max_psi_dot", 5.0);
 
-  this->declare_parameter("u_n_kp", 0.2);
-  this->declare_parameter("u_n_ki", 0.002);
-  this->declare_parameter("u_n_kd", 0.2);
-  this->declare_parameter("max_u_n_dot", 5.0);
+  params.declare_double("u_n_kp", 0.2);
+  params.declare_double("u_n_ki", 0.002);
+  params.declare_double("u_n_kd", 0.2);
+  params.declare_double("max_u_n_dot", 5.0);
 
-  this->declare_parameter("u_e_kp", 0.2);
-  this->declare_parameter("u_e_ki", 0.002);
-  this->declare_parameter("u_e_kd", 0.2);
-  this->declare_parameter("max_u_e_dot", 5.0);
+  params.declare_double("u_e_kp", 0.2);
+  params.declare_double("u_e_ki", 0.002);
+  params.declare_double("u_e_kd", 0.2);
+  params.declare_double("max_u_e_dot", 5.0);
 
-  this->declare_parameter("u_d_kp", 0.2);
-  this->declare_parameter("u_d_ki", 0.002);
-  this->declare_parameter("u_d_kd", 0.2);
-  this->declare_parameter("max_u_d_dot", 5.0);
+  params.declare_double("u_d_kp", 0.2);
+  params.declare_double("u_d_ki", 0.002);
+  params.declare_double("u_d_kd", 0.2);
+  params.declare_double("max_u_d_dot", 5.0);
 
-  this->declare_parameter("C_d", 0.0);
-  this->declare_parameter("gravity", 9.81);
-  this->declare_parameter("mass", 2.0);
+  params.declare_double("C_d", 0.0);
+  params.declare_double("gravity", 9.81);
+  params.declare_double("mass", 2.0);
 
-  this->declare_parameter("min_throttle", 0.0);
-  this->declare_parameter("max_roll_torque", 0.1);
-  this->declare_parameter("max_pitch_torque", 0.0);
-  this->declare_parameter("max_yaw_torque", 0.0);
-  this->declare_parameter("max_thrust", 4.0);
+  params.declare_double("min_throttle", 0.0);
+  params.declare_double("max_roll_torque", 0.1);
+  params.declare_double("max_pitch_torque", 0.0);
+  params.declare_double("max_yaw_torque", 0.0);
 }
 
-void ControllerSuccessiveLoop::set_gains() {
+void ControllerSuccessiveLoop::update_gains() {
+    RCLCPP_INFO_STREAM(this->get_logger(), "Updating gains!");
     double P, I, D, tau;
-    tau = this->get_parameter("tau").as_double();
-    P = this->get_parameter("phi_kp").as_double();
-    I = this->get_parameter("phi_ki").as_double();
-    D = this->get_parameter("phi_kd").as_double();
-    double max_phi_dot = this->get_parameter("max_phi_dot").as_double();
+    tau = params.get_double("tau");
+    P = params.get_double("phi_kp");
+    I = params.get_double("phi_ki");
+    D = params.get_double("phi_kd");
+    double max_phi_dot = params.get_double("max_phi_dot");
     PID_phi_.set_gains(P, I, D, tau, max_phi_dot, -max_phi_dot);
 
-    P = this->get_parameter("theta_kp").as_double();
-    I = this->get_parameter("theta_ki").as_double();
-    D = this->get_parameter("theta_kd").as_double();
-    double max_theta_dot = this->get_parameter("max_theta_dot").as_double();
+    P = params.get_double("theta_kp");
+    I = params.get_double("theta_ki");
+    D = params.get_double("theta_kd");
+    double max_theta_dot = params.get_double("max_theta_dot");
     PID_theta_.set_gains(P, I, D, tau, max_theta_dot, -max_theta_dot);
 
-    P = this->get_parameter("psi_kp").as_double();
-    I = this->get_parameter("psi_ki").as_double();
-    D = this->get_parameter("psi_kd").as_double();
-    double max_psi_dot = this->get_parameter("max_psi_dot").as_double();
+    P = params.get_double("psi_kp");
+    I = params.get_double("psi_ki");
+    D = params.get_double("psi_kd");
+    double max_psi_dot = params.get_double("max_psi_dot");
     PID_psi_.set_gains(P, I, D, tau, max_psi_dot, -max_psi_dot);
 
-    P = this->get_parameter("u_n_kp").as_double();
-    I = this->get_parameter("u_n_ki").as_double();
-    D = this->get_parameter("u_n_kd").as_double();
-    double max_u_n_dot = this->get_parameter("max_u_n_dot").as_double();
+    P = params.get_double("u_n_kp");
+    I = params.get_double("u_n_ki");
+    D = params.get_double("u_n_kd");
+    double max_u_n_dot = params.get_double("max_u_n_dot");
     PID_u_n_.set_gains(P, I, D, tau, max_u_n_dot, -max_u_n_dot);
 
-    P = this->get_parameter("u_e_kp").as_double();
-    I = this->get_parameter("u_e_ki").as_double();
-    D = this->get_parameter("u_e_kd").as_double();
-    double max_u_e_dot = this->get_parameter("max_u_e_dot").as_double();
+    P = params.get_double("u_e_kp");
+    I = params.get_double("u_e_ki");
+    D = params.get_double("u_e_kd");
+    double max_u_e_dot = params.get_double("max_u_e_dot");
     PID_u_e_.set_gains(P, I, D, tau, max_u_e_dot, -max_u_e_dot);
 
-    P = this->get_parameter("u_d_kp").as_double();
-    I = this->get_parameter("u_d_ki").as_double();
-    D = this->get_parameter("u_d_kd").as_double();
-    double max_u_d_dot = this->get_parameter("max_u_d_dot").as_double();
+    P = params.get_double("u_d_kp");
+    I = params.get_double("u_d_ki");
+    D = params.get_double("u_d_kd");
+    double max_u_d_dot = params.get_double("max_u_d_dot");
     PID_u_d_.set_gains(P, I, D, tau, max_u_d_dot, -max_u_d_dot);
 }
 
 rosflight_msgs::msg::Command ControllerSuccessiveLoop::compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt)
 {
-  double max_throttle = this->get_parameter("max_throttle").as_double();
-  double min_throttle = this->get_parameter("min_throttle").as_double();
-  double max_roll_torque = this->get_parameter("max_roll_torque").as_double();
-  double max_pitch_torque = this->get_parameter("max_pitch_torque").as_double();
-  double max_yaw_torque = this->get_parameter("max_yaw_torque").as_double();
+  double max_throttle = params.get_double("max_throttle");
+  double min_throttle = params.get_double("min_throttle");
+  double max_roll_torque = params.get_double("max_roll_torque");
+  double max_pitch_torque = params.get_double("max_pitch_torque");
+  double max_yaw_torque = params.get_double("max_yaw_torque");
   
   if(dt <= 0.0000001) {
     // This messes up the derivative calculation in the PID controllers
@@ -149,10 +151,10 @@ void ControllerSuccessiveLoop::attitude_control(double phi_cmd, double theta_cmd
 
 void ControllerSuccessiveLoop::trajectory_control(double pn_cmd, double pe_cmd, double pd_cmd, double dt, roscopter_msgs::msg::State xhat)
 {
-  double C_d = this->get_parameter("C_d").as_double();
-  double g = this->get_parameter("gravity").as_double();
-  double mass = this->get_parameter("mass").as_double();
-  double max_thrust = this->get_parameter("max_thrust").as_double();
+  double C_d = params.get_double("C_d");
+  double g = params.get_double("gravity");
+  double mass = params.get_double("mass");
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
 
   // Optional feedforward commands
   double pn_ddot_cmd = 0.0;
@@ -168,19 +170,22 @@ void ControllerSuccessiveLoop::trajectory_control(double pn_cmd, double pe_cmd, 
 
   // East control effort
   double pe_dot_tilde = pe_dot_cmd - pe_dot_cmd;
-  double u_e = pe_ddot_cmd + g*C_d*pe_dot_cmd + PID_u_n_.compute_pid(pe_cmd, xhat.position[1], dt, pe_dot_tilde);
+  double u_e = pe_ddot_cmd + g*C_d*pe_dot_cmd + PID_u_e_.compute_pid(pe_cmd, xhat.position[1], dt, pe_dot_tilde);
 
   // Down control effort
   double pd_dot_tilde = pd_dot_cmd - pd_dot_cmd;
-  double u_d = pd_ddot_cmd + g*C_d*pd_dot_cmd + PID_u_n_.compute_pid(pd_cmd, xhat.position[2], dt, pd_dot_tilde);
+  double u_d = pd_ddot_cmd + g*C_d*pd_dot_cmd + PID_u_d_.compute_pid(pd_cmd, xhat.position[2], dt, pd_dot_tilde);
 
-  // Compute command thrust and euler angles
-  double thrust = mass * (g - u_d);
+  // Compute command euler angles
   phi_cmd_ = u_e*cos(xhat.psi)/g - u_n*sin(xhat.psi)/g;
   theta_cmd_ = -u_n*cos(xhat.psi)/g - u_e*sin(xhat.psi)/g;
-  
-  // Convert thrust to throttle setting
-  throttle_cmd_ = thrust / max_thrust;
+
+  // Compute thrust and convert to throttle setting
+  // Note that this is different than the commanded thrust calculation in Ch14 of the book, to accomodate equilibrium throttle setting without scaling the commanded calculated from the PID loop
+  double thrust = - mass * u_d;
+
+  throttle_cmd_ = equilibrium_throttle + thrust / (mass * g);
+  RCLCPP_INFO_STREAM(this->get_logger(), "Thrust: " << thrust << " Throttle Setting: " << throttle_cmd_);
 }
 
 void ControllerSuccessiveLoop::reset_integrators()

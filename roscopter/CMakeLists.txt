@@ -64,10 +64,29 @@ install(
 
 include_directories(
   include
-  include/param_manager
   ${EIGEN3_INCLUDE_DIRS} 
   ${ament_INCLUDE_DIRS}
   )
+
+
+### LIBRARIES ###
+
+# Param Manager
+add_library(param_manager
+  include/param_manager/param_manager.hpp
+  src/param_manager/param_manager.cpp
+)
+ament_target_dependencies(param_manager rclcpp)
+ament_export_targets(param_manager HAS_LIBRARY_TARGET)
+install(DIRECTORY include/param_manager DESTINATION include)
+install(TARGETS param_manager
+  EXPORT param_manager
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
 
 ### EXECUTABLES ###
 
@@ -77,7 +96,7 @@ add_executable(controller
   src/controller/controller_successive_loop.cpp
   src/controller/simple_pid.cpp)
 ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs EIGEN3)
-target_link_libraries(controller ${ament_LIBRARIES})
+target_link_libraries(controller ${ament_LIBRARIES} param_manager)
 install(
   TARGETS controller
   DESTINATION lib/${PROJECT_NAME})
@@ -103,24 +122,6 @@ ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs rosflight_msgs st
 install(
   TARGETS ekf_node
   DESTINATION lib/${PROJECT_NAME})
-
-### LIBRARIES ###
-
-# Param Manager
-add_library(param_manager
-  include/param_manager/param_manager.hpp
-  src/param_manager/param_manager.cpp
-)
-ament_target_dependencies(param_manager rclcpp)
-ament_export_targets(param_manager HAS_LIBRARY_TARGET)
-install(DIRECTORY include/param_manager DESTINATION include)
-install(TARGETS param_manager
-  EXPORT param_manager
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
-)
 
 
 if(BUILD_TESTING)

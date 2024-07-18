@@ -120,5 +120,5 @@ private:
   rclcpp::Node * container_node_;
 };
 
-}   // namespace rosplane
+}   // namespace roscopter
 #endif // PARAM_MANAGER_H

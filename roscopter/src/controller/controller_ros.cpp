@@ -7,88 +7,93 @@ using std::placeholders::_1;
 namespace roscopter
 {
 
-ControllerROS::ControllerROS() : Node("controller")
+ControllerROS::ControllerROS() : Node("controller"), params(this)
 {
   is_flying_.data = false;
   received_cmd_ = false;
   first_active_control_loop_ = true;
-
-  // Declare params with ROS and the ParamManager
-  declare_params();
-
-  if (!this->get_parameter("equilibrium_throttle").as_double()) {
-    RCLCPP_ERROR(this->get_logger(), "Controller MAV equilibrium throttle not found!");
-  }
 
   // Set up Publisher and Subscribers
   state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&ControllerROS::state_callback, this, _1));
   is_flying_sub_ = this->create_subscription<roscopter_msgs::msg::Bool>("is_flying", 1, std::bind(&ControllerROS::is_flying_callback, this, _1));
   cmd_sub_ = this->create_subscription<roscopter_msgs::msg::Command>("high_level_command", 1, std::bind(&ControllerROS::cmd_callback, this, _1));
   status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&ControllerROS::status_callback, this, _1));
-  
   command_pub_ = this->create_publisher<rosflight_msgs::msg::Command>("command", 1);
 
+  // Declare params with ROS and the ParamManager
+  declare_params();
+  params.set_parameters();
+
+  // TODO: Does the firmware do anythign with this parameter? i.e., does it get sent to the firmware? It would be better to remove it from here
+  if (!params.get_double("equilibrium_throttle")) {
+    RCLCPP_ERROR(this->get_logger(), "Controller MAV equilibrium throttle not found!");
+  }
   // Register parameter callback
   parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&ControllerROS::parameters_callback, this, _1));
-
 }
 
 rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(const std::vector<rclcpp::Parameter> & parameters)
 {
   rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  result.reason = "TODO: Implement parameter manager";
+  result.successful = false;
+  result.reason = "One of the parameters is not a parameter of the controller.";
 
-  for (auto param : parameters) {
-    RCLCPP_INFO_STREAM(this->get_logger(), param.get_name() << " was not changed internally!");
+  // Use the ParamManager's set parameters callback
+  bool success = params.set_parameters_callback(parameters);
+  if (success)
+  {
+    result.successful = true;
+    result.reason = "success";
   }
+
+  // Call the update_gains method implemented in a derived class to save the gains in member variables there.
+  update_gains();
 
   return result;
 } 
 
 void ControllerROS::declare_params()
 {
-  this->declare_parameter("equilibrium_throttle", 0.5); // Default values
-  this->declare_parameter("max_roll", 0.15);  
-  this->declare_parameter("max_pitch", 0.15);
-  this->declare_parameter("max_yaw_rate", 0.15);
-  this->declare_parameter("max_throttle", 0.85);
-  this->declare_parameter("max_n_dot", 0.15);
-  this->declare_parameter("max_e_dot", 0.15);
-  this->declare_parameter("max_d_dot", 0.15);
+  params.declare_double("equilibrium_throttle", 0.5); // Default values
+  params.declare_double("max_roll", 0.15);  
+  params.declare_double("max_pitch", 0.15);
+  params.declare_double("max_yaw_rate", 0.15);
+  params.declare_double("max_throttle", 0.85);
+  params.declare_double("max_n_dot", 0.15);
+  params.declare_double("max_e_dot", 0.15);
+  params.declare_double("max_d_dot", 0.15);
 
-  this->declare_parameter("min_altitude", 0.15);
+  params.declare_double("min_altitude", 0.15);
 
-  this->declare_parameter("x_dot_P", 0.5);
-  this->declare_parameter("x_dot_I", 0.0);
-  this->declare_parameter("x_dot_D", 0.05);
+  params.declare_double("x_dot_P", 0.5);
+  params.declare_double("x_dot_I", 0.0);
+  params.declare_double("x_dot_D", 0.05);
 
-  this->declare_parameter("y_dot_P", 0.5);
-  this->declare_parameter("y_dot_I", 0.0);
-  this->declare_parameter("y_dot_D", 0.05);
+  params.declare_double("y_dot_P", 0.5);
+  params.declare_double("y_dot_I", 0.0);
+  params.declare_double("y_dot_D", 0.05);
 
-  this->declare_parameter("z_dot_P", 0.4);
-  this->declare_parameter("z_dot_I", 0.25);
-  this->declare_parameter("z_dot_D", 0.1);
+  params.declare_double("z_dot_P", 0.4);
+  params.declare_double("z_dot_I", 0.25);
+  params.declare_double("z_dot_D", 0.1);
 
-  this->declare_parameter("north_P", 1.0);
-  this->declare_parameter("north_I", 0.1);
-  this->declare_parameter("north_D", 0.35);
+  params.declare_double("north_P", 1.0);
+  params.declare_double("north_I", 0.1);
+  params.declare_double("north_D", 0.35);
 
-  this->declare_parameter("east_P", 1.0);
-  this->declare_parameter("east_I", 0.1);
-  this->declare_parameter("east_D", 0.2);
+  params.declare_double("east_P", 1.0);
+  params.declare_double("east_I", 0.1);
+  params.declare_double("east_D", 0.2);
 
-  this->declare_parameter("down_P", 1.0);
-  this->declare_parameter("down_I", 0.0);
-  this->declare_parameter("down_D", 0.0);
+  params.declare_double("down_P", 1.0);
+  params.declare_double("down_I", 0.0);
+  params.declare_double("down_D", 0.0);
 
-  this->declare_parameter("psi_P", 2.0);
-  this->declare_parameter("psi_I", 0.0);
-  this->declare_parameter("psi_D", 0.0);
+  params.declare_double("psi_P", 2.0);
+  params.declare_double("psi_I", 0.0);
+  params.declare_double("psi_D", 0.0);
 
-  this->declare_parameter("tau", 0.05);
-
+  params.declare_double("tau", 0.05);
 }
 
 void ControllerROS::cmd_callback(const roscopter_msgs::msg::Command &msg)

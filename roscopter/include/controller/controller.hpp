@@ -45,7 +45,7 @@ private:
   // Functions
   rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt);
   void reset_integrators();
-  void set_gains();
+  void update_gains();
 
 };
 

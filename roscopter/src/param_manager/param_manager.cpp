@@ -1,4 +1,4 @@
-#include "param_manager.hpp"
+#include "param_manager/param_manager.hpp"
 #include <variant>
 
 namespace roscopter
@@ -197,4 +197,4 @@ bool ParamManager::set_parameters_callback(const std::vector<rclcpp::Parameter> 
   return true;
 }
 
-}   // namespace rosplane
+}   // namespace roscopter

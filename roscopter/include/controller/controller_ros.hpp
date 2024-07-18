@@ -7,7 +7,7 @@
 #include <rosflight_msgs/msg/status.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <roscopter_msgs/msg/bool.hpp>
-#include <param_manager.hpp>
+#include <param_manager/param_manager.hpp>
 #include <stdint.h>
 
 using std::placeholders::_1;
@@ -78,6 +78,7 @@ public:
   double saturate(double x, double max, double min);
 
 protected:
+  ParamManager params;  
 
 private:
 
@@ -104,7 +105,7 @@ private:
 
   virtual rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt) = 0;
   virtual void reset_integrators() = 0;
-
+  virtual void update_gains() = 0;
 
   /**
    * @brief Declares parameters with ROS2 and loads from a parameter file, if given

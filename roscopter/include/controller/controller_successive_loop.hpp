@@ -41,7 +41,7 @@ private:
   // Functions
   rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt);
   void reset_integrators();
-  void set_gains();
+  void update_gains();
   void attitude_control(double phi_cmd, double theta_cmd, double psi_cmd, double dt, roscopter_msgs::msg::State xhat);
   void trajectory_control(double pn_cmd, double pe_cmd, double pd_cmd, double dt, roscopter_msgs::msg::State xhat);
   void declare_params();
