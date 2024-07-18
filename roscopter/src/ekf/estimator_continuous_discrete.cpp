@@ -1,5 +1,6 @@
 #include <cmath>
 #include <functional>
+#include <iostream>
 #include <tuple>
 
 #include "ekf/estimator_continuous_discrete.hpp"
@@ -37,14 +38,6 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
 
   bind_functions(); // TODO: Document what the _models are.
 
-  phat_ = 0;
-  qhat_ = 0;
-  rhat_ = 0;
-  phihat_ = 0;
-  thetahat_ = 0;
-  psihat_ = 0;
-  Vwhat_ = 0;
-
   lpf_static_ = 0.0;
   lpf_diff_ = 0.0;
 
@@ -77,7 +70,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances() {
   double bias_y_initial_cov = params_.get_double("bias_y_initial_cov");
   double bias_z_initial_cov = params_.get_double("bias_z_initial_cov");
 
-  P_ = Eigen::MatrixXf::Identity(6, 6); 
+  P_ = Eigen::MatrixXf::Identity(12, 12); 
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
   P_(2, 2) = pos_d_initial_cov;
@@ -100,9 +93,9 @@ void EstimatorContinuousDiscrete::initialize_uncertainties() {
   Eigen::VectorXf imu_process_noises;
   imu_process_noises = Eigen::VectorXf::Zero(6);
   imu_process_noises << pow(accel_process_noise,2), pow(accel_process_noise,2), pow(accel_process_noise,2),
-                        pow(radians(gyro_process_noise), 7), pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2);
+                        pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2);
 
-  Q_g_ = Q_g_ * imu_process_noises;
+  Q_g_ = Eigen::DiagonalMatrix<float,6>(imu_process_noises);
 
   Q_ = Q_*position_process_noise; // FIXME: put in real process noises
 
@@ -163,7 +156,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   Eigen::VectorXf imu_measurements;
   imu_measurements = Eigen::VectorXf::Zero(6);
   imu_measurements << input.accel_x, input.accel_y, input.accel_z, input.gyro_x, input.gyro_y, input.gyro_z;
-  
+
   // ESTIMATION
   // Prediction step
   std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Q_g_, Ts);
@@ -178,7 +171,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   // Measurement updates.
   // Only update if new GPS information is available.
   if (input.gps_new) {
-    Eigen::VectorXf pos_curr_state_info(1);
+    Eigen::VectorXf _(1); // FIXME: FIX THIS!
 
     //wrap course measurement
     float gps_course = fmodf(input.gps_course, radians(360.0f));
@@ -189,7 +182,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
     y_pos << input.gps_n, input.gps_e, input.static_pres, input.gps_Vg, gps_course, mag_course;
     
     // Update the state and covariance with based on the predicted and actual measurements.
-    std::tie(P_, xhat_) = measurement_update(xhat_, pos_curr_state_info, multirotor_measurement_model, y_pos, multirotor_measurement_jacobian_model, R_, P_);
+    std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_measurement_model, y_pos, multirotor_measurement_jacobian_model, R_, P_);
 
     if (xhat_(0) > gps_n_lim || xhat_(0) < -gps_n_lim) {
       RCLCPP_WARN(this->get_logger(), "gps n limit reached");
@@ -242,14 +235,48 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 
   float pnhat = xhat_(0);
   float pehat = xhat_(1);
-  float Vghat = xhat_(2);
-  float chihat = xhat_(3);
-  float wnhat = xhat_(4);
-  float wehat = xhat_(5);
-  float psihat = xhat_(6);
+  float pdhat = xhat_(2);
+  float vnhat = xhat_(3);
+  float vehat = xhat_(4);
+  float vdhat = xhat_(5);
+  float phihat = xhat_(6);
+  float thetahat = xhat_(7);
+  float psihat = xhat_(8);
+  float bxhat = xhat_(9);
+  float byhat = xhat_(10);
+  float bzhat = xhat_(11);
 
-  // TODO: Add in state output.
+  output.pn = pnhat;
+  output.pe = pehat;
+  output.pd = pdhat;
+  output.vn = vnhat;
+  output.ve = vehat;
+  output.vd = vdhat;
+  output.p = phat;
+  output.phi = phihat;
+  output.theta = thetahat;
+  output.psi = psihat;
+  output.bx = bxhat;
+  output.by = byhat;
+  output.bz = bzhat;
 
+  std::cout << "output:\n";
+  std::cout << "pn: " << output.pn << "\n";
+  std::cout << "pe: " << output.pe << "\n";
+  std::cout << "pd: " << output.pd << "\n";
+  std::cout << "vn: " << output.vn << "\n";
+  std::cout << "ve: " << output.ve << "\n";
+  std::cout << "vd: " << output.vd << "\n";
+  std::cout << "phi: " << output.phi << "\n";
+  std::cout << "theta: " << output.theta << "\n";
+  std::cout << "psi: " << output.psi << "\n";
+  std::cout << "bx: " << output.bx << "\n";
+  std::cout << "by: " << output.by << "\n";
+  std::cout << "bz: " << output.bz << "\n";
+  std::cout << "p: " << output.p << "\n";
+  std::cout << "q: " << output.q << "\n";
+  std::cout << "r: " << output.r << "\n";
+  std::cout << "Vg: " << output.Vg << "\n";
 }
 
 Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements)

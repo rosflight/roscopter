@@ -68,20 +68,20 @@ protected:
   {
     float pn;
     float pe;
-    float h;
-    float va;
-    float alpha;
-    float beta;
+    float pd;
+    float vn;
+    float ve;
+    float vd;
     float phi;
     float theta;
     float psi;
-    float chi;
+    float bx;
+    float by;
+    float bz;
     float p;
     float q;
     float r;
     float Vg;
-    float wn;
-    float we;
   };
 
   bool baro_init_; /**< Initial barometric pressure */
