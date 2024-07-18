@@ -150,8 +150,28 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   float rhat = lpf_gyro_z_;
 
   // Use magenetometer measures to produce a heading measurement.
+  
+  float declination = 10.6543; // Degrees TODO: Use the c library to dynamically do this.
+  float inclination = 65.2872; // Degrees
+  
+  float phi = xhat_(6);
+  float theta = xhat_(7);
+  
+  // First rotate magenetometer readings into the inertial frame.
+  Eigen::Vector3f mag_readings;
+  mag_readings << input.mag_x, input.mag_y, input.mag_z;
 
-  double mag_course = input.gps_course;
+  // Need to use the most up to date roll and pitch estimates.
+  Eigen::Matrix3Xf mag_rotation;
+  mag_rotation << cosf(theta), sinf(theta)*sinf(phi), sinf(theta)*cosf(phi),
+                  0.0,         cosf(phi),             -sinf(phi),
+                  -sinf(theta),cosf(theta)*sinf(phi), cosf(theta)*cosf(phi);
+
+  mag_readings = mag_rotation*mag_readings;
+
+  float magnetic_heading = -atan2f(mag_readings(1), mag_readings(0));
+
+  double mag_true_heading = magnetic_heading + declination;
 
   Eigen::VectorXf imu_measurements;
   imu_measurements = Eigen::VectorXf::Zero(6);
@@ -179,7 +199,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
     
     // Measurements for the postional states.
     Eigen::Vector<float, 6> y_pos;
-    y_pos << input.gps_n, input.gps_e, input.static_pres, input.gps_Vg, gps_course, mag_course;
+    y_pos << input.gps_n, input.gps_e, input.static_pres, input.gps_Vg, gps_course, mag_true_heading;
     
     // Update the state and covariance with based on the predicted and actual measurements.
     std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_measurement_model, y_pos, multirotor_measurement_jacobian_model, R_, P_);
