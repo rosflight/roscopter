@@ -1,8 +1,8 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
-#include <controller/controller_ros.h>
-#include <controller/simple_pid.h>
+#include <controller/controller_ros.hpp>
+#include <controller/simple_pid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <roscopter_msgs/msg/command.hpp>
 #include <roscopter_msgs/msg/state.hpp>
@@ -43,9 +43,9 @@ private:
   rosflight_msgs::msg::Command output_cmd_;
 
   // Functions
-  rosflight_msgs::msg::Command computeControl(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt);
-  void resetIntegrators();
-  void setGains();
+  rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt);
+  void reset_integrators();
+  void set_gains();
 
 };
 

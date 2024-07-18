@@ -71,13 +71,13 @@ public:
   SimplePID(double p, double i = 0.0, double d = 0.0, double max = DBL_MAX, double min = -DBL_MAX, double tau = 0.15);
 
   /*!
-   * \brief computePID computes the PID control for the given error and timestep (since the last control was computed!)
+   * \brief compute_pid computes the PID control for the given error and timestep (since the last control was computed!)
    * \param p_error is the "position" error (or whatever variable you are controlling)
    * \param dt is the timestep since the last control was computed.
    * \param x_dot derivative of current state (optional)
    * \return the control command
    */
-  double computePID(double desired, double current, double dt, double x_dot = INFINITY);
+  double compute_pid(double desired, double current, double dt, double x_dot = INFINITY);
 
   /*!
    * \brief setgains is used to set the gains for a controller after it's been initialized.  It will rewrite
@@ -87,7 +87,7 @@ public:
    * \param d the derivative controller gain (defaults to zero)
    * \param tau band limited differentiator to reduce noise
    */
-  void setGains(double p, double i = 0.0, double d = 0.0, double tau = 0.15, double max_u = DBL_MAX, double min_u = -DBL_MAX);
+  void set_gains(double p, double i = 0.0, double d = 0.0, double tau = 0.15, double max_u = DBL_MAX, double min_u = -DBL_MAX);
 
   /*!
    * \brief setgains is used to set the gains for a controller after it's been initialized.  It will rewrite
@@ -95,12 +95,12 @@ public:
    * \param max the largest output allowed (integrator anti-windup will kick in at this value as well)
    * \param min the smallest output allowed (also activates integrator anti-windup
    */
-  void setLimits(double max, double min);
+  void set_limits(double max, double min);
 
   /*!
-   * \brief clearIntegrator allows you to clear the integrator, in case of integrator windup.
+   * \brief clear_integrator allows you to clear the integrator, in case of integrator windup.
    */
-  void clearIntegrator()
+  void clear_integrator()
   {
     integrator_ = 0.0;
   }

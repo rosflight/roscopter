@@ -7,6 +7,7 @@
 #include <rosflight_msgs/msg/status.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <roscopter_msgs/msg/bool.hpp>
+#include <param_manager.hpp>
 #include <stdint.h>
 
 using std::placeholders::_1;
@@ -76,6 +77,8 @@ public:
 
   double saturate(double x, double max, double min);
 
+protected:
+
 private:
 
   // Publishers and Subscribers
@@ -90,22 +93,23 @@ private:
   roscopter_msgs::msg::Bool is_flying_;     /** Flag whether or not the vehicle is flying */
   rosflight_msgs::msg::Status status_;      /** Contains information about whether or not the vehicle is armed */
   bool received_cmd_;   /** Flag whether or not the controller received a high level command */
+  bool first_active_control_loop_;
 
   // Functions
-  void stateCallback(const roscopter_msgs::msg::State &msg);
-  void isFlyingCallback(const roscopter_msgs::msg::Bool &msg);
-  void cmdCallback(const roscopter_msgs::msg::Command &msg);
-  void statusCallback(const rosflight_msgs::msg::Status &msg);
-  void publishCommand(rosflight_msgs::msg::Command &command);
+  void state_callback(const roscopter_msgs::msg::State &msg);
+  void is_flying_callback(const roscopter_msgs::msg::Bool &msg);
+  void cmd_callback(const roscopter_msgs::msg::Command &msg);
+  void status_callback(const rosflight_msgs::msg::Status &msg);
+  void publish_command(rosflight_msgs::msg::Command &command);
 
-  virtual rosflight_msgs::msg::Command computeControl(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt) = 0;
-  virtual void resetIntegrators() = 0;
+  virtual rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt) = 0;
+  virtual void reset_integrators() = 0;
 
 
   /**
    * @brief Declares parameters with ROS2 and loads from a parameter file, if given
    */
-  void declareParams();
+  void declare_params();
 
   OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 
@@ -114,7 +118,7 @@ private:
    * 
    * @param parameters: Vector of rclcpp::Parameter objects that were changed
    */
-  rcl_interfaces::msg::SetParametersResult parametersCallback(const std::vector<rclcpp::Parameter> & parameters);
+  rcl_interfaces::msg::SetParametersResult parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
 
 };
 }

@@ -1,5 +1,6 @@
-#include <controller/controller_ros.h>
-#include <controller/controller.h>
+#include <controller/controller_ros.hpp>
+#include <controller/controller.hpp>
+#include <controller/controller_successive_loop.hpp>
 
 using std::placeholders::_1;
 
@@ -10,27 +11,29 @@ ControllerROS::ControllerROS() : Node("controller")
 {
   is_flying_.data = false;
   received_cmd_ = false;
+  first_active_control_loop_ = true;
 
-  declareParams();
+  // Declare params with ROS and the ParamManager
+  declare_params();
 
   if (!this->get_parameter("equilibrium_throttle").as_double()) {
     RCLCPP_ERROR(this->get_logger(), "Controller MAV equilibrium throttle not found!");
   }
 
   // Set up Publisher and Subscribers
-  state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&ControllerROS::stateCallback, this, _1));
-  is_flying_sub_ = this->create_subscription<roscopter_msgs::msg::Bool>("is_flying", 1, std::bind(&ControllerROS::isFlyingCallback, this, _1));
-  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::Command>("high_level_command", 1, std::bind(&ControllerROS::cmdCallback, this, _1));
-  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&ControllerROS::statusCallback, this, _1));
+  state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&ControllerROS::state_callback, this, _1));
+  is_flying_sub_ = this->create_subscription<roscopter_msgs::msg::Bool>("is_flying", 1, std::bind(&ControllerROS::is_flying_callback, this, _1));
+  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::Command>("high_level_command", 1, std::bind(&ControllerROS::cmd_callback, this, _1));
+  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&ControllerROS::status_callback, this, _1));
   
   command_pub_ = this->create_publisher<rosflight_msgs::msg::Command>("command", 1);
 
   // Register parameter callback
-  parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&ControllerROS::parametersCallback, this, _1));
+  parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&ControllerROS::parameters_callback, this, _1));
 
 }
 
-rcl_interfaces::msg::SetParametersResult ControllerROS::parametersCallback(const std::vector<rclcpp::Parameter> & parameters)
+rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(const std::vector<rclcpp::Parameter> & parameters)
 {
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
@@ -43,7 +46,7 @@ rcl_interfaces::msg::SetParametersResult ControllerROS::parametersCallback(const
   return result;
 } 
 
-void ControllerROS::declareParams()
+void ControllerROS::declare_params()
 {
   this->declare_parameter("equilibrium_throttle", 0.5); // Default values
   this->declare_parameter("max_roll", 0.15);  
@@ -88,7 +91,7 @@ void ControllerROS::declareParams()
 
 }
 
-void ControllerROS::cmdCallback(const roscopter_msgs::msg::Command &msg)
+void ControllerROS::cmd_callback(const roscopter_msgs::msg::Command &msg)
 {
   input_cmd_ = msg;
   // switch(msg.mode)
@@ -141,7 +144,7 @@ void ControllerROS::cmdCallback(const roscopter_msgs::msg::Command &msg)
     received_cmd_ = true;
 }
 
-void ControllerROS::stateCallback(const roscopter_msgs::msg::State &msg)
+void ControllerROS::state_callback(const roscopter_msgs::msg::State &msg)
 {
   RCLCPP_INFO_ONCE(this->get_logger(), "Started receiving estimated state message.");
 
@@ -165,30 +168,34 @@ void ControllerROS::stateCallback(const roscopter_msgs::msg::State &msg)
 
   if(is_flying_.data && status_.armed && received_cmd_)
   {
-    RCLCPP_WARN_ONCE(this->get_logger(), "CONTROLLER ACTIVE");
+    RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), first_active_control_loop_, "CONTROLLER ACTIVE");
+    first_active_control_loop_ = false;
 
-    rosflight_msgs::msg::Command command = computeControl(xhat, input_cmd_, dt);
+    rosflight_msgs::msg::Command command = compute_control(xhat, input_cmd_, dt);
 
-    publishCommand(command);
+    publish_command(command);
   }
-  // TODO: Replace the resetIntegrators() witha a call in the inherited class. i.e., don't do it here
+  // TODO: Replace the reset_integrators() witha a call in the inherited class. i.e., don't do it here
   else {
-    resetIntegrators();
+    RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), !first_active_control_loop_, "CONTROLLER INACTIVE");
+    first_active_control_loop_ = true;
+
+    reset_integrators();
   }
 }
 
 
-void ControllerROS::isFlyingCallback(const roscopter_msgs::msg::Bool &msg)
+void ControllerROS::is_flying_callback(const roscopter_msgs::msg::Bool &msg)
 {
   is_flying_ = msg;
 }
 
-void ControllerROS::statusCallback(const rosflight_msgs::msg::Status &msg)
+void ControllerROS::status_callback(const rosflight_msgs::msg::Status &msg)
 {
   status_ = msg;
 }
 
-void ControllerROS::publishCommand(rosflight_msgs::msg::Command &command)
+void ControllerROS::publish_command(rosflight_msgs::msg::Command &command)
 {
   command.header.stamp = this->get_clock()->now();
   command_pub_->publish(command);
@@ -209,9 +216,15 @@ int main(int argc, char* argv[])
 {
   rclcpp::init(argc, argv);
 
-  auto node = std::make_shared<roscopter::Controller>();
-
-  rclcpp::spin(node);
+  if (strcmp(argv[1], "successive_loop") == 0) {
+    auto node = std::make_shared<roscopter::ControllerSuccessiveLoop>();
+    RCLCPP_INFO_ONCE(node->get_logger(), "Using successive loop controller");
+    rclcpp::spin(node);
+  } else if (strcmp(argv[1], "other") == 0) {
+    auto node = std::make_shared<roscopter::Controller>();
+    RCLCPP_INFO_ONCE(node->get_logger(), "Using other controller");
+    rclcpp::spin(node);
+  }
 
   return 0;
 }

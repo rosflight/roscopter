@@ -29,7 +29,7 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <controller/simple_pid.h>
+#include <controller/simple_pid.hpp>
 
 namespace controller
 {
@@ -65,7 +65,7 @@ SimplePID::SimplePID(double p, double i, double d, double max, double min, doubl
 //
 // Compute the control;
 //
-double SimplePID::computePID(double desired, double current, double dt, double x_dot)
+double SimplePID::compute_pid(double desired, double current, double dt, double x_dot)
 {
   double error = desired - current;
 
@@ -142,7 +142,7 @@ double SimplePID::computePID(double desired, double current, double dt, double x
 //
 // Late initialization or redo
 //
-void SimplePID::setGains(double p, double i, double d, double tau, double max_u, double min_u)
+void SimplePID::set_gains(double p, double i, double d, double tau, double max_u, double min_u)
 {
   //! \todo Should we really be zeroing this while we are gain tuning?
   kp_ = p;
