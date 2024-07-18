@@ -43,6 +43,8 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
 
   alpha_ = 0.0f;
 
+  geomag_init();
+
   // Declare and set parameters with the ROS2 system
   declare_parameters();
   params_.set_parameters();
@@ -102,6 +104,11 @@ void EstimatorContinuousDiscrete::initialize_uncertainties() {
   initialize_state_covariances();
 }
 
+EstimatorContinuousDiscrete::~EstimatorContinuousDiscrete()
+{
+  geomag_destroy();
+}
+
 void EstimatorContinuousDiscrete::update_measurement_model_parameters()
 {
   // For readability, declare the parameters used in the function here
@@ -151,8 +158,29 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 
   // Use magenetometer measures to produce a heading measurement.
   
-  float declination = 10.6543; // Degrees TODO: Use the c library to dynamically do this.
-  float inclination = 65.2872; // Degrees
+  double declination = 10.6543; // Degrees TODO: Use the c library to dynamically do this.
+  double inclination = 65.2872; // Degrees
+  double total_intensity; // nanoTesla (unused)
+  double grid_variation; // Only useful for arctic or antarctic navigation (unused).
+  
+  // Take the current year and then add a decimal for July 18, 2024 it would be 2024. USE GPS TIME.
+  // This is a rough interpolation for speed. This will be accurate +- a day which is a time decimal change of ~0.0027
+  // therefore this method isn't completely accurate. Other sources of error will be much larger.
+  float decimal_month = input.gps_month + input.gps_day/31.0;
+  float decimal_year = input.gps_year + decimal_month/12.0;
+  
+  int mag_success = geomag_calc(input.gps_h,
+                                input.gps_lat,
+                                input.gps_lon,
+                                decimal_year,
+                                &declination,
+                                &inclination,
+                                &total_intensity,
+                                &grid_variation);
+
+  if (mag_success == -1) {
+    RCLCPP_ERROR(this->get_logger(), "Something went wrong while calculating inclanation and declination.");
+  }
   
   float phi = xhat_(6);
   float theta = xhat_(7);

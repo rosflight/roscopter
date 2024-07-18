@@ -117,11 +117,14 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
+set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
 # Estimator
 add_executable(roscopter_estimator
+              src/ekf/estimator_node.cpp
               src/ekf/estimator_ros.cpp
               src/ekf/estimator_ekf.cpp
-              src/ekf/estimator_continuous_discrete.cpp)
+              src/ekf/estimator_continuous_discrete.cpp
+              src/utils/geomag.c)
 target_link_libraries(roscopter_estimator
   ${YAML_CPP_LIBRARIES}
 )
@@ -132,7 +135,7 @@ install(TARGETS
   roscopter_estimator
   DESTINATION lib/${PROJECT_NAME})
 
-add_library(estimator_lib src/ekf/estimator_node.cpp src/ekf/estimator_ros.cpp src/ekf/estimator_ekf.cpp src/ekf/estimator_continuous_discrete.cpp include/ekf/estimator_ros.hpp include/ekf/estimator_ekf.hpp include/ekf/estimator_continuous_discrete.hpp)
+add_library(estimator_lib src/ekf/estimator_node.cpp src/ekf/estimator_ros.cpp src/ekf/estimator_ekf.cpp src/ekf/estimator_continuous_discrete.cpp src/utils/geomag.c include/ekf/estimator_ros.hpp include/ekf/estimator_ekf.hpp include/ekf/estimator_continuous_discrete.hpp)
 target_link_libraries(roscopter_estimator estimator_lib)
 target_link_libraries(estimator_lib param_manager)
 ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)

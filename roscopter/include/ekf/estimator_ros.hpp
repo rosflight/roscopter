@@ -52,6 +52,12 @@ protected:
     float static_pres;
     float diff_pres;
     bool gps_new;
+    int gps_year;
+    int gps_month;
+    int gps_day;
+    double gps_lat;
+    double gps_lon;
+    double gps_alt;
     float gps_n;
     float gps_e;
     float gps_h;

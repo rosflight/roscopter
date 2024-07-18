@@ -5,8 +5,8 @@
 
 #include <Eigen/Geometry>
 #include <yaml-cpp/yaml.h>
+#include "geomag.h"
 
-#include "Eigen/src/Core/Matrix.h"
 #include "estimator_ekf.hpp"
 #include "estimator_ros.hpp"
 
@@ -18,6 +18,7 @@ class EstimatorContinuousDiscrete : public EstimatorEKF
 public:
   EstimatorContinuousDiscrete();
   EstimatorContinuousDiscrete(bool use_params);
+  ~EstimatorContinuousDiscrete();
 
   Eigen::MatrixXf get_Q_(){return Q_;};
   Eigen::MatrixXf get_Q_g_(){return Q_g_;};

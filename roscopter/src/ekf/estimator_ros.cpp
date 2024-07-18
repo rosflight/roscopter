@@ -185,6 +185,12 @@ void EstimatorROS::gnssFixCallback(const sensor_msgs::msg::NavSatFix::SharedPtr 
     // saveParameter("init_lon", init_lon_);
     // saveParameter("init_alt", init_alt_);
   } else {
+    input_.gps_lat = msg->latitude;
+    input_.gps_lon = msg->longitude;
+    input_.gps_alt = msg->altitude;
+    input_.gps_year = 2024; // FIXME: add the right code to have this be accurate.
+    input_.gps_month = 7;
+    input_.gps_day = 18;
     input_.gps_n = EARTH_RADIUS * (msg->latitude - init_lat_) * M_PI / 180.0;
     input_.gps_e =
       EARTH_RADIUS * cos(init_lat_ * M_PI / 180.0) * (msg->longitude - init_lon_) * M_PI / 180.0;
