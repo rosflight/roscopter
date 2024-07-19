@@ -17,18 +17,19 @@ class ControllerSuccessiveLoop : public ControllerROS
 {
 
 public:
-
   ControllerSuccessiveLoop();
 
 private:
-
   rosflight_msgs::msg::Command output_cmd_;
-  double throttle_cmd_;
   double phi_cmd_;
   double theta_cmd_;
+  double psi_cmd_;
+  double thrust_cmd_;
   double tau_x_;
   double tau_y_;
   double tau_z_;
+  double throttle_cmd_;
+  double dt_;
 
   // PID Inner loops
   controller::SimplePID PID_phi_;
@@ -39,12 +40,18 @@ private:
   controller::SimplePID PID_u_d_;
 
   // Functions
-  rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt);
+  rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt);
   void reset_integrators();
   void update_gains();
-  void attitude_control(double phi_cmd, double theta_cmd, double psi_cmd, double dt, roscopter_msgs::msg::State xhat);
-  void trajectory_control(double pn_cmd, double pe_cmd, double pd_cmd, double dt, roscopter_msgs::msg::State xhat);
+
   void declare_params();
+
+  void trajectory_control(double pn_cmd, double pe_cmd, double pd_cmd);
+  void attitude_control();
+  float north_control(double pn_cmd);
+  float east_control(double pe_cmd);
+  float down_control(double pd_cmd);
+  void saturate_commands();
 
 };
 

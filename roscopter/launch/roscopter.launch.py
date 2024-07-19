@@ -8,7 +8,7 @@ def generate_launch_description():
     roscopter_dir = get_package_share_directory('roscopter')
 
     param_file = os.path.join(roscopter_dir, 'params', 'quadcopter_params.yaml')
-    controller_type = 'successive_loop'
+    controller_type = 'default'
 
     for arg in sys.argv:
         if arg.startswith("controller:="):

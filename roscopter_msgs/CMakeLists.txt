@@ -16,69 +16,21 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# find_package(catkin REQUIRED COMPONENTS
-#     std_msgs
-#     message_generation)
-
 find_package(ament_cmake REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
-# find_package(message_generation REQUIRED)
 
+### SET MSG AND SRV FILE DEFINITIONS ### 
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## To declare and build messages, services or actions from within this
-## package, follow these steps:
-## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
-## * In the file package.xml:
-##   * add a build_depend tag for "message_generation"
-##   * add a build_depend and a run_depend tag for each package in MSG_DEP_SET
-##   * If MSG_DEP_SET isn't empty the following dependency has been pulled in
-##     but can be declared for certainty nonetheless:
-##     * add a run_depend tag for "message_runtime"
-## * In this file (CMakeLists.txt):
-##   * add "message_generation" and every package in MSG_DEP_SET to
-##     find_package(catkin REQUIRED COMPONENTS ...)
-##   * add "message_runtime" and every package in MSG_DEP_SET to
-##     catkin_package(CATKIN_DEPENDS ...)
-##   * uncomment the add_*_files sections below as needed
-##     and list every .msg/.srv/.action file to be processed
-##   * uncomment the generate_messages entry below
-##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
-
-## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Command.msg
-#   PoseEuler.msg
-# )
 set(msg_files
-  "msg/Command.msg"
+  "msg/ControllerCommand.msg"
   "msg/PoseEuler.msg"
   "msg/Bool.msg"
   "msg/State.msg"
 )
 
-# Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   AddWaypoint.srv
-#   RemoveWaypoint.srv
-#   SetWaypointsFromFile.srv
-#   ListWaypoints.srv
-#   ClearWaypoints.srv
-#   Hold.srv
-#   Release.srv
-#   Land.srv
-#   Fly.srv
-#   ReturnToBase.srv
-# )
 set(srv_files
   "srv/AddWaypoint.srv"
   "srv/RemoveWaypoint.srv"
@@ -92,18 +44,6 @@ set(srv_files
   "srv/ReturnToBase.srv"
 )
 
-## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
-#   Action2.action
-# )
-
-## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${msg_files}
   ${srv_files}
@@ -112,22 +52,6 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   geometry_msgs
   std_msgs
   )
-
-###################################
-## catkin specific configuration ##
-###################################
-## The catkin_package macro generates cmake config files for your package
-## Declare things to be passed to dependent projects
-## INCLUDE_DIRS: uncomment this if your package contains header files
-## LIBRARIES: libraries you create in this project that dependent projects also need
-## CATKIN_DEPENDS: catkin_packages dependent projects also need
-## DEPENDS: system dependencies of this project that dependent projects also need
-# catkin_package(
-# #  INCLUDE_DIRS include
-# #  LIBRARIES roscopter_msgs
-#   CATKIN_DEPENDS message_runtime
-# #  DEPENDS system_lib
-# )
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

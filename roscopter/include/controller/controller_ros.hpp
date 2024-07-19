@@ -2,7 +2,7 @@
 #define CONTROLLER_ROS_H
 
 #include <rclcpp/rclcpp.hpp>
-#include <roscopter_msgs/msg/command.hpp>
+#include <roscopter_msgs/msg/controller_command.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 #include <rosflight_msgs/msg/status.hpp>
 #include <roscopter_msgs/msg/state.hpp>
@@ -79,18 +79,19 @@ public:
 
 protected:
   ParamManager params;  
+  roscopter_msgs::msg::State xhat_;
 
 private:
 
   // Publishers and Subscribers
   rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr state_sub_;
   rclcpp::Subscription<roscopter_msgs::msg::Bool>::SharedPtr is_flying_sub_;
-  rclcpp::Subscription<roscopter_msgs::msg::Command>::SharedPtr cmd_sub_;
+  rclcpp::Subscription<roscopter_msgs::msg::ControllerCommand>::SharedPtr cmd_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
   rclcpp::Publisher<rosflight_msgs::msg::Command>::SharedPtr command_pub_;
 
   // Memory for sharing information between functions
-  roscopter_msgs::msg::Command input_cmd_;  /** High level, input control commands to the autopilot */
+  roscopter_msgs::msg::ControllerCommand input_cmd_;  /** High level, input control commands to the autopilot */
   roscopter_msgs::msg::Bool is_flying_;     /** Flag whether or not the vehicle is flying */
   rosflight_msgs::msg::Status status_;      /** Contains information about whether or not the vehicle is armed */
   bool received_cmd_;   /** Flag whether or not the controller received a high level command */
@@ -99,11 +100,11 @@ private:
   // Functions
   void state_callback(const roscopter_msgs::msg::State &msg);
   void is_flying_callback(const roscopter_msgs::msg::Bool &msg);
-  void cmd_callback(const roscopter_msgs::msg::Command &msg);
+  void cmd_callback(const roscopter_msgs::msg::ControllerCommand &msg);
   void status_callback(const rosflight_msgs::msg::Status &msg);
   void publish_command(rosflight_msgs::msg::Command &command);
 
-  virtual rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt) = 0;
+  virtual rosflight_msgs::msg::Command compute_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt) = 0;
   virtual void reset_integrators() = 0;
   virtual void update_gains() = 0;
 

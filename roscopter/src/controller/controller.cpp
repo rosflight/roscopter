@@ -80,13 +80,13 @@ void Controller::update_gains() {
 }
 
 
-rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::State xhat, roscopter_msgs::msg::Command input_cmd, double dt)
+rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt)
 {
   // Define parameters here for clarity
   double equilibrium_throttle = params.get_double("equilibrium_throttle");
 
   uint8_t mode_flag = input_cmd.mode;
-  roscopter_msgs::msg::Command transition_cmd = input_cmd;
+  roscopter_msgs::msg::ControllerCommand transition_cmd = input_cmd;
 
   if(dt <= 0.0000001) {
     // This messes up the derivative calculation in the PID controllers
@@ -95,7 +95,7 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
     return output_cmd_;
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DPOS_YAW)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DPOS_YAW)
   {
     double pn = transition_cmd.cmd1;
     double pe = transition_cmd.cmd2;
@@ -104,31 +104,31 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
 
     // Figure out desired velocities (in inertial frame)
     // By running the position controllers
-    double pndot_c = PID_n_.compute_pid(pn, xhat.position[0], dt);
-    double pedot_c = PID_e_.compute_pid(pe, xhat.position[1], dt);
-    double pddot_c = PID_d_.compute_pid(pd, xhat.position[2], dt);
+    double pndot_c = PID_n_.compute_pid(pn, xhat_.position[0], dt);
+    double pedot_c = PID_e_.compute_pid(pe, xhat_.position[1], dt);
+    double pddot_c = PID_d_.compute_pid(pd, xhat_.position[2], dt);
 
     // Calculate desired yaw rate
     // First, determine the shortest direction to the commanded psi
-    if(fabs(psi + 2*M_PI - xhat.psi) < fabs(psi - xhat.psi))
+    if(fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi))
     {
       psi += 2*M_PI;
     }
-    else if (fabs(psi - 2*M_PI -xhat.psi) < fabs(psi - xhat.psi))
+    else if (fabs(psi - 2*M_PI -xhat_.psi) < fabs(psi - xhat_.psi))
     {
       psi -= 2*M_PI;
     }
 
     // Save the calculated velocities to the command and change to the appropriate mode
-    mode_flag = roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE;
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
 
-    transition_cmd.cmd1 = pndot_c*cos(xhat.psi) + pedot_c*sin(xhat.psi);  // x_dot
-    transition_cmd.cmd2 = -pndot_c*sin(xhat.psi) + pedot_c*cos(xhat.psi); // y_dot
+    transition_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // x_dot
+    transition_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // y_dot
     transition_cmd.cmd3 = pddot_c;                                        // z_dot
-    transition_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat.psi, dt);     // r
+    transition_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat_.psi, dt);     // r
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DVEL_YAW)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DVEL_YAW)
   {
     double pn = transition_cmd.cmd1;
     double pe = transition_cmd.cmd2;
@@ -137,30 +137,30 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
 
     // Figure out desired velocities (in inertial frame)
     // By running the position controllers
-    double pndot_c = PID_n_.compute_pid(pn, xhat.position[0], dt);
-    double pedot_c = PID_e_.compute_pid(pe, xhat.position[1], dt);
+    double pndot_c = PID_n_.compute_pid(pn, xhat_.position[0], dt);
+    double pedot_c = PID_e_.compute_pid(pe, xhat_.position[1], dt);
 
     // Calculate desired yaw rate
     // First, determine the shortest direction to the commanded psi
-    if(fabs(psi + 2*M_PI - xhat.psi) < fabs(psi - xhat.psi))
+    if(fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi))
     {
       psi += 2*M_PI;
     }
-    else if (fabs(psi - 2*M_PI -xhat.psi) < fabs(psi - xhat.psi))
+    else if (fabs(psi - 2*M_PI -xhat_.psi) < fabs(psi - xhat_.psi))
     {
       psi -= 2*M_PI;
     }
 
     // Save the calculated velocities to the command and change to the appropriate mode
-    mode_flag = roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE;
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
 
-    transition_cmd.cmd1 = pndot_c*cos(xhat.psi) + pedot_c*sin(xhat.psi);  // x_dot
-    transition_cmd.cmd2 = -pndot_c*sin(xhat.psi) + pedot_c*cos(xhat.psi); // y_dot
+    transition_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // x_dot
+    transition_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // y_dot
     transition_cmd.cmd3 = vd;                                             // z_dot
-    transition_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat.psi, dt);     // r
+    transition_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat_.psi, dt);     // r
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE)
   {
     double x_dot = transition_cmd.cmd1;
     double y_dot = transition_cmd.cmd2;
@@ -169,18 +169,18 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
 
     // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
     // Rotate body frame velocities to vehicle 1 frame velocities
-    double sinp = sin(xhat.phi);
-    double cosp = cos(xhat.phi);
-    double sint = sin(xhat.theta);
-    double cost = cos(xhat.theta);
+    double sinp = sin(xhat_.phi);
+    double cosp = cos(xhat_.phi);
+    double sint = sin(xhat_.theta);
+    double cost = cos(xhat_.theta);
     double pxdot =
-        cost * xhat.v_n + sinp * sint * xhat.v_e + cosp * sint * xhat.v_d;
-    double pydot = cosp * xhat.v_e - sinp * xhat.v_d;
+        cost * xhat_.v_n + sinp * sint * xhat_.v_e + cosp * sint * xhat_.v_d;
+    double pydot = cosp * xhat_.v_e - sinp * xhat_.v_d;
     double pddot =
-        -sint * xhat.v_n + sinp * cost * xhat.v_e + cosp * cost * xhat.v_d;
+        -sint * xhat_.v_n + sinp * cost * xhat_.v_e + cosp * cost * xhat_.v_d;
 
     // Save the calculated velocities to the command and change to the appropriate mode
-    mode_flag = roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE;
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
 
     transition_cmd.cmd1 = PID_x_dot_.compute_pid(x_dot, pxdot, dt);  // ax
     transition_cmd.cmd2 = PID_y_dot_.compute_pid(y_dot, pydot, dt);  // ay
@@ -188,7 +188,7 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
     transition_cmd.cmd4 = r;                                        // r
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DPOS_YAWRATE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DPOS_YAWRATE)
   {
     double x_dot = transition_cmd.cmd1;
     double y_dot = transition_cmd.cmd2;
@@ -197,21 +197,21 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
 
     // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
     // Rotate body frame velocities to vehicle 1 frame velocities
-    double sinp = sin(xhat.phi);
-    double cosp = cos(xhat.phi);
-    double sint = sin(xhat.theta);
-    double cost = cos(xhat.theta);
+    double sinp = sin(xhat_.phi);
+    double cosp = cos(xhat_.phi);
+    double sint = sin(xhat_.theta);
+    double cost = cos(xhat_.theta);
     double pxdot =
-        cost * xhat.v_n + sinp * sint * xhat.v_e + cosp * sint * xhat.v_d;
-    double pydot = cosp * xhat.v_e - sinp * xhat.v_d;
+        cost * xhat_.v_n + sinp * sint * xhat_.v_e + cosp * sint * xhat_.v_d;
+    double pydot = cosp * xhat_.v_e - sinp * xhat_.v_d;
     double pddot =
-        -sint * xhat.v_n + sinp * cost * xhat.v_e + cosp * cost * xhat.v_d;
+        -sint * xhat_.v_n + sinp * cost * xhat_.v_e + cosp * cost * xhat_.v_d;
 
     // Nested Loop for Altitude
-    double pddot_c = PID_d_.compute_pid(pd, xhat.position[2], dt, pddot);
+    double pddot_c = PID_d_.compute_pid(pd, xhat_.position[2], dt, pddot);
 
     // Save the calculated velocities to the command and change to the appropriate mode
-    mode_flag = roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE;
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
 
     transition_cmd.cmd1 = PID_x_dot_.compute_pid(x_dot, pxdot, dt);  // ax
     transition_cmd.cmd2 = PID_y_dot_.compute_pid(y_dot, pydot, dt);  // ay
@@ -219,7 +219,7 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
     transition_cmd.cmd4 = r;                                            // r
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE)
   {
     double ax = transition_cmd.cmd1;
     double ay = transition_cmd.cmd2;
@@ -244,11 +244,11 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
     }
 
     // Compute desired thrust based on current pose
-    double cosp = cos(xhat.phi);
-    double cost = cos(xhat.theta);
+    double cosp = cos(xhat_.phi);
+    double cost = cos(xhat_.theta);
 
     // Save the calculated velocities to the command and change to the appropriate mode
-    mode_flag = roscopter_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
 
     transition_cmd.cmd1 = phi;                                        // phi
     transition_cmd.cmd2 = theta;                                      // theta
@@ -256,7 +256,7 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
     transition_cmd.cmd4 = (1.0 - az) * equilibrium_throttle / cosp / cost; // throttle
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE)
   {
     double phi = transition_cmd.cmd1;
     double theta = transition_cmd.cmd2;
@@ -272,7 +272,7 @@ rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::St
     output_cmd_.z = saturate(r, max_.yaw_rate, -max_.yaw_rate); // yawrate
     output_cmd_.f = saturate(throttle, max_.throttle, 0.0);     // throttle
 
-    if (-xhat.position[2] < min_altitude_)
+    if (-xhat_.position[2] < min_altitude_)
     {
       output_cmd_.x = 0.;   // roll
       output_cmd_.y = 0.;   // pitch

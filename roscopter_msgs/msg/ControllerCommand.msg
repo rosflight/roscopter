@@ -27,3 +27,8 @@ float32 cmd1
 float32 cmd2
 float32 cmd3
 float32 cmd4
+
+# @warning The following data fields are set by the controller by default.
+# See the override parameters to use these commands
+float32 phi_c
+float32 theta_c
