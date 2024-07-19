@@ -2,45 +2,33 @@
 extern "C" {
 #endif
 
-// this library is NOT thread safe.
-// UNSAFE with threading
+// Part of readsb, a Mode-S/ADSB/TIS message decoder.
 //
+// geomag.h: Geomagnetism calculator (header)
 //
-// functions with type int:
-// return value 0: SUCCESS
-// return value -1: ERROR
-// on ERROR an error message is printed to stderr
+// Copyright (c) 2020 Michael Wolf <michael@mictronics.de>
+//
+// This file is free software: you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation, either version 3 of the License, or
+// any later version.
+//
+// This file is distributed in the hope that it will be useful, but
+// WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+// General Public License for more details.
+//
+// You should have received a copy of the GNU General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-// call once to initialize the library
+#ifndef GEOMAG_H
+#define GEOMAG_H
+
 int geomag_init();
-// call on program exit if you care about freeing malloced memory
-int geomag_destroy();
+int geomag_calc(double alt, double lat, double lon, double decimal_year, double *dec, double *dip, double *ti, double *gv);
 
-// alt: altitude above WGS84 ellipsoid in km
-// glat: latitude in degrees
-// glon: longitude in degrees
-// time: decimal year
-//
-// pass variables by reference, results will be written to the variables
-// (see example.c)
-// dec: https://en.wikipedia.org/wiki/Magnetic_declination
-// dip: https://en.wikipedia.org/wiki/Magnetic_dip
-// ti: Total intensity in nano Tesla nT
-// from geomag.c:
-//       COMPUTE DECLINATION (DEC), INCLINATION (DIP) AND
-//       TOTAL INTENSITY (TI)
-// from geomag.c
-// gv: Grid variation
-//       COMPUTE MAGNETIC GRID VARIATION IF THE CURRENT
-//       GEODETIC POSITION IS IN THE ARCTIC OR ANTARCTIC
-//       (I.E. GLAT > +55 DEGREES OR GLAT < -55 DEGREES)
-//
-//       OTHERWISE, SET MAGNETIC GRID VARIATION TO -999.0
-//
-//
-int geomag_calc(double alt, double glat, double glon, double time, double *dec, double *dip, double *ti, double *gv);
+#endif /* GEOMAG_H */
 
 #ifdef __cplusplus
 }
 #endif
-

@@ -18,7 +18,6 @@ class EstimatorContinuousDiscrete : public EstimatorEKF
 public:
   EstimatorContinuousDiscrete();
   EstimatorContinuousDiscrete(bool use_params);
-  ~EstimatorContinuousDiscrete();
 
   Eigen::MatrixXf get_Q_(){return Q_;};
   Eigen::MatrixXf get_Q_g_(){return Q_g_;};
@@ -72,16 +71,9 @@ private:
   Eigen::VectorXf xhat_; // 12
   Eigen::MatrixXf P_;    // 12x12
 
-  Eigen::Matrix3f R_accel_;
-
   Eigen::MatrixXf Q_; // 12x12 // FIXME: fix the annotated sizes.
   Eigen::MatrixXf Q_g_; // 7x7
   Eigen::MatrixXf R_; // 6x6
-  Eigen::VectorXf f_; // 12
-  Eigen::MatrixXf A_; // 12x12
-  float h_;
-  Eigen::VectorXf C_; // 7
-  Eigen::VectorXf L_; // 7
 
   // TODO: not used
   float gate_threshold_ = 9.21; // chi2(q = .01, df = 2)

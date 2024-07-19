@@ -6,6 +6,7 @@
 #include "ekf/estimator_continuous_discrete.hpp"
 #include "Eigen/src/Core/Matrix.h"
 #include "ekf/estimator_ros.hpp"
+#include "ekf/geomag.h"
 
 // TODO:
 // Finalize size of all matrices, (Trace the mult.) - A is correct
@@ -27,13 +28,9 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     : EstimatorEKF()
     , xhat_(Eigen::VectorXf::Zero(12))
     , P_(Eigen::MatrixXf::Identity(12, 12))
-    , Q_g_(Eigen::MatrixXf::Identity(6, 6))
     , Q_(Eigen::MatrixXf::Identity(12, 12))
+    , Q_g_(Eigen::MatrixXf::Identity(6, 6))
     , R_(Eigen::MatrixXf::Zero(6, 6))
-    , f_(12)
-    , A_(12, 12)
-    , C_(12)
-    , L_(12) // TODO: do we use this anymore?
 {
 
   bind_functions(); // TODO: Document what the _models are.
@@ -104,11 +101,6 @@ void EstimatorContinuousDiscrete::initialize_uncertainties() {
   initialize_state_covariances();
 }
 
-EstimatorContinuousDiscrete::~EstimatorContinuousDiscrete()
-{
-  geomag_destroy();
-}
-
 void EstimatorContinuousDiscrete::update_measurement_model_parameters()
 {
   // For readability, declare the parameters used in the function here
@@ -158,18 +150,18 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 
   // Use magenetometer measures to produce a heading measurement.
   
-  double declination = 10.6543; // Degrees TODO: Use the c library to dynamically do this.
-  double inclination = 65.2872; // Degrees
+  double declination; // Degrees
+  double inclination; // Degrees
   double total_intensity; // nanoTesla (unused)
   double grid_variation; // Only useful for arctic or antarctic navigation (unused).
   
-  // Take the current year and then add a decimal for July 18, 2024 it would be 2024. USE GPS TIME.
+  // Take the current year and then add a decimal for the current day. USE GPS TIME.
   // This is a rough interpolation for speed. This will be accurate +- a day which is a time decimal change of ~0.0027
   // therefore this method isn't completely accurate. Other sources of error will be much larger.
   float decimal_month = input.gps_month + input.gps_day/31.0;
   float decimal_year = input.gps_year + decimal_month/12.0;
   
-  int mag_success = geomag_calc(input.gps_h,
+  int mag_success = geomag_calc(input.gps_alt/1000.0,
                                 input.gps_lat,
                                 input.gps_lon,
                                 decimal_year,
@@ -190,7 +182,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   mag_readings << input.mag_x, input.mag_y, input.mag_z;
 
   // Need to use the most up to date roll and pitch estimates.
-  Eigen::Matrix3Xf mag_rotation;
+  Eigen::Matrix3f mag_rotation;
   mag_rotation << cosf(theta), sinf(theta)*sinf(phi), sinf(theta)*cosf(phi),
                   0.0,         cosf(phi),             -sinf(phi),
                   -sinf(theta),cosf(theta)*sinf(phi), cosf(theta)*cosf(phi);
@@ -199,7 +191,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 
   float magnetic_heading = -atan2f(mag_readings(1), mag_readings(0));
 
-  double mag_true_heading = magnetic_heading + declination;
+  double mag_true_heading = magnetic_heading + radians(declination);
 
   Eigen::VectorXf imu_measurements;
   imu_measurements = Eigen::VectorXf::Zero(6);
