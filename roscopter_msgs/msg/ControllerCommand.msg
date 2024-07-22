@@ -12,6 +12,9 @@ uint8 MODE_NVEL_EVEL_DPOS_YAWRATE = 1
 uint8 MODE_NACC_EACC_DACC_YAWRATE = 2
 uint8 MODE_NVEL_EVEL_DVEL_YAWRATE = 3
 uint8 MODE_NPOS_EPOS_DVEL_YAW = 4
+uint8 MODE_PASS_THROUGH = 5
+uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 6
+uint8 MODE_ROLL_PITCH_YAWRATE_THROTTLE = 7
 
 # ros2
 # builtin_interfaces/Time stamp
@@ -24,3 +27,8 @@ float32 cmd1
 float32 cmd2
 float32 cmd3
 float32 cmd4
+
+# @warning The following data fields are set by the controller by default.
+# See the override parameters to use these commands
+float32 phi_c
+float32 theta_c

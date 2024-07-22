@@ -1,7 +1,11 @@
 /**
  * @file param_manager.hpp
  * 
+<<<<<<< HEAD
  * Manager for the parameters in ROSplane. Includes helper functions to set and get parameters
+=======
+ * Manager for the parameters in ROSflight. Includes helper functions to set and get parameters
+>>>>>>> origin/controller-updates
  * 
  * @author Jacob Moore <jacobmoor2@gmail.com>
 */
@@ -9,10 +13,12 @@
 #ifndef PARAM_MANAGER_H
 #define PARAM_MANAGER_H
 
+#include <rclcpp/rclcpp.hpp>
 #include <variant>
 
-#include <rclcpp/rclcpp.hpp>
-
+namespace roscopter
+{
+    
 class ParamManager
 {
 public:
@@ -24,49 +30,49 @@ public:
   ParamManager(rclcpp::Node * node);
 
   /**
-   * Helper function to access parameter values of type double stored in param_manager object
+   * Helper function to access parameter values of type double stored in ParamManager object
    * @return Double value of the parameter
   */
   double get_double(std::string param_name);
 
   /**
-   * Helper function to access parameter values of type bool stored in param_manager object
+   * Helper function to access parameter values of type bool stored in ParamManager object
    * @return Bool value of the parameter
   */
   bool get_bool(std::string param_name);
 
   /**
-   * Helper function to access parameter values of type integer stored in param_manager object
+   * Helper function to access parameter values of type integer stored in ParamManager object
    * @return Integer value of the parameter
   */
   int64_t get_int(std::string param_name);
 
   /**
-   * Helper function to access parameter values of type string stored in param_manager object
+   * Helper function to access parameter values of type string stored in ParamManager object
    * @return String value of the parameter
   */
   std::string get_string(std::string param_name);
 
   /**
-   * Helper function to declare parameters in the param_manager object
+   * Helper function to declare parameters in the ParamManager object
    * Inserts a parameter into the parameter object and declares it with the ROS system
   */
   void declare_double(std::string param_name, double value);
 
   /**
-   * Helper function to declare parameters in the param_manager object
+   * Helper function to declare parameters in the ParamManager object
    * Inserts a parameter into the parameter object and declares it with the ROS system
   */
   void declare_bool(std::string param_name, bool value);
 
   /**
-   * Helper function to declare parameters in the param_manager object
+   * Helper function to declare parameters in the ParamManager object
    * Inserts a parameter into the parameter object and declares it with the ROS system
   */
   void declare_int(std::string param_name, int64_t value);  
 
   /**
-   * Helper function to declare parameters in the param_manager object
+   * Helper function to declare parameters in the ParamManager object
    * Inserts a parameter into the parameter object and declares it with the ROS system
   */
   void declare_string(std::string param_name, std::string value);
@@ -118,4 +124,5 @@ private:
   rclcpp::Node * container_node_;
 };
 
+}   // namespace roscopter
 #endif // PARAM_MANAGER_H

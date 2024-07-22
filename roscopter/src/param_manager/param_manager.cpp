@@ -1,4 +1,8 @@
 #include "param_manager/param_manager.hpp"
+#include <variant>
+
+namespace roscopter
+{
 
 ParamManager::ParamManager(rclcpp::Node * node) : container_node_{node} {}
 
@@ -192,3 +196,5 @@ bool ParamManager::set_parameters_callback(const std::vector<rclcpp::Parameter> 
   }
   return true;
 }
+
+}   // namespace roscopter

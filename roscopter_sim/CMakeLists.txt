@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.8)
 project(roscopter_sim)
 
 find_package(gazebo QUIET)
-IF(gazebo_FOUND)
+IF(NOT gazebo_FOUND)
   message(STATUS "Gazebo not found. Not building roscopter_sim.")
 ELSE()
 set(CMAKE_CXX_STANDARD 11)
@@ -33,7 +33,7 @@ add_definitions(-DROS_ASSERT_ENABLED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosflight_msgs REQUIRED)
-find_package(rosflight_utils REQUIRED)
+find_package(roscopter_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
@@ -58,32 +58,42 @@ include_directories(include
 )
 link_directories(${GAZEBO_LIBRARY_DIRS})
 
-add_library(multirotor_forces_and_moments_plugin src/multirotor_forces_and_moments.cpp)
-target_link_libraries(multirotor_forces_and_moments_plugin 
-  ${ament_INCLUDE_DIRS}
-  ${rclcpp_INCLUDE_DIRS}
-  ${GAZEBO_LIBRARIES}
-)
-# add_dependencies(multirotor_forces_and_moments_plugin ${catkin_EXPORTED_TARGETS})
-ament_export_dependencies(
-  multirotor_forces_and_moments_plugin
-  rclcpp
-  rosflight_msgs
-  rosflight_utils
-  std_msgs
-  nav_msgs
-  geometry_msgs
-  sensor_msgs
-  std_srvs
-  gazebo_ros
-  gazebo_plugins
-)
+# add_library(multirotor_forces_and_moments_plugin src/multirotor_forces_and_moments.cpp)
+# target_link_libraries(multirotor_forces_and_moments_plugin 
+#   ${ament_INCLUDE_DIRS}
+#   ${rclcpp_INCLUDE_DIRS}
+#   ${GAZEBO_LIBRARIES}
+# )
+# # add_dependencies(multirotor_forces_and_moments_plugin ${catkin_EXPORTED_TARGETS})
+# ament_export_dependencies(
+#   multirotor_forces_and_moments_plugin
+#   rclcpp
+#   rosflight_msgs
+#   rosflight_utils
+#   std_msgs
+#   nav_msgs
+#   geometry_msgs
+#   sensor_msgs
+#   std_srvs
+#   gazebo_ros
+#   gazebo_plugins
+# )
 
-install(
-  TARGETS
-    multirotor_forces_and_moments_plugin
-  DESTINATION lib/${PROJECT_NAME}
-  # LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+# install(
+#   TARGETS
+#     multirotor_forces_and_moments_plugin
+#   DESTINATION lib/${PROJECT_NAME}
+#   # LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+# )
+
+add_executable(gazebo_truth_publisher
+  src/state_transcription_node.cpp
 )
+ament_target_dependencies(gazebo_truth_publisher roscopter_msgs rclcpp nav_msgs)
+install(TARGETS
+        gazebo_truth_publisher
+        DESTINATION lib/${PROJECT_NAME})
 
 ENDIF()
+
+ament_package()

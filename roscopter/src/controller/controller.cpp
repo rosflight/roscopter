@@ -1,125 +1,20 @@
-#include <controller/controller.h>
-#include <stdio.h>
-#include <string.h>
+#include <controller/controller.hpp>
 
 using std::placeholders::_1;
 
-namespace controller
+namespace roscopter
 {
 
-Controller::Controller() : Node("controller")
+Controller::Controller() : ControllerROS()
 {
   // Calculate max accelerations. Assuming that equilibrium throttle produces
   // 1 g of acceleration and a linear thrust model, these max acceleration
   // values are computed in g's as well.
-  max_accel_z_ = 1.0 / throttle_eq_;
-  max_accel_xy_ = sin(acos(throttle_eq_)) / throttle_eq_ / sqrt(2.);
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
+  max_accel_z_ = 1.0 / equilibrium_throttle;
+  max_accel_xy_ = sin(acos(equilibrium_throttle)) / equilibrium_throttle / sqrt(2.);
 
-  is_flying_ = false;
-  received_cmd_ = false;
-
-  declareParams();
-
-  if (!this->get_parameter("equilibrium_throttle", throttle_eq_)) {
-    RCLCPP_ERROR(this->get_logger(), "Controller MAV equilibrium throttle not found!");
-  }
-
-  // Set up Publisher and Subscribers
-  state_sub_ = this->create_subscription<nav_msgs::msg::Odometry>("estimate", 1, std::bind(&Controller::stateCallback, this, _1));
-  is_flying_sub_ = this->create_subscription<roscopter_msgs::msg::Bool>("is_flying", 1, std::bind(&Controller::isFlyingCallback, this, _1));
-  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::Command>("high_level_command", 1, std::bind(&Controller::cmdCallback, this, _1));
-  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&Controller::statusCallback, this, _1));
-  
-  command_pub_ = this->create_publisher<rosflight_msgs::msg::Command>("command", 1);
-
-  // Register parameter callback
-  parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&Controller::parametersCallback, this, _1));
-
-}
-
-rcl_interfaces::msg::SetParametersResult Controller::parametersCallback(const std::vector<rclcpp::Parameter> & parameters)
-{
-  rcl_interfaces::msg::SetParametersResult result;
-  result.successful = true;
-  result.reason = "TODO: Implement parameter manager";
-
-  for (auto param : parameters) {
-    RCLCPP_INFO_STREAM(this->get_logger(), param.get_name() << " was not changed internally!");
-  }
-
-// TODO:
-//   double P, I, D, tau;
-//   tau = config.tau;
-//   P = config.x_dot_P;
-//   I = config.x_dot_I;
-//   D = config.x_dot_D;
-//   PID_x_dot_.setGains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
-
-//   P = config.y_dot_P;
-//   I = config.y_dot_I;
-//   D = config.y_dot_D;
-//   PID_y_dot_.setGains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
-
-//   P = config.z_dot_P;
-//   I = config.z_dot_I;
-//   D = config.z_dot_D;
-//   // set max z accelerations so that we can't fall faster than 1 gravity
-//   PID_z_dot_.setGains(P, I, D, tau, 1.0, -max_accel_z_);
-
-//   P = config.north_P;
-//   I = config.north_I;
-//   D = config.north_D;
-//   max_.n_dot = config.max_n_dot;
-//   PID_n_.setGains(P, I, D, tau, max_.n_dot, -max_.n_dot);
-
-//   P = config.east_P;
-//   I = config.east_I;
-//   D = config.east_D;
-//   max_.e_dot = config.max_e_dot;
-//   PID_e_.setGains(P, I, D, tau, max_.e_dot, -max_.e_dot);
-
-//   P = config.down_P;
-//   I = config.down_I;
-//   D = config.down_D;
-//   max_.d_dot = config.max_d_dot;
-//   PID_d_.setGains(P, I, D, tau, max_.d_dot, -max_.d_dot);
-
-//   P = config.psi_P;
-//   I = config.psi_I;
-//   D = config.psi_D;
-//   PID_psi_.setGains(P, I, D, tau);
-
-//   max_.roll = config.max_roll;
-//   max_.pitch = config.max_pitch;
-//   max_.yaw_rate = config.max_yaw_rate;
-//   max_.throttle = config.max_throttle;
-
-//   max_.n_dot = config.max_n_dot;
-//   max_.e_dot = config.max_e_dot;
-//   max_.d_dot = config.max_d_dot;
-
-//   throttle_eq_ = config.equilibrium_throttle;
-
-//   ROS_INFO("new gains");
-
-//   resetIntegrators();
-
-  return result;
-} 
-
-void Controller::declareParams()
-{
-  this->declare_parameter("equilibrium_throttle", 0.5); // Default values
-  this->declare_parameter("max_roll", 0.15);  
-  this->declare_parameter("max_pitch", 0.15);
-  this->declare_parameter("max_yaw_rate", 0.15);
-  this->declare_parameter("max_throttle", 0.85);
-  this->declare_parameter("max_n_dot", 0.15);
-  this->declare_parameter("max_e_dot", 0.15);
-  this->declare_parameter("max_d_dot", 0.15);
-
-  this->declare_parameter("min_altitude", 0.15);
-
+  // Fill out the max_ struct
   this->get_parameter("max_roll", max_.roll);
   this->get_parameter("max_pitch", max_.pitch);
   this->get_parameter("max_yaw_rate", max_.yaw_rate);
@@ -128,187 +23,150 @@ void Controller::declareParams()
   this->get_parameter("max_e_dot", max_.e_dot);
   this->get_parameter("max_d_dot", max_.d_dot);
   this->get_parameter("min_altitude", min_altitude_);
+
+  update_gains();
+}
+
+void Controller::update_gains() {
+  double P, I, D, tau;
+  tau = params.get_double("tau");
+  P = params.get_double("x_dot_P");
+  I = params.get_double("x_dot_I");
+  D = params.get_double("x_dot_D");
+  PID_x_dot_.set_gains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
+
+  P = params.get_double("y_dot_P");
+  I = params.get_double("y_dot_I");
+  D = params.get_double("y_dot_D");
+  PID_y_dot_.set_gains(P, I, D, tau, max_accel_xy_, -max_accel_xy_);
+
+  P = params.get_double("z_dot_P");
+  I = params.get_double("z_dot_I");
+  D = params.get_double("z_dot_D");
+  // set max z accelerations so that we can't fall faster than 1 gravity
+  PID_z_dot_.set_gains(P, I, D, tau, 1.0, -max_accel_z_);
+
+  P = params.get_double("north_P");
+  I = params.get_double("north_I");
+  D = params.get_double("north_D");
+  max_.n_dot = params.get_double("max_n_dot");
+  PID_n_.set_gains(P, I, D, tau, max_.n_dot, -max_.n_dot);
+
+  P = params.get_double("east_P");
+  I = params.get_double("east_I");
+  D = params.get_double("east_D");
+  max_.e_dot = params.get_double("max_e_dot");
+  PID_e_.set_gains(P, I, D, tau, max_.e_dot, -max_.e_dot);
+
+  P = params.get_double("down_P");
+  I = params.get_double("down_I");
+  D = params.get_double("down_D");
+  max_.d_dot = params.get_double("max_d_dot");
+  PID_d_.set_gains(P, I, D, tau, max_.d_dot, -max_.d_dot);
+
+  P = params.get_double("psi_P");
+  I = params.get_double("psi_I");
+  D = params.get_double("psi_D");
+  PID_psi_.set_gains(P, I, D, tau);
+
+  max_.roll = params.get_double("max_roll");
+  max_.pitch = params.get_double("max_pitch");
+  max_.yaw_rate = params.get_double("max_yaw_rate");
+  max_.throttle = params.get_double("max_throttle");
+
+  max_.n_dot = params.get_double("max_n_dot");
+  max_.e_dot = params.get_double("max_e_dot");
+  max_.d_dot = params.get_double("max_d_dot");
 }
 
 
-void Controller::stateCallback(const nav_msgs::msg::Odometry &msg)
+rosflight_msgs::msg::Command Controller::compute_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt)
 {
-  static double prev_time = 0;
-  if(prev_time == 0)
-  {
-    prev_time = msg.header.stamp.sec; // TODO: add nanosecs
-    return;
-  }
+  // Define parameters here for clarity
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
 
-  // Calculate time
-  double now = msg.header.stamp.sec;  // TODO: add nanosecs
-  double dt = now - prev_time;
-  prev_time = now;
+  uint8_t mode_flag = input_cmd.mode;
+  roscopter_msgs::msg::ControllerCommand transition_cmd = input_cmd;
 
-  if(dt <= 0)
-    return;
-
-  // This should already be coming in NED
-  xhat_.pn = msg.pose.pose.position.x;
-  xhat_.pe = msg.pose.pose.position.y;
-  xhat_.pd = msg.pose.pose.position.z;
-
-  xhat_.u = msg.twist.twist.linear.x;
-  xhat_.v = msg.twist.twist.linear.y;
-  xhat_.w = msg.twist.twist.linear.z;
-
-  // Convert Quaternion to RPY
-  tf2::Quaternion tf_quat;
-  tf2::fromMsg(msg.pose.pose.orientation, tf_quat);
-  tf2::Matrix3x3(tf_quat).getRPY(xhat_.phi, xhat_.theta, xhat_.psi);
-  xhat_.theta = xhat_.theta;  // TODO: Why?
-  xhat_.psi = xhat_.psi;      // TODO: Why?
-
-  xhat_.p = msg.twist.twist.angular.x;
-  xhat_.q = msg.twist.twist.angular.y;
-  xhat_.r = msg.twist.twist.angular.z;
-
-  if(is_flying_ && armed_ && received_cmd_)
-  {
-    RCLCPP_WARN_ONCE(this->get_logger(), "CONTROLLER ACTIVE");
-    computeControl(dt);
-    publishCommand();
-  }
-  else
-  {
-    resetIntegrators();
-    prev_time_ = msg.header.stamp.sec;
-  }
-}
-
-
-void Controller::isFlyingCallback(const roscopter_msgs::msg::Bool &msg)
-{
-  is_flying_ = msg.data;
-}
-
-void Controller::statusCallback(const rosflight_msgs::msg::Status &msg)
-{
-  armed_ = msg.armed;
-}
-
-
-void Controller::cmdCallback(const roscopter_msgs::msg::Command &msg)
-{
-  switch(msg.mode)
-  {
-    case roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DPOS_YAW:
-      xc_.pn = msg.cmd1;
-      xc_.pe = msg.cmd2;
-      xc_.pd = msg.cmd3;
-      xc_.psi = msg.cmd4;
-      control_mode_ = msg.mode;
-      break;
-    case roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DVEL_YAW:
-      xc_.pn = msg.cmd1;
-      xc_.pe = msg.cmd2;
-      xc_.z_dot = msg.cmd3;
-      xc_.psi = msg.cmd4;
-      control_mode_ = msg.mode;
-      break;
-    // case rosflight_msgs::Command::MODE_XVEL_YVEL_YAWRATE_ALTITUDE:
-    case roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DPOS_YAWRATE:
-      xc_.x_dot = msg.cmd1;
-      xc_.y_dot = msg.cmd2;
-      xc_.pd = msg.cmd3;
-      xc_.r = msg.cmd4;
-      control_mode_ = msg.mode;
-      break;
-    // case rosflight_msgs::Command::MODE_XVEL_YVEL_YAWRATE_Z_VEL:
-    case roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE:
-      xc_.x_dot = msg.cmd1;
-      xc_.y_dot = msg.cmd2;
-      xc_.z_dot = msg.cmd3;
-      xc_.r = msg.cmd4;
-      control_mode_ = msg.mode;
-      break;
-    // case rosflight_msgs::Command::MODE_XACC_YACC_YAWRATE_AZ:
-    case roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE:
-      xc_.ax = msg.cmd1;
-      xc_.ay = msg.cmd2;
-      xc_.az = msg.cmd3;
-      xc_.r = msg.cmd4;
-      control_mode_ = msg.mode;
-      break;
-    default:
-      RCLCPP_ERROR(this->get_logger(), "roscopter/controller: Unhandled command message of type %d",
-                msg.mode);
-      break;
-  }
-
-  if (!received_cmd_)
-    received_cmd_ = true;
-}
-
-void Controller::computeControl(double dt)
-{
-  if(dt <= 0.0000001)
-  {
+  if(dt <= 0.0000001) {
     // This messes up the derivative calculation in the PID controllers
-    return;
+    RCLCPP_WARN_STREAM(this->get_logger(), "dt < 0.0000001");
+    // TODO: Do we need to keep the last cmd and return it here?
+    return output_cmd_;
   }
 
-  uint8_t mode_flag = control_mode_;
-
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DPOS_YAW)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DPOS_YAW)
   {
+    double pn = transition_cmd.cmd1;
+    double pe = transition_cmd.cmd2;
+    double pd = transition_cmd.cmd3;
+    double psi = transition_cmd.cmd4;
+
     // Figure out desired velocities (in inertial frame)
     // By running the position controllers
-    double pndot_c = PID_n_.computePID(xc_.pn, xhat_.pn, dt);
-    double pedot_c = PID_e_.computePID(xc_.pe, xhat_.pe, dt);
-    double pddot_c = PID_d_.computePID(xc_.pd, xhat_.pd, dt);
+    double pndot_c = PID_n_.compute_pid(pn, xhat_.position[0], dt);
+    double pedot_c = PID_e_.compute_pid(pe, xhat_.position[1], dt);
+    double pddot_c = PID_d_.compute_pid(pd, xhat_.position[2], dt);
 
     // Calculate desired yaw rate
     // First, determine the shortest direction to the commanded psi
-    if(fabs(xc_.psi + 2*M_PI - xhat_.psi) < fabs(xc_.psi - xhat_.psi))
+    if(fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi))
     {
-      xc_.psi += 2*M_PI;
+      psi += 2*M_PI;
     }
-    else if (fabs(xc_.psi - 2*M_PI -xhat_.psi) < fabs(xc_.psi - xhat_.psi))
+    else if (fabs(psi - 2*M_PI -xhat_.psi) < fabs(psi - xhat_.psi))
     {
-      xc_.psi -= 2*M_PI;
+      psi -= 2*M_PI;
     }
-    xc_.r = PID_psi_.computePID(xc_.psi, xhat_.psi, dt);
 
-    xc_.x_dot = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);
-    xc_.y_dot = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi);
-    xc_.z_dot = pddot_c;
+    // Save the calculated velocities to the command and change to the appropriate mode
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
 
-    mode_flag = roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE;
+    transition_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // x_dot
+    transition_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // y_dot
+    transition_cmd.cmd3 = pddot_c;                                        // z_dot
+    transition_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat_.psi, dt);     // r
   }
 
-if(mode_flag == roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DVEL_YAW)
-{
-  // Figure out desired velocities (in inertial frame)
-  // By running the position controllers
-  double pndot_c = PID_n_.computePID(xc_.pn, xhat_.pn, dt);
-  double pedot_c = PID_e_.computePID(xc_.pe, xhat_.pe, dt);
-
-  // Calculate desired yaw rate
-  // First, determine the shortest direction to the commanded psi
-  if(fabs(xc_.psi + 2*M_PI - xhat_.psi) < fabs(xc_.psi - xhat_.psi))
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DVEL_YAW)
   {
-    xc_.psi += 2*M_PI;
+    double pn = transition_cmd.cmd1;
+    double pe = transition_cmd.cmd2;
+    double vd = transition_cmd.cmd3;
+    double psi = transition_cmd.cmd4;
+
+    // Figure out desired velocities (in inertial frame)
+    // By running the position controllers
+    double pndot_c = PID_n_.compute_pid(pn, xhat_.position[0], dt);
+    double pedot_c = PID_e_.compute_pid(pe, xhat_.position[1], dt);
+
+    // Calculate desired yaw rate
+    // First, determine the shortest direction to the commanded psi
+    if(fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi))
+    {
+      psi += 2*M_PI;
+    }
+    else if (fabs(psi - 2*M_PI -xhat_.psi) < fabs(psi - xhat_.psi))
+    {
+      psi -= 2*M_PI;
+    }
+
+    // Save the calculated velocities to the command and change to the appropriate mode
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
+
+    transition_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // x_dot
+    transition_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // y_dot
+    transition_cmd.cmd3 = vd;                                             // z_dot
+    transition_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat_.psi, dt);     // r
   }
-  else if (fabs(xc_.psi - 2*M_PI -xhat_.psi) < fabs(xc_.psi - xhat_.psi))
+
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE)
   {
-    xc_.psi -= 2*M_PI;
-  }
-  xc_.r = PID_psi_.computePID(xc_.psi, xhat_.psi, dt);
+    double x_dot = transition_cmd.cmd1;
+    double y_dot = transition_cmd.cmd2;
+    double z_dot = transition_cmd.cmd3;
+    double r = transition_cmd.cmd4;
 
-  xc_.x_dot = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);
-  xc_.y_dot = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi);
-
-  mode_flag = roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE;
-}
-
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DVEL_YAWRATE)
-  {
     // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
     // Rotate body frame velocities to vehicle 1 frame velocities
     double sinp = sin(xhat_.phi);
@@ -316,20 +174,27 @@ if(mode_flag == roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DVEL_YAW)
     double sint = sin(xhat_.theta);
     double cost = cos(xhat_.theta);
     double pxdot =
-        cost * xhat_.u + sinp * sint * xhat_.v + cosp * sint * xhat_.w;
-    double pydot = cosp * xhat_.v - sinp * xhat_.w;
+        cost * xhat_.v_n + sinp * sint * xhat_.v_e + cosp * sint * xhat_.v_d;
+    double pydot = cosp * xhat_.v_e - sinp * xhat_.v_d;
     double pddot =
-        -sint * xhat_.u + sinp * cost * xhat_.v + cosp * cost * xhat_.w;
+        -sint * xhat_.v_n + sinp * cost * xhat_.v_e + cosp * cost * xhat_.v_d;
 
-    xc_.ax = PID_x_dot_.computePID(xc_.x_dot, pxdot, dt);
-    xc_.ay = PID_y_dot_.computePID(xc_.y_dot, pydot, dt);
-    xc_.az = PID_z_dot_.computePID(xc_.z_dot, pddot, dt);
+    // Save the calculated velocities to the command and change to the appropriate mode
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
 
-    mode_flag = roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE;
+    transition_cmd.cmd1 = PID_x_dot_.compute_pid(x_dot, pxdot, dt);  // ax
+    transition_cmd.cmd2 = PID_y_dot_.compute_pid(y_dot, pydot, dt);  // ay
+    transition_cmd.cmd3 = PID_z_dot_.compute_pid(z_dot, pddot, dt);  // az
+    transition_cmd.cmd4 = r;                                        // r
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NVEL_EVEL_DPOS_YAWRATE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DPOS_YAWRATE)
   {
+    double x_dot = transition_cmd.cmd1;
+    double y_dot = transition_cmd.cmd2;
+    double pd = transition_cmd.cmd3;
+    double r = transition_cmd.cmd4;
+
     // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
     // Rotate body frame velocities to vehicle 1 frame velocities
     double sinp = sin(xhat_.phi);
@@ -337,84 +202,98 @@ if(mode_flag == roscopter_msgs::msg::Command::MODE_NPOS_EPOS_DVEL_YAW)
     double sint = sin(xhat_.theta);
     double cost = cos(xhat_.theta);
     double pxdot =
-        cost * xhat_.u + sinp * sint * xhat_.v + cosp * sint * xhat_.w;
-    double pydot = cosp * xhat_.v - sinp * xhat_.w;
+        cost * xhat_.v_n + sinp * sint * xhat_.v_e + cosp * sint * xhat_.v_d;
+    double pydot = cosp * xhat_.v_e - sinp * xhat_.v_d;
     double pddot =
-        -sint * xhat_.u + sinp * cost * xhat_.v + cosp * cost * xhat_.w;
-
-    xc_.ax = PID_x_dot_.computePID(xc_.x_dot, pxdot, dt);
-    xc_.ay = PID_y_dot_.computePID(xc_.y_dot, pydot, dt);
+        -sint * xhat_.v_n + sinp * cost * xhat_.v_e + cosp * cost * xhat_.v_d;
 
     // Nested Loop for Altitude
-    double pddot_c = PID_d_.computePID(xc_.pd, xhat_.pd, dt, pddot);
-    xc_.az = PID_z_dot_.computePID(pddot_c, pddot, dt);
-    mode_flag = roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE;
+    double pddot_c = PID_d_.compute_pid(pd, xhat_.position[2], dt, pddot);
+
+    // Save the calculated velocities to the command and change to the appropriate mode
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
+
+    transition_cmd.cmd1 = PID_x_dot_.compute_pid(x_dot, pxdot, dt);  // ax
+    transition_cmd.cmd2 = PID_y_dot_.compute_pid(y_dot, pydot, dt);  // ay
+    transition_cmd.cmd3 = PID_z_dot_.compute_pid(pddot_c, pddot, dt);    // az
+    transition_cmd.cmd4 = r;                                            // r
   }
 
-  if(mode_flag == roscopter_msgs::msg::Command::MODE_NACC_EACC_DACC_YAWRATE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE)
   {
+    double ax = transition_cmd.cmd1;
+    double ay = transition_cmd.cmd2;
+    double az = transition_cmd.cmd3;
+    double r = transition_cmd.cmd4;
+
+    double phi = 0.0;
+    double theta = 0.0;
+
     // Model inversion (m[ax;ay;az] = m[0;0;g] + R'[0;0;-T]
-    double total_acc_c = sqrt((1.0 - xc_.az) * (1.0 - xc_.az) +
-                              xc_.ax * xc_.ax + xc_.ay * xc_.ay);  // (in g's)
+    double total_acc_c = sqrt((1.0 - az) * (1.0 - az) +
+                              ax * ax + ay * ay);  // (in g's)
     if (total_acc_c > 0.001)
     {
-      xc_.phi = asin(xc_.ay / total_acc_c);
-      xc_.theta = -1.0*asin(xc_.ax / total_acc_c);
+      phi = asin(ay / total_acc_c);
+      theta = -1.0*asin(ax / total_acc_c);
     }
     else
     {
-      xc_.phi = 0;
-      xc_.theta = 0;
+      phi = 0;
+      theta = 0;
     }
 
     // Compute desired thrust based on current pose
     double cosp = cos(xhat_.phi);
     double cost = cos(xhat_.theta);
-    xc_.throttle = (1.0 - xc_.az) * throttle_eq_ / cosp / cost;
 
-    mode_flag = rosflight_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
+    // Save the calculated velocities to the command and change to the appropriate mode
+    mode_flag = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
+
+    transition_cmd.cmd1 = phi;                                        // phi
+    transition_cmd.cmd2 = theta;                                      // theta
+    transition_cmd.cmd3 = r;                                          // r
+    transition_cmd.cmd4 = (1.0 - az) * equilibrium_throttle / cosp / cost; // throttle
   }
 
-  if(mode_flag == rosflight_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE)
+  if(mode_flag == roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE)
   {
-    // Pack up and send the command
-    command_.mode = rosflight_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
-    command_.f = saturate(xc_.throttle, max_.throttle, 0.0);
-    command_.x = saturate(xc_.phi, max_.roll, -max_.roll);
-    command_.y = saturate(xc_.theta, max_.pitch, -max_.pitch);
-    command_.z = saturate(xc_.r, max_.yaw_rate, -max_.yaw_rate);
+    double phi = transition_cmd.cmd1;
+    double theta = transition_cmd.cmd2;
+    double r = transition_cmd.cmd3;
+    double throttle = transition_cmd.cmd4;
 
-    if (-xhat_.pd < min_altitude_)
+    // Saturate and send the command
+    output_cmd_.mode = rosflight_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
+    output_cmd_.ignore = rosflight_msgs::msg::Command::IGNORE_NONE;
+
+    output_cmd_.x = saturate(phi, max_.roll, -max_.roll);       // roll
+    output_cmd_.y = saturate(theta, max_.pitch, -max_.pitch);   // pitch
+    output_cmd_.z = saturate(r, max_.yaw_rate, -max_.yaw_rate); // yawrate
+    output_cmd_.f = saturate(throttle, max_.throttle, 0.0);     // throttle
+
+    if (-xhat_.position[2] < min_altitude_)
     {
-      command_.x = 0.;
-      command_.y = 0.;
-      command_.z = 0.;
+      output_cmd_.x = 0.;   // roll
+      output_cmd_.y = 0.;   // pitch
+      output_cmd_.z = 0.;   // yawrate
     }
   }
+
+  // TODO: Do we need to check if the output is all zeros? i.e., if 
+  // loop doesn't make it to the last section where it gets packaged up...
+  return output_cmd_;
 }
 
-void Controller::publishCommand()
+void Controller::reset_integrators()
 {
-  command_.header.stamp = this->get_clock()->now();
-  command_pub_->publish(command_);
-}
-
-void Controller::resetIntegrators()
-{
-  PID_x_dot_.clearIntegrator();
-  PID_y_dot_.clearIntegrator();
-  PID_z_dot_.clearIntegrator();
-  PID_n_.clearIntegrator();
-  PID_e_.clearIntegrator();
-  PID_d_.clearIntegrator();
-  PID_psi_.clearIntegrator();
-}
-
-double Controller::saturate(double x, double max, double min)
-{
-  x = (x > max) ? max : x;
-  x = (x < min) ? min : x;
-  return x;
+  PID_x_dot_.clear_integrator();
+  PID_y_dot_.clear_integrator();
+  PID_z_dot_.clear_integrator();
+  PID_n_.clear_integrator();
+  PID_e_.clear_integrator();
+  PID_d_.clear_integrator();
+  PID_psi_.clear_integrator();
 }
 
 }  // namespace controller
