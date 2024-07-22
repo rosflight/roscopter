@@ -172,7 +172,7 @@ float ControllerSuccessiveLoop::north_control(double pn_cmd)
   double pn_ddot_cmd = 0.0;
   double pn_dot_cmd = 0.0;
 
-  // North control effort - Eq. 14.34
+  // North control effort - Eq. 14.34. Note the negative velocity passed to the PID object
   double pn_dot_tilde = pn_dot_cmd - xhat_.v_n;;
   double u_n = pn_ddot_cmd + g*C_d*xhat_.v_n + PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, -pn_dot_tilde);
 
@@ -188,7 +188,7 @@ float ControllerSuccessiveLoop::east_control(double pe_cmd)
   double pe_ddot_cmd = 0.0;
   double pe_dot_cmd = 0.0;
 
-  // East control effort - Eq. 14.34
+  // East control effort - Eq. 14.34. Note the negative velocity passed to the PID object
   double pe_dot_tilde = pe_dot_cmd - xhat_.v_e;
   double u_e = pe_ddot_cmd + g*C_d*xhat_.v_e + PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, -pe_dot_tilde);
 
@@ -204,7 +204,7 @@ float ControllerSuccessiveLoop::down_control(double pd_cmd)
   double pd_ddot_cmd = 0.0;
   double pd_dot_cmd = 0.0;
 
-  // Down control effort - Eq. 14.34
+  // Down control effort - Eq. 14.34. Note the negative velocity passed to the PID object
   double pd_dot_tilde = pd_dot_cmd - xhat_.v_d;
   double u_d = pd_ddot_cmd + g*C_d*xhat_.v_d + PID_u_d_.compute_pid(pd_cmd, xhat_.position[2], dt_, -pd_dot_tilde);
 
