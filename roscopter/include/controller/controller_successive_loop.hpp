@@ -4,7 +4,7 @@
 #include <controller/controller_ros.hpp>
 #include <controller/simple_pid.hpp>
 #include <rclcpp/rclcpp.hpp>
-#include <roscopter_msgs/msg/command.hpp>
+#include <roscopter_msgs/msg/controller_command.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 
