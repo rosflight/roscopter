@@ -18,6 +18,9 @@ ControllerSuccessiveLoop::ControllerSuccessiveLoop() : ControllerROS()
   declare_params();
   params.set_parameters();
 
+  // Create the ROS publisher associated with this class
+  controller_internals_pub_ = this->create_publisher<roscopter_msgs::msg::ControllerInternals>("controller_internals", 10);
+
   update_gains();
   reset_integrators();
 }
@@ -61,7 +64,8 @@ void ControllerSuccessiveLoop::declare_params() {
   params.declare_double("max_roll_torque", 0.1);
   params.declare_double("max_pitch_torque", 0.0);
   params.declare_double("max_yaw_torque", 0.0);
-  params.declare_double("max_thrust", 10.0);
+  params.declare_double("max_pitch", 30.0);
+  params.declare_double("max_roll", 30.0);
 
   params.declare_bool("pitch_tuning_override", false);
   params.declare_bool("roll_tuning_override", false);
@@ -145,22 +149,28 @@ void ControllerSuccessiveLoop::trajectory_control(double pn_cmd, double pe_cmd, 
 {
   double mass = params.get_double("mass");
   double g = params.get_double("gravity");
-  double equilibrium_throttle = params.get_double("equilibrium_throttle");
-  double max_thrust = params.get_double("max_thrust");
+  double max_roll = params.get_double("max_roll") * M_PI / 180.0;
+  double max_pitch = params.get_double("max_pitch") * M_PI / 180.0;
 
   double u_n = north_control(pn_cmd);
   double u_e = east_control(pe_cmd);
   double u_d = down_control(pd_cmd);
 
-  // Compute command euler angles and thrust PID control outputs 
-  phi_cmd_ = u_e*cos(xhat_.psi)/g - u_n*sin(xhat_.psi)/g;
-  theta_cmd_ = -u_n*cos(xhat_.psi)/g - u_e*sin(xhat_.psi)/g;
+  // Compute command euler angles and thrust PID control outputs
+  // Make sure to saturate the phi and theta commands 
+  double phi_cmd_unsat = u_e*cos(xhat_.psi)/g - u_n*sin(xhat_.psi)/g;
+  double theta_cmd_unsat = -u_n*cos(xhat_.psi)/g - u_e*sin(xhat_.psi)/g;
+
+  phi_cmd_ = saturate(phi_cmd_unsat, max_roll, -max_roll);
+  theta_cmd_ = saturate(theta_cmd_unsat, max_pitch, -max_pitch);
   thrust_cmd_ = mass * (g - u_d);
 
-  // Convert thrust command to throttle setting
-  throttle_cmd_ = saturate(thrust_cmd_, max_thrust * g, 0.0) * equilibrium_throttle / (mass * g);
-
-  RCLCPP_INFO_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 100, "Thrust_cmd_: " << thrust_cmd_ << " Throttle_cmd_: " << throttle_cmd_ << " u_d: " << u_d);
+  // Publish the controller internals commands
+  roscopter_msgs::msg::ControllerInternals msg;
+  msg.header.stamp = this->get_clock()->now();
+  msg.phi_c = phi_cmd_;
+  msg.theta_c = theta_cmd_;
+  controller_internals_pub_->publish(msg);
 }
 
 float ControllerSuccessiveLoop::north_control(double pn_cmd)
@@ -225,6 +235,12 @@ void ControllerSuccessiveLoop::saturate_commands()
   double max_roll_torque = params.get_double("max_roll_torque");
   double max_pitch_torque = params.get_double("max_pitch_torque");
   double max_yaw_torque = params.get_double("max_yaw_torque");
+  double mass = params.get_double("mass");
+  double g = params.get_double("gravity");
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
+
+  // Convert thrust command to throttle setting
+  throttle_cmd_ = thrust_cmd_ * equilibrium_throttle / (mass * g);
 
   // Populate the fields in the output message
   output_cmd_.mode = rosflight_msgs::msg::Command::MODE_PASS_THROUGH;

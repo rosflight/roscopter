@@ -26,6 +26,7 @@ find_package(geometry_msgs REQUIRED)
 
 set(msg_files
   "msg/ControllerCommand.msg"
+  "msg/ControllerInternals.msg"
   "msg/PoseEuler.msg"
   "msg/Bool.msg"
   "msg/State.msg"

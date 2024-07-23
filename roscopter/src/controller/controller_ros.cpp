@@ -55,8 +55,8 @@ rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(cons
 void ControllerROS::declare_params()
 {
   params.declare_double("equilibrium_throttle", 0.5); // Default values
-  params.declare_double("max_roll", 0.15);  
-  params.declare_double("max_pitch", 0.15);
+  // params.declare_double("max_roll", 0.15);  
+  // params.declare_double("max_pitch", 0.15);
   params.declare_double("max_yaw_rate", 0.15);
   params.declare_double("max_throttle", 0.85);
   params.declare_double("max_n_dot", 0.15);

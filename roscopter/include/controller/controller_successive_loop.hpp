@@ -5,6 +5,7 @@
 #include <controller/simple_pid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <roscopter_msgs/msg/controller_command.hpp>
+#include <roscopter_msgs/msg/controller_internals.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 
@@ -20,6 +21,8 @@ public:
   ControllerSuccessiveLoop();
 
 private:
+  rclcpp::Publisher<roscopter_msgs::msg::ControllerInternals>::SharedPtr controller_internals_pub_;
+
   rosflight_msgs::msg::Command output_cmd_;
   double phi_cmd_;
   double theta_cmd_;

@@ -66,13 +66,13 @@ private:
   {
     ROLL,
     PITCH,
+    YAW,
     // ALTITUDE,
     // COURSE,
     // AIRSPEED,
     N_POS,
     E_POS,
-    D_POS,
-    PSI
+    D_POS
   };
 
   /// This defines what type of signal to publish to the selected controller.
