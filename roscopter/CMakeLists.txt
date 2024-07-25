@@ -87,22 +87,6 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
-
-### EXECUTABLES ###
-
-add_executable(controller
-  src/controller/controller_ros.cpp
-  src/controller/controller_state_machine.cpp
-  src/controller/controller_cascading_pid.cpp
-  src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs EIGEN3)
-target_link_libraries(controller ${ament_LIBRARIES} param_manager)
-install(
-  TARGETS controller
-  DESTINATION lib/${PROJECT_NAME})
-
-### LIBRARIES ###
-
 add_library(ekf
   src/ekf/state.cpp
   src/ekf/dynamics.cpp
@@ -121,6 +105,33 @@ target_link_libraries(ekf_node ekf_ros ${ament_LIBRARIES})
 ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
 install(
   TARGETS ekf_node
+  DESTINATION lib/${PROJECT_NAME})
+
+
+
+### EXECUTABLES ###
+
+# Controller
+add_executable(controller
+  src/controller/controller_ros.cpp
+  src/controller/controller_state_machine.cpp
+  src/controller/controller_cascading_pid.cpp
+  src/controller/simple_pid.cpp)
+ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs)
+target_link_libraries(controller ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS controller
+  DESTINATION lib/${PROJECT_NAME})
+
+# Trajectory Follower
+add_executable(trajectory_follower
+  src/navigation/trajectory_follower_ros.cpp
+  src/navigation/trajectory_follower.cpp
+  src/controller/simple_pid.cpp)
+ament_target_dependencies(trajectory_follower rclcpp rclpy roscopter_msgs)
+target_link_libraries(trajectory_follower ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS trajectory_follower
   DESTINATION lib/${PROJECT_NAME})
 
 

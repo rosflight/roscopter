@@ -42,8 +42,7 @@
 #include <cfloat>
 #include <rclcpp/rclcpp.hpp>  // included temporarily for debug statements
 
-namespace controller
-{
+namespace roscopter{
 /*!
  * \brief The simplePID class is a basic, tried and true PID controller.  Only P (proportional) gains are
  *  necessary, the I (integral) and D (derivative) default to zero. The I control is computed using a
@@ -133,6 +132,6 @@ protected:
     return val;
   }
 };
-}
+} // namespace roscopter
 
 #endif  // ROTOR_CONTROLLER_SIMPLE_PID_H

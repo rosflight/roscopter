@@ -36,18 +36,18 @@ private:
   double dt_;
 
   // PID Controllers
-  controller::SimplePID PID_phi_;
-  controller::SimplePID PID_theta_;
-  controller::SimplePID PID_psi_;
-  controller::SimplePID PID_u_n_;
-  controller::SimplePID PID_u_e_;
-  controller::SimplePID PID_u_d_;
-  controller::SimplePID PID_x_dot_;
-  controller::SimplePID PID_y_dot_;
-  controller::SimplePID PID_z_dot_;
-  controller::SimplePID PID_n_;
-  controller::SimplePID PID_e_;
-  controller::SimplePID PID_d_;
+  roscopter::SimplePID PID_phi_;
+  roscopter::SimplePID PID_theta_;
+  roscopter::SimplePID PID_psi_;
+  roscopter::SimplePID PID_u_n_;
+  roscopter::SimplePID PID_u_e_;
+  roscopter::SimplePID PID_u_d_;
+  roscopter::SimplePID PID_x_dot_;
+  roscopter::SimplePID PID_y_dot_;
+  roscopter::SimplePID PID_z_dot_;
+  roscopter::SimplePID PID_n_;
+  roscopter::SimplePID PID_e_;
+  roscopter::SimplePID PID_d_;
 
   // Functions
   rosflight_msgs::msg::Command compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt);

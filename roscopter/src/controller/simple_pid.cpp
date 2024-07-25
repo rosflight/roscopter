@@ -31,7 +31,7 @@
 
 #include <controller/simple_pid.hpp>
 
-namespace controller
+namespace roscopter
 {
 //
 // Basic initialization

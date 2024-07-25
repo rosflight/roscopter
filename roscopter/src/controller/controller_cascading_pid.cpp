@@ -248,6 +248,7 @@ void ControllerCascadingPID::npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerC
   double pddot_c = PID_d_.compute_pid(pd, xhat_.position[2], dt_);
 
   // Calculate desired yaw rate
+  // TOOD: Wrap to within 180 deg
   // First, determine the shortest direction to the commanded psi
   if(fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi))
   {
@@ -261,9 +262,9 @@ void ControllerCascadingPID::npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerC
   // // Save the calculated velocities to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
 
-  input_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // x_dot
-  input_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // y_dot
-  input_cmd.cmd3 = pddot_c;                                        // z_dot
+  input_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // n_dot
+  input_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // e_dot
+  input_cmd.cmd3 = pddot_c;                                        // d_dot
   input_cmd.cmd4 = PID_psi_.compute_pid(psi, xhat_.psi, dt_);     // r
 
   nvel_evel_dvel_yawrate(input_cmd);

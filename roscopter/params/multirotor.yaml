@@ -1,4 +1,4 @@
-autopilot:
+/**:    # autopilot and trajectory controller share some of the same parameters
     ros__parameters:
         x_dot_P: 0.5
         x_dot_I: 0.0

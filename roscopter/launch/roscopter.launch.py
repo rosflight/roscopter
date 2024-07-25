@@ -24,6 +24,14 @@ def generate_launch_description():
             parameters=[param_file],
             remappings=[('estimated_state', 'state')]
         ),
+        Node(
+            package='roscopter',
+            executable='trajectory_follower',
+            name='trajectory_follower',
+            output='screen',
+            parameters=[param_file],
+            remappings=[('estimated_state', 'state')]
+        )
         # Node(
         #     package='roscopter',
         #     executable='ekf_node',

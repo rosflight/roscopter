@@ -48,7 +48,6 @@ rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(cons
 void ControllerROS::declare_params()
 {
   // Put any params needed in controller_base here
-  params.declare_double("test", 0.5);
 }
 
 void ControllerROS::cmd_callback(const roscopter_msgs::msg::ControllerCommand &msg)
