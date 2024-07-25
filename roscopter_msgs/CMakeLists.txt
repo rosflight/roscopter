@@ -30,6 +30,7 @@ set(msg_files
   "msg/PoseEuler.msg"
   "msg/Bool.msg"
   "msg/State.msg"
+  "msg/TrajectoryCommand.msg"
 )
 
 set(srv_files
