@@ -185,6 +185,8 @@ void TuningSignalGenerator::publish_timer_callback()
   // command_message.h_c = default_h_c_;
   // command_message.chi_c = default_chi_c_;
   command_message.mode = roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DPOS_YAW;
+  command_message.cmd_valid = true;
+
   command_message.cmd1 = default_n_pos_c_;
   command_message.cmd2 = default_e_pos_c_;
   command_message.cmd3 = default_d_pos_c_;

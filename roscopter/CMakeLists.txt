@@ -92,8 +92,8 @@ install(TARGETS param_manager
 
 add_executable(controller
   src/controller/controller_ros.cpp
-  src/controller/controller.cpp
-  src/controller/controller_successive_loop.cpp
+  src/controller/controller_state_machine.cpp
+  src/controller/controller_cascading_pid.cpp
   src/controller/simple_pid.cpp)
 ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs EIGEN3)
 target_link_libraries(controller ${ament_LIBRARIES} param_manager)

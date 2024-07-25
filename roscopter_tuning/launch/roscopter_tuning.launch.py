@@ -19,7 +19,7 @@ def generate_launch_description():
     autopilot_params = os.path.join(
         roscopter_dir,
         'params',
-        'quadcopter_params.yaml'
+        'multirotor.yaml'
     )
 
     return LaunchDescription([
