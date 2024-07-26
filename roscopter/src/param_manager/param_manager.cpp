@@ -102,6 +102,9 @@ double ParamManager::get_double(std::string param_name)
 {
     try
     {
+      if (params_.find(param_name) == params_.end()) {
+        throw std::bad_variant_access();
+      }
       return std::get<double>(params_[param_name]);
     }
     catch (std::bad_variant_access & e)
@@ -115,6 +118,9 @@ bool ParamManager::get_bool(std::string param_name)
 {
     try
     {
+      if (params_.find(param_name) == params_.end()) {
+        throw std::bad_variant_access();
+      }
       return std::get<bool>(params_[param_name]);
     }
     catch (std::bad_variant_access & e)
@@ -128,6 +134,9 @@ int64_t ParamManager::get_int(std::string param_name)
 {
     try
     {
+      if (params_.find(param_name) == params_.end()) {
+        throw std::bad_variant_access();
+      }
       return std::get<int64_t>(params_[param_name]);
     }
     catch (std::bad_variant_access & e)
@@ -141,6 +150,9 @@ std::string ParamManager::get_string(std::string param_name)
 {
     try
     {
+      if (params_.find(param_name) == params_.end()) {
+        throw std::bad_variant_access();
+      }
       return std::get<std::string>(params_[param_name]);
     }
     catch (std::bad_variant_access & e)
