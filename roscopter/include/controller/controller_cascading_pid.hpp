@@ -34,6 +34,7 @@ private:
   double tau_z_;
   double throttle_cmd_;
   double dt_;
+  bool params_initialized_;
 
   // PID Controllers
   roscopter::SimplePID PID_phi_;

@@ -32,15 +32,15 @@
         u_n_kp: 3.0
         u_n_ki: 0.0
         u_n_kd: 3.0
-        max_u_n_dot: 25.0
+        max_u_n_dot: 10.0
         u_e_kp: 3.0
         u_e_ki: 0.0
         u_e_kd: 3.0
-        max_u_e_dot: 25.0
+        max_u_e_dot: 10.0
         u_d_kp: 7.0
-        u_d_ki: 2.0
+        u_d_ki: 0.0
         u_d_kd: 2.0
-        max_u_d_dot: 25.0
+        max_u_d_dot: 10.0
 
         tau: 0.05
         C_d: 0.0
@@ -55,12 +55,15 @@
         max_n_dot: 1.5
         max_e_dot: 1.5
         max_d_dot: 0.5
-        max_roll_torque: 1.0
-        max_pitch_torque: 1.0
-        max_yaw_torque: 1.0
+        max_phi_dot: 1.0
+        max_theta_dot: 1.0
+        max_psi_dot: 1.0
+        max_roll_torque: 0.85
+        max_pitch_torque: 0.85
+        max_yaw_torque: 0.85
         min_attitude_altitude: 0.35
-        max_roll: 30.0      # degrees
-        max_pitch: 30.0     # degrees
+        max_roll: 15.0      # degrees
+        max_pitch: 15.0     # degrees
 
         takeoff_d_pos: -10.0
         takeoff_height_threshold: 1.0

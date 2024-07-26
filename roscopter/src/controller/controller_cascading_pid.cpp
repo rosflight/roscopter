@@ -5,7 +5,7 @@ using std::placeholders::_1;
 namespace roscopter
 {
 
-ControllerCascadingPID::ControllerCascadingPID() : ControllerStateMachine()
+ControllerCascadingPID::ControllerCascadingPID() : ControllerStateMachine(), params_initialized_(false)
 {
   // Declare and set parameters associated with Cascading PID controller
   declare_params();
@@ -21,6 +21,10 @@ ControllerCascadingPID::ControllerCascadingPID() : ControllerStateMachine()
 
   update_gains();
   reset_integrators();
+
+  params_initialized_ = true;
+  // Update gains after all the parameters have been set to initialize the PID controllers
+  update_gains();
 }
 
 void ControllerCascadingPID::declare_params() {
@@ -64,9 +68,9 @@ void ControllerCascadingPID::declare_params() {
   params.declare_double("tau", 0.05);
 
   // Saturation Limit parameters
-  params.declare_double("max_phi_dot", 5.0);
-  params.declare_double("max_theta_dot", 5.0);
-  params.declare_double("max_psi_dot", 5.0);
+  params.declare_double("max_phi_dot", 1.0);
+  params.declare_double("max_theta_dot", 1.0);
+  params.declare_double("max_psi_dot", 1.0);
   params.declare_double("max_yaw_rate", 0.15);  // TODO: Can I get rid of this one for the above?
   params.declare_double("min_throttle", 0.0);
   params.declare_double("max_roll_torque", 1.0);
@@ -86,6 +90,9 @@ void ControllerCascadingPID::declare_params() {
 }
 
 void ControllerCascadingPID::update_gains() {
+    // Don't update gains if parameters are not initialized.
+    if (!params_initialized_) { return; }
+
     RCLCPP_INFO_STREAM(this->get_logger(), "Updating gains!");
 
     // Update gains of this class
@@ -443,7 +450,7 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
     output_cmd_.mode = rosflight_msgs::msg::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
     max_x = params.get_double("max_roll");
     max_y = params.get_double("max_pitch");
-    max_z = 2 * M_PI;
+    max_z = params.get_double("max_psi_dot");
   }
   else {
     RCLCPP_WARN_STREAM(this->get_logger(), "Unknown command input type! Using previous command (if any)...");
@@ -460,6 +467,8 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
   output_cmd_.y = saturate(input_cmd.cmd2, max_y, -max_y);
   output_cmd_.z = saturate(input_cmd.cmd3, max_z, -max_z);
   output_cmd_.f = saturate(input_cmd.cmd4, max_f, min_f);
+
+  RCLCPP_INFO_STREAM(this->get_logger(), output_cmd_.mode);
 
   // Check to see if we are above the minimum attitude altitude
   if (-xhat_.position[2] < min_attitude_altitude)

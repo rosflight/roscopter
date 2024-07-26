@@ -27,6 +27,8 @@ protected:
   roscopter_msgs::msg::State xhat_;     /** Current estimated state of MAV */
 
 private:
+  bool received_cmd_msg_;
+
   // Publishers and Subscribers
   rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr state_sub_;
   rclcpp::Subscription<roscopter_msgs::msg::TrajectoryCommand>::SharedPtr trajectory_sub_;

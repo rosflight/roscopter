@@ -19,6 +19,7 @@ private:
   roscopter::SimplePID PID_u_e_;
   roscopter::SimplePID PID_u_d_;
   double dt_;
+  bool params_initialized_;
   
   // Functions
   void declare_params();

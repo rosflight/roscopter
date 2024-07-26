@@ -6,7 +6,7 @@ using std::placeholders::_1;
 namespace roscopter
 {
 
-TrajectoryFollowerROS::TrajectoryFollowerROS() : Node("trajectory_follower"), params(this)
+TrajectoryFollowerROS::TrajectoryFollowerROS() : Node("trajectory_follower"), params(this), received_cmd_msg_(false)
 {
   // Instantiate publishers and subscribers
   state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&TrajectoryFollowerROS::state_callback, this, _1));
@@ -49,6 +49,9 @@ void TrajectoryFollowerROS::state_callback(const roscopter_msgs::msg::State &msg
 {
   xhat_ = msg;
 
+  // If the controller has not received an input command yet, do not compute control commands or publish
+  if (!received_cmd_msg_) { return; }
+
   // Calculate dt and return if dt is invalid
   double now = msg.header.stamp.sec + msg.header.stamp.nanosec * 1e-9;
   double dt = compute_dt(now);
@@ -77,6 +80,7 @@ double TrajectoryFollowerROS::compute_dt(double now)
 void TrajectoryFollowerROS::cmd_callback(const roscopter_msgs::msg::TrajectoryCommand &msg)
 {
   input_cmd_ = msg;
+  received_cmd_msg_ = true;
 }
 
 void TrajectoryFollowerROS::publish_command(roscopter_msgs::msg::ControllerCommand &command)
