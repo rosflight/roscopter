@@ -18,8 +18,8 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rosflight_msgs/msg/barometer.hpp>
 #include <rosflight_msgs/msg/status.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <roscopter_msgs/msg/state.hpp>
-#include <sensor_msgs/msg/detail/magnetic_field__struct.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/nav_sat_fix.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
@@ -62,6 +62,9 @@ protected:
     float gps_e;
     float gps_h;
     float gps_Vg;
+    float gps_vn;
+    float gps_ve;
+    float gps_vd;
     float gps_course;
     bool status_armed;
     bool armed_init;
@@ -91,6 +94,7 @@ protected:
   };
 
   bool baro_init_; /**< Initial barometric pressure */
+  bool new_baro_ = false;
 
   virtual void estimate(const Input & input,
                         Output & output) = 0;
@@ -102,6 +106,11 @@ protected:
   float init_alt_ = 0.0;                  /**< Initial altitude in meters above MSL  */
   float init_static_;                     /**< Initial static pressure (mbar)  */
 
+  rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr true_mag_pub_;
+  
+  roscopter_msgs::msg::State true_state_;
+  geometry_msgs::msg::Vector3Stamped comp_filt_;
+
 private:
   rclcpp::Publisher<roscopter_msgs::msg::State>::SharedPtr vehicle_state_pub_;
   rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gnss_fix_sub_;
@@ -111,6 +120,8 @@ private:
   rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
   rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr magnetometer_sub_;
+  rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr true_state_sub_;
+  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr comp_filt_sub_;
 
   std::string param_filepath_ = "estimator_params.yaml";
 
@@ -128,6 +139,8 @@ private:
   // void saveParameter(std::string param_name, double param_val);
   void statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg);
   void magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg);
+  void trueStateCallback(const roscopter_msgs::msg::State::SharedPtr msg);
+  void compFiltCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
 
   rclcpp::TimerBase::SharedPtr update_timer_;
   std::chrono::microseconds update_period_;

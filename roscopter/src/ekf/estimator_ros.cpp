@@ -2,7 +2,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <rclcpp/logging.hpp>
+#include <iomanip>
 
 #include "ekf/estimator_ros.hpp"
 #include "ekf/estimator_continuous_discrete.hpp"
@@ -14,6 +14,7 @@ EstimatorROS::EstimatorROS()
     : Node("estimator_ros"), params_(this), params_initialized_(false)
 {
   vehicle_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("estimated_state", 10);
+  true_mag_pub_ = this->create_publisher<sensor_msgs::msg::MagneticField>("rotated_mag", 10);
 
   gnss_fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
     gnss_fix_topic_, 10, std::bind(&EstimatorROS::gnssFixCallback, this, std::placeholders::_1));
@@ -27,6 +28,10 @@ EstimatorROS::EstimatorROS()
     status_topic_, 10, std::bind(&EstimatorROS::statusCallback, this, std::placeholders::_1));
   magnetometer_sub_ = this->create_subscription<sensor_msgs::msg::MagneticField>(
     magnetometer_topic_, 10, std::bind(&EstimatorROS::magnetometerCallback, this, std::placeholders::_1));
+  true_state_sub_ = this->create_subscription<roscopter_msgs::msg::State>(
+    "state", 10, std::bind(&EstimatorROS::trueStateCallback, this, std::placeholders::_1));
+  comp_filt_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
+    "attitude/euler", 10, std::bind(&EstimatorROS::compFiltCallback, this, std::placeholders::_1));
 
   init_static_ = 0;
   baro_count_ = 0;
@@ -49,7 +54,7 @@ EstimatorROS::EstimatorROS()
 
 void EstimatorROS::declare_parameters()
 {
-  params_.declare_double("estimator_update_frequency", 100.0);
+  params_.declare_double("estimator_update_frequency", 390.0);
   params_.declare_double("rho", 1.225);
   params_.declare_double("gravity", 9.8);
   params_.declare_double("gps_ground_speed_threshold", 0.3);  // TODO: this is a magic number. What is it determined from?
@@ -115,57 +120,26 @@ void EstimatorROS::update()
   input_.gps_new = false;
 
   // TODO: create state publisher.
+  
+  roscopter_msgs::msg::State msg = roscopter_msgs::msg::State();
 
-  // rosplane_msgs::msg::State msg;
-  // msg.header.stamp = this->get_clock()->now();
-  // msg.header.frame_id =
-  //   1; // Denotes global frame
-  //
-  // msg.position[0] = output.pn;
-  // msg.position[1] = output.pe;
-  // msg.position[2] = -output.h; // Nominal output is alt. For NED the alt must be inverted.
-  // if (gps_init_) {
-  //   msg.initial_lat = init_lat_;
-  //   msg.initial_lon = init_lon_;
-  //   msg.initial_alt = init_alt_;
-  // }
-  // msg.va = output.va;
-  // msg.alpha = output.alpha;
-  // msg.beta = output.beta;
-  // msg.phi = output.phi;
-  // msg.theta = output.theta;
-  // msg.psi = output.psi;
-  // msg.chi = output.chi;
-  // msg.p = output.p;
-  // msg.q = output.q;
-  // msg.r = output.r;
-  // msg.vg = output.Vg;
-  // msg.wn = output.wn;
-  // msg.we = output.we;
-  // msg.quat_valid = true;
-
-  // Eigen::Quaternionf q;
-  // q = Eigen::AngleAxisf(output.phi, Eigen::Vector3f::UnitX())
-  //   * Eigen::AngleAxisf(output.theta, Eigen::Vector3f::UnitY())
-  //   * Eigen::AngleAxisf(output.psi, Eigen::Vector3f::UnitZ());
-  //
-  // msg.quat[0] = q.w();
-  // msg.quat[1] = q.x();
-  // msg.quat[2] = q.y();
-  // msg.quat[3] = q.z();
-  //
-  // msg.u = output.va * cos(output.theta);
-  // msg.v = 0;
-  // msg.w = output.va * sin(output.theta);
-  //
-  // msg.psi_deg = fmod(output.psi, 2.0 * M_PI) * 180 / M_PI; //-360 to 360
-  // msg.psi_deg += (msg.psi_deg < -180 ? 360 : 0);
-  // msg.psi_deg -= (msg.psi_deg > 180 ? 360 : 0);
-  // msg.chi_deg = fmod(output.chi, 2.0 * M_PI) * 180 / M_PI; //-360 to 360
-  // msg.chi_deg += (msg.chi_deg < -180 ? 360 : 0);
-  // msg.chi_deg -= (msg.chi_deg > 180 ? 360 : 0);
-  //
-  // vehicle_state_pub_->publish(msg);
+  msg.position[0] = output.pn;
+  msg.position[1] = output.pe;
+  msg.position[2] = output.pd;
+  msg.v_n = output.vn;
+  msg.v_e = output.ve;
+  msg.v_d = output.vd;
+  msg.phi = output.phi;
+  msg.theta = output.theta;
+  msg.psi = output.psi;
+  msg.p = output.p;
+  msg.q = output.q;
+  msg.r = output.r;
+  msg.bx = output.bx;
+  msg.by = output.by;
+  msg.bz = output.bz;
+  
+  vehicle_state_pub_->publish(msg);
 }
 
 void EstimatorROS::gnssFixCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
@@ -199,6 +173,16 @@ void EstimatorROS::gnssFixCallback(const sensor_msgs::msg::NavSatFix::SharedPtr 
   }
 }
 
+void EstimatorROS::trueStateCallback(const roscopter_msgs::msg::State::SharedPtr msg){
+
+  true_state_ = *msg;
+
+}
+
+void EstimatorROS::compFiltCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg){
+  comp_filt_ = *msg;
+}
+
 void EstimatorROS::gnssVelCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
 {
   // Rename parameter here for clarity
@@ -206,11 +190,15 @@ void EstimatorROS::gnssVelCallback(const geometry_msgs::msg::TwistStamped::Share
 
   double v_n = msg->twist.linear.x;
   double v_e = msg->twist.linear.y;
+  double v_d = msg->twist.linear.z;
   //  double v_d = msg->twist.linear.z; // This variable was unused.
   double ground_speed = sqrt(v_n * v_n + v_e * v_e);
   double course =
     atan2(v_e, v_n); //Does this need to be in a specific range? All uses seem to accept anything.
   input_.gps_Vg = ground_speed;
+  input_.gps_vn = v_n;
+  input_.gps_ve = v_e;
+  input_.gps_vd = v_d;
   if (ground_speed > ground_speed_threshold)
     input_.gps_course = course;
 }
@@ -233,6 +221,8 @@ void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedP
   double gravity = params_.get_double("gravity");
   double gate_gain_constant = params_.get_double("baro_measurement_gate");
   double baro_calib_count = params_.get_int("baro_calibration_count");
+
+  new_baro_ = true;
 
   if (armed_first_time_ && !baro_init_) {
     if (baro_count_ < baro_calib_count) {
