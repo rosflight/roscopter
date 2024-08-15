@@ -1,11 +1,7 @@
 #include <cstdlib>
 #include <cstring>
-#include <filesystem>
-#include <fstream>
-#include <iomanip>
 
 #include "ekf/estimator_ros.hpp"
-#include "ekf/estimator_continuous_discrete.hpp"
 
 namespace roscopter
 {
@@ -15,10 +11,8 @@ EstimatorROS::EstimatorROS()
 {
   vehicle_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("estimated_state", 10);
 
-  gnss_fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
-    gnss_fix_topic_, 10, std::bind(&EstimatorROS::gnssFixCallback, this, std::placeholders::_1));
-  gnss_vel_sub_ = this->create_subscription<geometry_msgs::msg::TwistStamped>(
-    gnss_vel_topic_, 10, std::bind(&EstimatorROS::gnssVelCallback, this, std::placeholders::_1));
+  gnss_sub_ = this->create_subscription<rosflight_msgs::msg::GNSSFull>(
+    gnss_fix_topic_, 10, std::bind(&EstimatorROS::gnssCallback, this, std::placeholders::_1));
   imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
     imu_topic_, 10, std::bind(&EstimatorROS::imuCallback, this, std::placeholders::_1));
   baro_sub_ = this->create_subscription<rosflight_msgs::msg::Barometer>(
@@ -136,34 +130,54 @@ void EstimatorROS::update()
   vehicle_state_pub_->publish(msg);
 }
 
-void EstimatorROS::gnssFixCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
+void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg)
 {
-  bool has_fix = msg->status.status
-    >= sensor_msgs::msg::NavSatStatus::STATUS_FIX; // Higher values refer to augmented fixes
-  if (!has_fix || !std::isfinite(msg->latitude)) {
+  bool has_fix = msg->fix_type
+    >= 3; // Higher values refer to augmented fixes HACK: This needs to be a parameter. 2 is a 2D fix, 3 is a 3D fix, 4 is DGPS and 5 is RTK
+  if (!has_fix || !std::isfinite(msg->lat)) {
     input_.gps_new = false;
     return;
   }
   if (!gps_init_ && has_fix) {
     gps_init_ = true;
-    init_alt_ = msg->altitude;
-    init_lat_ = msg->latitude;
-    init_lon_ = msg->longitude;
-    // saveParameter("init_lat", init_lat_);
+    init_alt_ = msg->height;
+    init_lat_ = msg->lat;
+    init_lon_ = msg->lon;
+    // saveParameter("init_lat", init_lat_); // TODO: format the estimator to be able to hot start.
     // saveParameter("init_lon", init_lon_);
     // saveParameter("init_alt", init_alt_);
   } else {
-    input_.gps_lat = msg->latitude;
-    input_.gps_lon = msg->longitude;
-    input_.gps_alt = msg->altitude;
-    input_.gps_year = 2024; // FIXME: add the right code to have this be accurate.
-    input_.gps_month = 7;
-    input_.gps_day = 18;
-    input_.gps_n = EARTH_RADIUS * (msg->latitude - init_lat_) * M_PI / 180.0;
+    input_.gps_lat = msg->lat;
+    input_.gps_lon = msg->lon;
+    input_.gps_alt = msg->height;
+    input_.gps_year = msg->year;
+    input_.gps_month = msg->month;
+    input_.gps_day = msg->day;
+    input_.gps_n = EARTH_RADIUS * (msg->lat - init_lat_) * M_PI / 180.0;
     input_.gps_e =
-      EARTH_RADIUS * cos(init_lat_ * M_PI / 180.0) * (msg->longitude - init_lon_) * M_PI / 180.0;
-    input_.gps_h = msg->altitude - init_alt_;
+      EARTH_RADIUS * cos(init_lat_ * M_PI / 180.0) * (msg->lon - init_lon_) * M_PI / 180.0;
+    input_.gps_h = msg->height - init_alt_;
     input_.gps_new = true;
+
+    // TODO: Rename parameter here for clarity
+    double ground_speed_threshold = params_.get_double("gps_ground_speed_threshold");
+
+    double v_n = msg->vel_n;
+    double v_e = msg->vel_e;
+    double v_d = msg->vel_e;
+
+    double ground_speed = sqrt(v_n * v_n + v_e * v_e);
+    double course =
+      atan2(v_e, v_n); 
+
+    input_.gps_Vg = ground_speed;
+    input_.gps_vn = v_n;
+    input_.gps_ve = v_e;
+    input_.gps_vd = v_d;
+
+    if (ground_speed > ground_speed_threshold)
+      input_.gps_course = course;
+
   }
 }
 
@@ -175,26 +189,6 @@ void EstimatorROS::trueStateCallback(const roscopter_msgs::msg::State::SharedPtr
 
 void EstimatorROS::compFiltCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg){
   comp_filt_ = *msg;
-}
-
-void EstimatorROS::gnssVelCallback(const geometry_msgs::msg::TwistStamped::SharedPtr msg)
-{
-  // Rename parameter here for clarity
-  double ground_speed_threshold = params_.get_double("gps_ground_speed_threshold");
-
-  double v_n = msg->twist.linear.x;
-  double v_e = msg->twist.linear.y;
-  double v_d = msg->twist.linear.z;
-  //  double v_d = msg->twist.linear.z; // This variable was unused.
-  double ground_speed = sqrt(v_n * v_n + v_e * v_e);
-  double course =
-    atan2(v_e, v_n); //Does this need to be in a specific range? All uses seem to accept anything.
-  input_.gps_Vg = ground_speed;
-  input_.gps_vn = v_n;
-  input_.gps_ve = v_e;
-  input_.gps_vd = v_d;
-  if (ground_speed > ground_speed_threshold)
-    input_.gps_course = course;
 }
 
 void EstimatorROS::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
