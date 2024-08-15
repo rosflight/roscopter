@@ -6,7 +6,6 @@
 #include <random>
 
 #include "ekf/estimator_continuous_discrete.hpp"
-#include "Eigen/src/Core/Matrix.h"
 #include "ekf/estimator_ros.hpp"
 #include "ekf/geomag.h"
 
@@ -33,7 +32,7 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     , Q_(Eigen::MatrixXf::Identity(12, 12))
     , Q_g_(Eigen::MatrixXf::Identity(6, 6))
     , R_(Eigen::MatrixXf::Zero(4, 4))
-    , R_fast(Eigen::MatrixXf::Zero(2, 2))
+    , R_fast(Eigen::MatrixXf::Zero(4, 4))
 {
 
   bind_functions(); // TODO: Document what the _models are.
@@ -147,6 +146,8 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   
   R_fast(0,0) = powf(sigma_static_press,2);
   R_fast(1,1) = powf(sigma_mag,2);
+  R_fast(2,2) = powf(sigma_mag,2);
+  R_fast(3,3) = powf(sigma_mag,2);
 
   alpha_ = exp(-lpf_a * Ts);
   alpha1_ = exp(-lpf_a1 * Ts);
@@ -206,6 +207,10 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   // First rotate magenetometer readings into the inertial frame.
   Eigen::Vector3f mag_readings;
   mag_readings << input.mag_x/10000., input.mag_y/10000., input.mag_z/10000; // TODO: Add param for converting gauss.
+  auto saved_mag_readings = mag_readings;
+  
+  // FIXME: Don't try to recreate a digital compass, instead predict what you thing the mag readings should be,
+  // then use that as your measurement update.
 
   // Need to use the most up to date roll and pitch estimates.
   Eigen::Matrix3f mag_rotation;
@@ -233,10 +238,13 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model, imu_measurements, multirotor_input_jacobian_model, P_, Q_, Q_g_, Ts);
   xhat_(9) = xhat_(10) = xhat_(11) = 0.0;
   
-  Eigen::VectorXf _(1); // FIXME: FIX THIS!
+  Eigen::VectorXf _(1); // This is used when no inputs are needed.
   
   Eigen::Vector<float, 2> y_fast;
   y_fast << input.static_pres, mag_true_heading;
+  
+  Eigen::Vector<float, 4> y_fast_mag;
+  y_fast_mag << input.static_pres, saved_mag_readings;
 
   auto mag_msg = sensor_msgs::msg::MagneticField();
 
@@ -262,20 +270,27 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   // only update when have new baro and mag.
   if (new_baro_) {
     auto saved_x = xhat_;
+    auto saved_P = P_;
     // xhat_(9) = xhat_(10) = xhat_(11) = 0.0;
+    Eigen::Vector2f mag_info;
+    mag_info << radians(declination), radians(inclination);
+
     double sigma_mag = this->get_parameter("sigma_mag").as_double();
     double sigma_baro = this->get_parameter("sigma_static_press").as_double();
-    Eigen::VectorXf h_fast = multirotor_fast_measurement_prediction(xhat_, _);
-    Eigen::MatrixXf C_fast = multirotor_fast_measurement_jacobian(xhat_, _);
+    Eigen::VectorXf h_fast = multirotor_fast_measurement_prediction(xhat_, mag_info);
+    Eigen::MatrixXf C_fast = multirotor_fast_measurement_jacobian(xhat_, mag_info);
     double wrapped_heading = wrap_within_180(h_fast(1), mag_true_heading);
     C(2) = -rho*gravity;
 
-    // std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_fast_measurement_model, y_fast, multirotor_fast_measurement_jacobian_model, R_fast, P_);
+    std::tie(P_, xhat_) = measurement_update(xhat_, mag_info, multirotor_fast_measurement_model, y_fast_mag, multirotor_fast_measurement_jacobian_model, R_fast, P_);
 
-    std::tie(P_, xhat_) = single_measurement_update(input.static_pres, h_fast(0), sigma_baro, C, xhat_, P_);
-    C(2) = 0;
-    C(8) = 1;
-    std::tie(P_, xhat_) = single_measurement_update(wrapped_heading, h_fast(1), sigma_mag, C, xhat_, P_);
+    RCLCPP_INFO_STREAM(this->get_logger(), "P_mag: " << saved_P);
+    RCLCPP_INFO_STREAM(this->get_logger(), "x_mag: " << saved_x);
+
+    // std::tie(P_, xhat_) = single_measurement_update(input.static_pres, h_fast(0), sigma_baro, C, xhat_, P_);
+    // C(2) = 0;
+    // C(8) = 1;
+    // std::tie(P_, xhat_) = single_measurement_update(wrapped_heading, xhat_(8), sigma_mag, C, xhat_, P_);
     // xhat_(9) = xhat_(10) = xhat_(11) = 0.0;
     new_baro_ = false;
   }
@@ -457,9 +472,9 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
   float theta = state(7);
   float psi = state(8);
 
-  float bias_x = state(9);
-  float bias_y = state(10);
-  float bias_z = state(11);
+  float bias_x = 0.0; // state(9);
+  float bias_y = 0.0; // state(10);
+  float bias_z = 0.0; // state(11);
 
   Eigen::MatrixXf A;
   A = Eigen::MatrixXf::Zero(12, 12);
@@ -555,11 +570,43 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_predict
   float rho = params_.get_double("rho");
   float gravity = params_.get_double("gravity");
 
-  Eigen::VectorXf h = Eigen::VectorXf::Zero(2);
+  float declination = input(0);
+  float inclination = input(1);
+  
+  float phi = state(6);
+  float theta = state(7);
+  float psi = state(8);
+
+  Eigen::VectorXf h = Eigen::VectorXf::Zero(4);
 
   // Static pressure
-  h(0) = -rho*gravity*state(2);
-  h(1) = state(8);
+  // h(1) = state(8);
+  
+  // TODO: give a normalized expected magnetometer output.
+
+  // A magnetometer reading when pointed exactly along the inclination
+  // and declination is completely along the body x axis.
+  
+  Eigen::Vector3f body_x = Eigen::Vector3f::UnitX();
+
+  Eigen::Matrix3f mag_inclination_rotation;
+  mag_inclination_rotation = Eigen::AngleAxisf(inclination, Eigen::Vector3f::UnitY());
+  
+  Eigen::Matrix3f mag_declination_rotation;
+  mag_inclination_rotation = Eigen::AngleAxisf(declination, Eigen::Vector3f::UnitZ());
+
+  Eigen::Matrix3f mag_rotation = mag_inclination_rotation*mag_declination_rotation;
+  
+  Eigen::Matrix3f R_theta;
+  R_theta << cosf(psi)*cosf(theta), sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi), sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi),
+             sinf(psi)*cosf(theta), sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi), - sinf(phi)*cosf(psi) + sinf(psi)*sinf(theta)*cosf(phi),
+             -sinf(theta), sinf(phi)*cosf(theta), cosf(phi)*cosf(theta);
+  
+  // Rotate the magnetometer readings into the intertial frame and then into the body frame.
+  Eigen::Vector3f predicted_mag_readings = R_theta*mag_rotation*body_x;
+  predicted_mag_readings /= predicted_mag_readings.norm();
+  
+  h << -rho*gravity*state(2), predicted_mag_readings;
 
   return h;
 }
@@ -606,11 +653,40 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
   float rho = params_.get_double("rho");
   float gravity = params_.get_double("gravity");
   
-  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(2,12);
+  float phi = state(6);
+  float theta = state(7);
+  float psi = state(8);
+
+  float declination = input(0);
+  float inclination = input(1);
+  
+  Eigen::Vector3f body_x = Eigen::Vector3f::UnitX();
+
+  Eigen::Matrix3f mag_inclination_rotation;
+  mag_inclination_rotation = Eigen::AngleAxisf(inclination, Eigen::Vector3f::UnitY());
+  
+  Eigen::Matrix3f mag_declination_rotation;
+  mag_inclination_rotation = Eigen::AngleAxisf(declination, Eigen::Vector3f::UnitZ());
+
+  Eigen::Matrix3f mag_rotation = mag_inclination_rotation*mag_declination_rotation;
+  Eigen::Vector3f intertial_mag_readings = mag_rotation*body_x;
+
+  float m_x = intertial_mag_readings(0); // These are the mag measures in the inertial frame.
+  float m_y = intertial_mag_readings(1);
+  float m_z = intertial_mag_readings(2);
+  
+
+  Eigen::Matrix3f R_theta_mag_jac;
+  R_theta_mag_jac << m_y*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)) - m_z*(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)), (- m_x*sinf(theta) + m_y*sinf(phi)*cosf(theta) + m_z*cosf(phi)*cosf(theta)) * cosf(psi), - m_x*sinf(psi)*cosf(theta) - m_y*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)) + m_z*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)), - m_y*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)) - m_z*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)), (- m_x*sinf(theta) + m_y*sinf(phi)*cosf(theta) + m_z*cosf(phi)*cosf(theta))*sinf(psi), m_x*cosf(psi)*cosf(theta) + m_y*(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)) + m_z*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)), (m_y*cosf(phi) - m_z*sinf(phi))*cosf(theta), - m_x*cosf(theta) - m_y*sinf(phi)*sinf(theta) - m_z*sinf(theta)*cosf(phi), 0;
+
+  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(4,12);
 
   // Static pressure
   C(0,2) = -rho*gravity;
-  C(1,8) = 1;
+  C.block<3,3>(1,6) = R_theta_mag_jac;
+
+  std::cout << "C: \n";
+  std::cout << C << "\n";
 
   return C;
 }
@@ -656,9 +732,9 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_n_gps", .01);
   params_.declare_double("sigma_e_gps", .01);
   params_.declare_double("sigma_static_press", 1.0);
-  params_.declare_double("sigma_Vg_gps", .005);
+  params_.declare_double("sigma_Vg_gps", .00005);
   params_.declare_double("sigma_course_gps", .005 / 20);
-  params_.declare_double("sigma_mag", 0.05); // TODO: Put in the correct default.
+  params_.declare_double("sigma_mag", 0.05); 
   params_.declare_double("sigma_accel", .0025 * 9.81);
   params_.declare_double("sigma_heading", 0.01);
   params_.declare_double("lpf_a", 50.0);
@@ -666,9 +742,9 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("gps_n_lim", 10000.);
   params_.declare_double("gps_e_lim", 10000.);
 
-  params_.declare_double("roll_process_noise", 0.000001);   // Radians?, should be already squared
-  params_.declare_double("pitch_process_noise", 0.000001);   // Radians?, already squared
-  params_.declare_double("yaw_process_noise", 0.000001);   // Radians?, already squared
+  params_.declare_double("roll_process_noise", 0.00000001);   // Radians?, should be already squared
+  params_.declare_double("pitch_process_noise", 0.00000001);   // Radians?, already squared
+  params_.declare_double("yaw_process_noise", 0.0000001);   // Radians?, already squared
   params_.declare_double("gyro_process_noise", 0.13);   // Deg, not squared
   params_.declare_double("accel_process_noise", 024525);   // m/s^2 not squared
   params_.declare_double("pos_process_noise", 0.0000001);   // already squared
