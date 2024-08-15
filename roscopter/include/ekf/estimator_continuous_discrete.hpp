@@ -1,4 +1,4 @@
-#ifndef ESTIMATOR_CONTINUOUS_DISCRETE_H
+#ifndef ESTIMATOR_CONTINUOUS_DISCRETE_H // FIXME: redefine the header guards when you rename the ekf.
 #define ESTIMATOR_CONTINUOUS_DISCRETE_H
 
 #include <math.h>
@@ -77,10 +77,13 @@ private:
   Eigen::VectorXf xhat_; // 12
   Eigen::MatrixXf P_;    // 12x12
 
-  Eigen::MatrixXf Q_; // 12x12 // FIXME: fix the annotated sizes.
+    Eigen::MatrixXf Q_; // 12x12 // FIXME: fix the annotated sizes and add doxygen
   Eigen::MatrixXf Q_g_; // 7x7
   Eigen::MatrixXf R_; // 6x6
   Eigen::MatrixXf R_fast; // 6x6
+  
+  double inclination_;
+  double declination_;
 
   // TODO: not used
   float gate_threshold_ = 9.21; // chi2(q = .01, df = 2)

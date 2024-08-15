@@ -14,7 +14,6 @@ EstimatorROS::EstimatorROS()
     : Node("estimator_ros"), params_(this), params_initialized_(false)
 {
   vehicle_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("estimated_state", 10);
-  true_mag_pub_ = this->create_publisher<sensor_msgs::msg::MagneticField>("rotated_mag", 10);
 
   gnss_fix_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
     gnss_fix_topic_, 10, std::bind(&EstimatorROS::gnssFixCallback, this, std::placeholders::_1));
@@ -28,10 +27,6 @@ EstimatorROS::EstimatorROS()
     status_topic_, 10, std::bind(&EstimatorROS::statusCallback, this, std::placeholders::_1));
   magnetometer_sub_ = this->create_subscription<sensor_msgs::msg::MagneticField>(
     magnetometer_topic_, 10, std::bind(&EstimatorROS::magnetometerCallback, this, std::placeholders::_1));
-  true_state_sub_ = this->create_subscription<roscopter_msgs::msg::State>(
-    "state", 10, std::bind(&EstimatorROS::trueStateCallback, this, std::placeholders::_1));
-  comp_filt_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
-    "attitude/euler", 10, std::bind(&EstimatorROS::compFiltCallback, this, std::placeholders::_1));
 
   init_static_ = 0;
   baro_count_ = 0;
@@ -118,9 +113,8 @@ void EstimatorROS::update()
   }
 
   input_.gps_new = false;
-
-  // TODO: create state publisher.
   
+  // Create estimated state message and publish it.
   roscopter_msgs::msg::State msg = roscopter_msgs::msg::State();
 
   msg.position[0] = output.pn;
@@ -224,7 +218,7 @@ void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedP
 
   new_baro_ = true;
 
-  if (armed_first_time_ && !baro_init_) {
+  if (armed_first_time_ && !baro_init_) { // TODO: Abstract this into more readable funcitons.
     if (baro_count_ < baro_calib_count) {
       init_static_ += msg->pressure;
       init_static_vector_.push_back(msg->pressure);

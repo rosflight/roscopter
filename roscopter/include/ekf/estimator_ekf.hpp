@@ -10,6 +10,8 @@
 
 #include "estimator_ros.hpp"
 
+// TODO: figure out how to know if anything here allocates stuff on the heap.
+
 namespace roscopter
 {
 

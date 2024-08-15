@@ -41,7 +41,7 @@ public:
   EstimatorROS();
 
 protected:
-  struct Input
+  struct Input // FIXME: there are inputs that are not in this struct.
   {
     float gyro_x;
     float gyro_y;
