@@ -132,59 +132,61 @@ void EstimatorROS::update()
 
 void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg)
 {
-  bool has_fix = msg->fix_type
-    >= 3; // Higher values refer to augmented fixes HACK: This needs to be a parameter. 2 is a 2D fix, 3 is a 3D fix, 4 is DGPS and 5 is RTK
+  // Convert msg to standard DDS and m/s.
+  float msg_lat = msg->lat/1e7;
+  float msg_lon = msg->lon/1e7;
+  float msg_height = msg->height/1e3;
+  
+  float msg_vel_n = msg->vel_n/1e3;
+  float msg_vel_e = msg->vel_e/1e3;
+  float msg_vel_d = msg->vel_d/1e3;
+
+  // HACK: This needs to be a parameter. 2 is a 2D fix, 3 is a 3D fix, 4 is DGPS and 5 is RTK
+  bool has_fix = msg->fix_type >= 3; // Higher values refer to augmented fixes
+  //
   if (!has_fix || !std::isfinite(msg->lat)) {
     input_.gps_new = false;
     return;
   }
   if (!gps_init_ && has_fix) {
     gps_init_ = true;
-    init_alt_ = msg->height;
-    init_lat_ = msg->lat;
-    init_lon_ = msg->lon;
+    init_alt_ = msg_height;
+    init_lat_ = msg_lat;
+    init_lon_ = msg_lon;
     // saveParameter("init_lat", init_lat_); // TODO: format the estimator to be able to hot start.
     // saveParameter("init_lon", init_lon_);
     // saveParameter("init_alt", init_alt_);
   } else {
-    input_.gps_lat = msg->lat;
-    input_.gps_lon = msg->lon;
-    input_.gps_alt = msg->height;
+    input_.gps_lat = msg_lat;
+    input_.gps_lon = msg_lon;
+    input_.gps_alt = msg_height;
     input_.gps_year = msg->year;
     input_.gps_month = msg->month;
     input_.gps_day = msg->day;
-    input_.gps_n = EARTH_RADIUS * (msg->lat - init_lat_) * M_PI / 180.0;
+    input_.gps_n = EARTH_RADIUS * (msg_lat - init_lat_) * M_PI / 180.0;
     input_.gps_e =
-      EARTH_RADIUS * cos(init_lat_ * M_PI / 180.0) * (msg->lon - init_lon_) * M_PI / 180.0;
-    input_.gps_h = msg->height - init_alt_;
+      EARTH_RADIUS * cos(init_lat_ * M_PI / 180.0) * (msg_lon - init_lon_) * M_PI / 180.0;
+    input_.gps_h = msg_height - init_alt_;
     input_.gps_new = true;
 
     // TODO: Rename parameter here for clarity
     double ground_speed_threshold = params_.get_double("gps_ground_speed_threshold");
 
-    double v_n = msg->vel_n;
-    double v_e = msg->vel_e;
-    double v_d = msg->vel_e;
-
-    double ground_speed = sqrt(v_n * v_n + v_e * v_e);
-    double course =
-      atan2(v_e, v_n); 
+    double ground_speed = sqrt(msg_vel_n * msg_vel_n + msg_vel_e * msg_vel_e);
+    double course = atan2(msg_vel_e, msg_vel_n); 
 
     input_.gps_Vg = ground_speed;
-    input_.gps_vn = v_n;
-    input_.gps_ve = v_e;
-    input_.gps_vd = v_d;
+    input_.gps_vn = msg_vel_n;
+    input_.gps_ve = msg_vel_e;
+    input_.gps_vd = msg_vel_d;
 
     if (ground_speed > ground_speed_threshold)
       input_.gps_course = course;
-
   }
 }
 
 void EstimatorROS::trueStateCallback(const roscopter_msgs::msg::State::SharedPtr msg){
-
   true_state_ = *msg;
-
 }
 
 void EstimatorROS::compFiltCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg){
