@@ -13,81 +13,181 @@
 namespace roscopter
 {
 
-class EstimatorContinuousDiscrete : public EstimatorEKF
+class EstimatorContinuousDiscrete : public EstimatorEKF // FIXME: Rename to something more specific.
 {
 public:
   EstimatorContinuousDiscrete();
   EstimatorContinuousDiscrete(bool use_params);
 
-  Eigen::MatrixXf get_Q_(){return Q_;};
-  Eigen::MatrixXf get_Q_g_(){return Q_g_;};
-  Eigen::MatrixXf get_P_(){return P_;};
-  Eigen::MatrixXf get_xhat_(){return xhat_;};
-  auto get_dynamics(){return multirotor_dynamics_model;};
-  auto get_jacobian(){return multirotor_jacobian_model;};
-  auto get_input_jacobian(){return multirotor_input_jacobian_model;};
-
 protected:
   virtual void estimate(const Input & input, Output & output);
 private:
 
-  double lpf_a_;
+  /**
+   * @brief The low pass filter alpha value used on the gyro.
+   */
   float alpha_;
+  /**
+   * @brief The low pass filter alpha value used on the barometer.
+   */
   float alpha1_;
-  int N_;
 
+  /**
+   * @brief The value of the low pass filtered gyroscope measurement.
+   */
   float lpf_gyro_x_;
+  /**
+   * @brief The value of the low pass filtered gyroscope measurement.
+   */
   float lpf_gyro_y_;
+  /**
+   * @brief The value of the low pass filtered gyroscope measurement.
+   */
   float lpf_gyro_z_;
+  /**
+   * @brief The value of the low pass filtered static pressure sensor (barometer).
+   */
   float lpf_static_;
-  float lpf_diff_;
-  float lpf_accel_x_;
-  float lpf_accel_y_;
-  float lpf_accel_z_;
-
-  float phat_;
-  float qhat_;
-  float rhat_;
-  float Vwhat_;
-  float phihat_;
-  float thetahat_;
-  float psihat_;     // TODO: link to an inital condiditons param
   
-  Eigen::VectorXf multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
+  /**
+   * @brief This function calculates the derivatives of the state. This is dictated by the dynamics of
+   * the system.
+   *
+   * @param state The state of the system. 
+   * @param inputs The inputs to the estimator. Can be something like IMU measurements.
+   */
+  Eigen::VectorXf multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  /**
+   * @brief This is a reference to the multirotor_dynamics function, this is created by the std::bind.
+   * This offers a minimum time penalty when passed into a function.
+   */
   std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_dynamics_model;
 
-  Eigen::MatrixXf multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& measurements);
+  /**
+   * @brief Calculates the jacobian of the system dynamics given the current states and inputs.
+   *
+   * @param state The state of the system.
+   * @param inputs The inputs to the estimator, something like IMU measurements.
+   */
+  Eigen::MatrixXf multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  /**
+   * @brief This is a reference to the multirotor_jacobian function, this is created by the std::bind.
+   * This offers a minimum time penalty when passed into a function.
+   */
   std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> multirotor_jacobian_model;
 
+  /**
+   * @brief Calculates the jacobian of the inputs to the estimator.
+   *
+   * @param state The state of the dynamic system.
+   * @param inputs Inputs to the estimator.
+   */
   Eigen::MatrixXf multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  /**
+   * @brief This is a reference to the multirotor_input_jacobian function. This incurs minimum time cost
+   * when passing into a function.
+   */
   std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> multirotor_input_jacobian_model;
 
+  /**
+   * @brief Calculates prediction of the measurements using a model of the sensors.
+   *
+   * @param state The state of the dynamic system.
+   * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
+   * but is not contained in the state.
+   */
   Eigen::VectorXf multirotor_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_measurement_prediction function. This incurs minimum time cost
+   * when passing into a function.
+   */
   std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_model;
   
+  /**
+   * @brief Calculates measurement prediction for the fast sensors.
+   *
+   * @param state The state of the system.
+   * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
+   * but is not contained in the state.
+   */
   Eigen::VectorXf multirotor_fast_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_fast_measurement_prediction function. This incurs minimum time cost
+   * when passing into a function.
+   */
   std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_fast_measurement_model;
   
+  /**
+   * @brief Calculates the jacobian of the measurement model for the fast sensors.
+   *
+   * @param state State of the system.
+   * @param input Any inputs not in the state needed for the system.
+   */
   Eigen::MatrixXf multirotor_fast_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_fast_measurement_jacobian function. This incurs minimum time cost
+   * when passing into a function.
+   */
   std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_fast_measurement_jacobian_model;
 
+  /**
+   * @brief Calculates the measurement jacobian for the measurement model.
+   *
+   * @param state State of the system.
+   * @param input Any necessary inputs not included in the state.
+   */
   Eigen::MatrixXf multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_measurement_jacobian function. This incurs minimum time cost
+   * when passing into a function.
+   */
   std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_jacobian_model;
 
+  /**
+   * @brief The state of the system.
+   */
   Eigen::VectorXf xhat_; // 12
+  /**
+   * @brief The covariance of the estimate.
+   */
   Eigen::MatrixXf P_;    // 12x12
 
-    Eigen::MatrixXf Q_; // 12x12 // FIXME: fix the annotated sizes and add doxygen
-  Eigen::MatrixXf Q_g_; // 7x7
-  Eigen::MatrixXf R_; // 6x6
-  Eigen::MatrixXf R_fast; // 6x6
+  /**
+   * @brief The process noise for the GPS measurements.
+   */
+  Eigen::MatrixXf Q_; // 12x12
+  /**
+   * @brief The process noise from the inputs to the estimator.
+   */
+  Eigen::MatrixXf Q_g_; // 6x6
+  /**
+   * @brief The sensor noises for the slower sensors.
+   */
+  Eigen::MatrixXf R_; // 4x4
+  /**
+   * @brief The sensor noises for the faster sensors.
+   */
+  Eigen::MatrixXf R_fast; // 4x4
   
+  /**
+   * @brief The inclination of the magnetic field at the current location.
+   */
   double inclination_;
+  /**
+   * @brief The declination of the magnetic field at the current location.
+   */
   double declination_;
 
   // TODO: not used
+  // ASK: What should we do long term?
+  /**
+   * @brief The threshold where an gps update is worth updating.
+   */
   float gate_threshold_ = 9.21; // chi2(q = .01, df = 2)
 
+  /**
+   * @brief This function binds references to the functions used in the ekf.
+   */
   void bind_functions();
 
   /**
