@@ -1,72 +1,87 @@
 /**:    # autopilot and trajectory controller share some of the same parameters
     ros__parameters:
-        x_dot_P: 0.5
-        x_dot_I: 0.0
-        x_dot_D: 0.05
-        y_dot_P: 0.5
-        y_dot_I: 0.0
-        y_dot_D: 0.05
-        z_dot_P: 0.4
-        z_dot_I: 0.25
-        z_dot_D: 0.1
-        north_P: 1.0
-        north_I: 0.1
-        north_D: 0.35
-        east_P: 1.0
-        east_I: 0.1
-        east_D: 0.2
-        down_P: 1.0
-        down_I: 0.0
-        down_D: 0.0
+        # Autopilot gains
+        roll_kp: 3.0
+        roll_ki: 0.0
+        roll_kd: 0.2
+        pitch_kp: 3.0
+        pitch_ki: 0.0
+        pitch_kd: 0.2
+        yaw_kp: 0.4
+        yaw_ki: 0.0
+        yaw_kd: 0.2
 
-        phi_kp: 3.0
-        phi_ki: 0.0
-        phi_kd: 0.2
-        theta_kp: 3.0
-        theta_ki: 0.0
-        theta_kd: 0.2
-        psi_kp: 0.4
-        psi_ki: 0.0
-        psi_kd: 0.2
+        roll_rate_kp: 3.0
+        roll_rate_ki: 0.0
+        roll_rate_kd: 0.2
+        pitch_rate_kp: 3.0
+        pitch_rate_ki: 0.0
+        pitch_rate_kd: 0.2
+        yaw_rate_kp: 0.4
+        yaw_rate_ki: 0.0
+        yaw_rate_kd: 0.2
 
+        vel_n_P: 0.5
+        vel_n_I: 0.0
+        vel_n_D: 0.05
+        vel_e_P: 0.5
+        vel_e_I: 0.0
+        vel_e_D: 0.05
+        vel_d_P: 0.4
+        vel_d_I: 0.25
+        vel_d_D: 0.1
+
+        n_P: 1.0
+        n_I: 0.1
+        n_D: 0.35
+        e_P: 1.0
+        e_I: 0.1
+        e_D: 0.2
+        d_P: 1.0
+        d_I: 0.0
+        d_D: 0.0
+
+        # Saturation limits
+        max_roll_rate: 1.0
+        max_pitch_rate: 1.0
+        max_yaw_rate: 1.0
+
+        max_roll_torque: 10.0
+        max_pitch_torque: 10.0
+        max_yaw_torque: 10.0
+
+        max_n_vel: 10.0
+        max_e_vel: 10.0
+        max_d_vel: 10.0
+
+        max_throttle: 0.85
+        min_throttle: 0.05
+
+        max_roll: 15.0      # degrees
+        max_pitch: 15.0     # degrees
+
+        # Trajectory controller gains
         u_n_kp: 3.0
         u_n_ki: 0.0
         u_n_kd: 3.0
-        max_u_n_dot: 10.0
         u_e_kp: 3.0
         u_e_ki: 0.0
         u_e_kd: 3.0
-        max_u_e_dot: 10.0
-        u_d_kp: 7.0
+        u_d_kp: 3.0
         u_d_ki: 0.0
-        u_d_kd: 2.0
-        max_u_d_dot: 10.0
+        u_d_kd: 3.0
 
+        # Miscellanous
         tau: 0.05
         C_d: 0.0
         gravity: 9.81
         mass: 2.0
         equilibrium_throttle: 0.45
-        max_roll: 0.196
-        max_pitch: 0.196
-        max_yaw_rate: 0.785
-        max_throttle: 0.85
-        min_throttle: 0.05
-        max_n_dot: 1.5
-        max_e_dot: 1.5
-        max_d_dot: 0.5
-        max_phi_dot: 1.0
-        max_theta_dot: 1.0
-        max_psi_dot: 1.0
-        max_roll_torque: 0.85
-        max_pitch_torque: 0.85
-        max_yaw_torque: 0.85
-        min_attitude_altitude: 0.35
-        max_roll: 15.0      # degrees
-        max_pitch: 15.0     # degrees
 
+        # Takeoff and landing
         takeoff_d_pos: -10.0
         takeoff_height_threshold: 1.0
         takeoff_yaw: 0.0
         takeoff_d_vel: -0.5
         takeoff_landing_pos_hold_time: 3.0
+        min_altitude_for_attitude_ctrl: 0.15
