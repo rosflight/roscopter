@@ -6,21 +6,23 @@
 #        or: n_vel, e_vel, d_vel, yaw_rate
 # low level: n_acc, e_acc, d_acc, yaw_acc
 
-# uint8 MODE_NORTH_EAST_DOWN_HEADING
+# Input control types - Uses ROSflight controller
 uint8 MODE_NPOS_EPOS_DPOS_YAW = 0
 uint8 MODE_NVEL_EVEL_DPOS_YAWRATE = 1
 uint8 MODE_NACC_EACC_DACC_YAWRATE = 2
 uint8 MODE_NVEL_EVEL_DVEL_YAWRATE = 3
 uint8 MODE_NPOS_EPOS_DVEL_YAW = 4
-uint8 MODE_ROLL_PITCH_YAW_THROTTLE_TO_MOTOR = 5
-uint8 MODE_ROLL_PITCH_YAW_THROTTLE = 6
-uint8 MODE_PASS_THROUGH = 7
-uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 8
-uint8 MODE_ROLL_PITCH_YAWRATE_THROTTLE = 9
+uint8 MODE_ROLL_PITCH_YAW_THROTTLE = 5
+uint8 MODE_ROLL_PITCH_YAWRATE_THROTTLE = 6
+uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 7
 
-# ros2
-# builtin_interfaces/Time stamp
-# time stamp
+# Additional control types - Does not use ROSflight controller
+# i.e., these modes pass thrust/torque commands directly to ROSflight mixer
+uint8 MODE_PASS_THROUGH = 8
+uint8 MODE_ROLL_PITCH_YAW_THRUST_TO_MOTOR = 9
+uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MOTOR = 10
+
+
 std_msgs/Header header
 
 uint8 mode
