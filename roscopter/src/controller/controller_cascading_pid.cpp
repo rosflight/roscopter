@@ -106,113 +106,113 @@ void ControllerCascadingPID::declare_params() {
 }
 
 void ControllerCascadingPID::update_gains() {
-    // Don't update gains if parameters are not initialized.
-    if (!params_initialized_) { return; }
+  // Don't update gains if parameters are not initialized.
+  if (!params_initialized_) { return; }
 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Updating gains!");
+  RCLCPP_INFO_STREAM(this->get_logger(), "Updating gains!");
 
-    double P, I, D, tau, max;
-    tau = params.get_double("tau");
+  double P, I, D, tau, max;
+  tau = params.get_double("tau");
 
-    // Roll PID loop
-    P = params.get_double("roll_kp");
-    I = params.get_double("roll_ki");
-    D = params.get_double("roll_kd");
-    max = params.get_double("max_roll_torque");
-    PID_roll_.set_gains(P, I, D, tau, max, -max);
+  // Roll PID loop
+  P = params.get_double("roll_kp");
+  I = params.get_double("roll_ki");
+  D = params.get_double("roll_kd");
+  max = params.get_double("max_roll_torque");
+  PID_roll_.set_gains(P, I, D, tau, max, -max);
 
-    // Pitch to torque PID loop
-    P = params.get_double("pitch_kp");
-    I = params.get_double("pitch_ki");
-    D = params.get_double("pitch_kd");
-    max = params.get_double("max_pitch_torque");
-    PID_pitch_.set_gains(P, I, D, tau, max, -max);
+  // Pitch to torque PID loop
+  P = params.get_double("pitch_kp");
+  I = params.get_double("pitch_ki");
+  D = params.get_double("pitch_kd");
+  max = params.get_double("max_pitch_torque");
+  PID_pitch_.set_gains(P, I, D, tau, max, -max);
 
-    // Yaw to torque PID loop
-    P = params.get_double("yaw_kp");
-    I = params.get_double("yaw_ki");
-    D = params.get_double("yaw_kd");
-    max = params.get_double("max_yaw_torque");
-    PID_yaw_.set_gains(P, I, D, tau, max, -max);
+  // Yaw to torque PID loop
+  P = params.get_double("yaw_kp");
+  I = params.get_double("yaw_ki");
+  D = params.get_double("yaw_kd");
+  max = params.get_double("max_yaw_torque");
+  PID_yaw_.set_gains(P, I, D, tau, max, -max);
 
-    // Roll rate to torque PID loop
-    P = params.get_double("roll_rate_kp");
-    I = params.get_double("roll_rate_ki");
-    D = params.get_double("roll_rate_kd");
-    max = params.get_double("max_roll_torque");
-    PID_roll_rate_.set_gains(P, I, D, tau, max, -max);
+  // Roll rate to torque PID loop
+  P = params.get_double("roll_rate_kp");
+  I = params.get_double("roll_rate_ki");
+  D = params.get_double("roll_rate_kd");
+  max = params.get_double("max_roll_torque");
+  PID_roll_rate_.set_gains(P, I, D, tau, max, -max);
 
-    // Pitch rate to torque PID loop
-    P = params.get_double("pitch_rate_kp");
-    I = params.get_double("pitch_rate_ki");
-    D = params.get_double("pitch_rate_kd");
-    max = params.get_double("max_pitch_torque");
-    PID_pitch_rate_.set_gains(P, I, D, tau, max, -max);
+  // Pitch rate to torque PID loop
+  P = params.get_double("pitch_rate_kp");
+  I = params.get_double("pitch_rate_ki");
+  D = params.get_double("pitch_rate_kd");
+  max = params.get_double("max_pitch_torque");
+  PID_pitch_rate_.set_gains(P, I, D, tau, max, -max);
 
-    // Yaw rate to torque PID loop
-    P = params.get_double("yaw_rate_kp");
-    I = params.get_double("yaw_rate_ki");
-    D = params.get_double("yaw_rate_kd");
-    max = params.get_double("max_yaw_torque");
-    PID_yaw_rate_.set_gains(P, I, D, tau, max, -max);
+  // Yaw rate to torque PID loop
+  P = params.get_double("yaw_rate_kp");
+  I = params.get_double("yaw_rate_ki");
+  D = params.get_double("yaw_rate_kd");
+  max = params.get_double("max_yaw_torque");
+  PID_yaw_rate_.set_gains(P, I, D, tau, max, -max);
 
-    // PID loop from yaw to yaw rate
-    P = params.get_double("yaw_to_rate_kp");
-    I = params.get_double("yaw_to_rate_ki");
-    D = params.get_double("yaw_to_rate_kd");
-    max = params.get_double("max_yaw_rate");
-    PID_yaw_to_rate_.set_gains(P, I, D, tau, max, -max);
+  // PID loop from yaw to yaw rate
+  P = params.get_double("yaw_to_rate_kp");
+  I = params.get_double("yaw_to_rate_ki");
+  D = params.get_double("yaw_to_rate_kd");
+  max = params.get_double("max_yaw_rate");
+  PID_yaw_to_rate_.set_gains(P, I, D, tau, max, -max);
 
-    // Calculate max accelerations. Assuming that equilibrium throttle produces
-    // 1 g of acceleration and a linear thrust model, these max acceleration
-    // values are computed in g's as well.
-    double equilibrium_throttle = params.get_double("equilibrium_throttle");
-    double max_accel_xy = sin(acos(equilibrium_throttle)) 
-          / equilibrium_throttle; // This assumes that the minimum vehicle-1 frame z acceleration is 1g
-    double max_accel_z = 1.0 / equilibrium_throttle;
+  // Calculate max accelerations. Assuming that equilibrium throttle produces
+  // 1 g of acceleration and a linear thrust model, these max acceleration
+  // values are computed in g's as well.
+  double equilibrium_throttle = params.get_double("equilibrium_throttle");
+  double max_accel_xy = sin(acos(equilibrium_throttle)) 
+        / equilibrium_throttle; // This assumes that the minimum vehicle-1 frame z acceleration is 1g
+  double max_accel_z = 1.0 / equilibrium_throttle;
 
-    // North velocity to accel PID loop
-    P = params.get_double("vel_n_P");
-    I = params.get_double("vel_n_I");
-    D = params.get_double("vel_n_D");
-    max = max_accel_xy;
-    PID_vel_n_.set_gains(P, I, D, tau, max, -max);
+  // North velocity to accel PID loop
+  P = params.get_double("vel_n_P");
+  I = params.get_double("vel_n_I");
+  D = params.get_double("vel_n_D");
+  max = max_accel_xy;
+  PID_vel_n_.set_gains(P, I, D, tau, max, -max);
 
-    // East velocity to accel PID loop
-    P = params.get_double("vel_e_P");
-    I = params.get_double("vel_e_I");
-    D = params.get_double("vel_e_D");
-    max = max_accel_xy;
-    PID_vel_e_.set_gains(P, I, D, tau, max, -max);
+  // East velocity to accel PID loop
+  P = params.get_double("vel_e_P");
+  I = params.get_double("vel_e_I");
+  D = params.get_double("vel_e_D");
+  max = max_accel_xy;
+  PID_vel_e_.set_gains(P, I, D, tau, max, -max);
 
-    // Down velocity to accel PID loop
-    P = params.get_double("vel_d_P");
-    I = params.get_double("vel_d_I");
-    D = params.get_double("vel_d_D");
-    // set max z accelerations so that we can't fall faster than 1 gravity
-    max = max_accel_z;
-    PID_vel_d_.set_gains(P, I, D, tau, 1.0, -max);
+  // Down velocity to accel PID loop
+  P = params.get_double("vel_d_P");
+  I = params.get_double("vel_d_I");
+  D = params.get_double("vel_d_D");
+  // set max z accelerations so that we can't fall faster than 1 gravity
+  max = max_accel_z;
+  PID_vel_d_.set_gains(P, I, D, tau, 1.0, -max);
 
-    // North position to velocity PID loop
-    P = params.get_double("n_P");
-    I = params.get_double("n_I");
-    D = params.get_double("n_D");
-    max = params.get_double("max_n_vel");
-    PID_n_.set_gains(P, I, D, tau, max, -max);
+  // North position to velocity PID loop
+  P = params.get_double("n_P");
+  I = params.get_double("n_I");
+  D = params.get_double("n_D");
+  max = params.get_double("max_n_vel");
+  PID_n_.set_gains(P, I, D, tau, max, -max);
 
-    // East position to velocity PID loop
-    P = params.get_double("e_P");
-    I = params.get_double("e_I");
-    D = params.get_double("e_D");
-    max = params.get_double("max_e_vel");
-    PID_e_.set_gains(P, I, D, tau, max, -max);
+  // East position to velocity PID loop
+  P = params.get_double("e_P");
+  I = params.get_double("e_I");
+  D = params.get_double("e_D");
+  max = params.get_double("max_e_vel");
+  PID_e_.set_gains(P, I, D, tau, max, -max);
 
-    // Down position to velocity PID loop
-    P = params.get_double("d_P");
-    I = params.get_double("d_I");
-    D = params.get_double("d_D");
-    max = params.get_double("max_d_vel");
-    PID_d_.set_gains(P, I, D, tau, max, -max);
+  // Down position to velocity PID loop
+  P = params.get_double("d_P");
+  I = params.get_double("d_I");
+  D = params.get_double("d_D");
+  max = params.get_double("max_d_vel");
+  PID_d_.set_gains(P, I, D, tau, max, -max);
 }
 
 rosflight_msgs::msg::Command ControllerCascadingPID::compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt)
@@ -543,8 +543,6 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
   output_cmd_.y = saturate(input_cmd.cmd2, max_y, -max_y);
   output_cmd_.z = saturate(input_cmd.cmd3, max_z, -max_z);
   output_cmd_.f = saturate(input_cmd.cmd4, max_f, min_f);
-
-  RCLCPP_INFO_STREAM(this->get_logger(), output_cmd_.mode);
 
   // Check to see if we are above the minimum attitude altitude
   if (-xhat_.position[2] < min_altitude_for_attitude_ctrl)
