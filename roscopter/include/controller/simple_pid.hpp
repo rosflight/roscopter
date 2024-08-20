@@ -108,13 +108,13 @@ protected:
   double kp_;              //!< the proportional gain
   double ki_;              //!< the integral gain (zero if you don't want integral control)
   double kd_;              //!< the derivative gain (zero if you don't want derivative control)
+  double max_;             //!< Maximum Output
+  double min_;             //!< Minimum Output
+  double tau_;             //!< the noise reduction term for the derivative
   double integrator_;      //!< the integral of p_error
   double differentiator_;  //!< used for noise reduced differentiation
   double last_error_;      //!< the last p_error, for computing the derivative;
   double last_state_;      //!< the last state, for computing the derivative;
-  double tau_;             //!< the noise reduction term for the derivative
-  double max_;             //!< Maximum Output
-  double min_;             //!< Minimum Output
 
   /*!
    * \brief saturate saturates the variable val
