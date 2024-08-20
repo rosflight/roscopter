@@ -23,22 +23,28 @@ private:
   double dt_;
   bool params_initialized_;
 
-  // PID Controllers
+  // PID controller from angle to torque
   roscopter::SimplePID PID_roll_;
   roscopter::SimplePID PID_pitch_;
   roscopter::SimplePID PID_yaw_;
 
+  // PID controller from rates to torque
   roscopter::SimplePID PID_roll_rate_;
   roscopter::SimplePID PID_pitch_rate_;
   roscopter::SimplePID PID_yaw_rate_;
 
+  // PID controller from velocities to accelerations
   roscopter::SimplePID PID_vel_n_;
   roscopter::SimplePID PID_vel_e_;
   roscopter::SimplePID PID_vel_d_;
 
+  // PID controller from positions to velocities
   roscopter::SimplePID PID_n_;
   roscopter::SimplePID PID_e_;
   roscopter::SimplePID PID_d_;
+
+  // PID controller from yaw to yaw rate
+  roscopter::SimplePID PID_yaw_to_rate_;
 
   // Functions
   rosflight_msgs::msg::Command compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt);

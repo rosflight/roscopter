@@ -46,8 +46,12 @@ void ControllerCascadingPID::declare_params() {
   params.declare_double("pitch_rate_kd", 0.2);
 
   params.declare_double("yaw_rate_kp", 0.2);
-  params.declare_double("yaw_rate_ki", 0.002);
+  params.declare_double("yaw_rate_ki", 0.0);
   params.declare_double("yaw_rate_kd", 0.2);
+
+  params.declare_double("yaw_to_rate_kp", 0.2);
+  params.declare_double("yaw_to_rate_ki", 0.0);
+  params.declare_double("yaw_to_rate_kd", 0.2);
 
   params.declare_double("vel_n_P", 0.5);
   params.declare_double("vel_n_I", 0.0);
@@ -89,6 +93,8 @@ void ControllerCascadingPID::declare_params() {
   params.declare_double("max_e_vel", 10.0);
   params.declare_double("max_d_vel", 10.0);
 
+  // TODO: These could be replaced using an equation with the eq_throttle.
+  // See the max_accel_xy calculation for example.
   params.declare_double("max_roll", 0.30);  
   params.declare_double("max_pitch", 0.30);
 
@@ -115,63 +121,71 @@ void ControllerCascadingPID::update_gains() {
     max = params.get_double("max_roll_torque");
     PID_roll_.set_gains(P, I, D, tau, max, -max);
 
-    // Pitch PID loop
+    // Pitch to torque PID loop
     P = params.get_double("pitch_kp");
     I = params.get_double("pitch_ki");
     D = params.get_double("pitch_kd");
     max = params.get_double("max_pitch_torque");
     PID_pitch_.set_gains(P, I, D, tau, max, -max);
 
-    // Yaw PID loop
+    // Yaw to torque PID loop
     P = params.get_double("yaw_kp");
     I = params.get_double("yaw_ki");
     D = params.get_double("yaw_kd");
     max = params.get_double("max_yaw_torque");
     PID_yaw_.set_gains(P, I, D, tau, max, -max);
 
-    // Roll rate PID loop
+    // Roll rate to torque PID loop
     P = params.get_double("roll_rate_kp");
     I = params.get_double("roll_rate_ki");
     D = params.get_double("roll_rate_kd");
     max = params.get_double("max_roll_torque");
     PID_roll_rate_.set_gains(P, I, D, tau, max, -max);
 
-    // Pitch rate PID loop
+    // Pitch rate to torque PID loop
     P = params.get_double("pitch_rate_kp");
     I = params.get_double("pitch_rate_ki");
     D = params.get_double("pitch_rate_kd");
     max = params.get_double("max_pitch_torque");
     PID_pitch_rate_.set_gains(P, I, D, tau, max, -max);
 
-    // Yaw rate PID loop
+    // Yaw rate to torque PID loop
     P = params.get_double("yaw_rate_kp");
     I = params.get_double("yaw_rate_ki");
     D = params.get_double("yaw_rate_kd");
     max = params.get_double("max_yaw_torque");
     PID_yaw_rate_.set_gains(P, I, D, tau, max, -max);
 
+    // PID loop from yaw to yaw rate
+    P = params.get_double("yaw_to_rate_kp");
+    I = params.get_double("yaw_to_rate_ki");
+    D = params.get_double("yaw_to_rate_kd");
+    max = params.get_double("max_yaw_rate");
+    PID_yaw_to_rate_.set_gains(P, I, D, tau, max, -max);
+
     // Calculate max accelerations. Assuming that equilibrium throttle produces
     // 1 g of acceleration and a linear thrust model, these max acceleration
     // values are computed in g's as well.
     double equilibrium_throttle = params.get_double("equilibrium_throttle");
-    double max_accel_xy = sin(acos(equilibrium_throttle)) / equilibrium_throttle / sqrt(2.);
+    double max_accel_xy = sin(acos(equilibrium_throttle)) 
+          / equilibrium_throttle; // This assumes that the minimum vehicle-1 frame z acceleration is 1g
     double max_accel_z = 1.0 / equilibrium_throttle;
 
-    // North velocity PID loop
+    // North velocity to accel PID loop
     P = params.get_double("vel_n_P");
     I = params.get_double("vel_n_I");
     D = params.get_double("vel_n_D");
     max = max_accel_xy;
     PID_vel_n_.set_gains(P, I, D, tau, max, -max);
 
-    // East velocity PID loop
+    // East velocity to accel PID loop
     P = params.get_double("vel_e_P");
     I = params.get_double("vel_e_I");
     D = params.get_double("vel_e_D");
     max = max_accel_xy;
     PID_vel_e_.set_gains(P, I, D, tau, max, -max);
 
-    // Down velocity PID loop
+    // Down velocity to accel PID loop
     P = params.get_double("vel_d_P");
     I = params.get_double("vel_d_I");
     D = params.get_double("vel_d_D");
@@ -179,21 +193,21 @@ void ControllerCascadingPID::update_gains() {
     max = max_accel_z;
     PID_vel_d_.set_gains(P, I, D, tau, 1.0, -max);
 
-    // North position PID loop
+    // North position to velocity PID loop
     P = params.get_double("n_P");
     I = params.get_double("n_I");
     D = params.get_double("n_D");
     max = params.get_double("max_n_vel");
     PID_n_.set_gains(P, I, D, tau, max, -max);
 
-    // East position PID loop
+    // East position to velocity PID loop
     P = params.get_double("e_P");
     I = params.get_double("e_I");
     D = params.get_double("e_D");
     max = params.get_double("max_e_vel");
     PID_e_.set_gains(P, I, D, tau, max, -max);
 
-    // Down position PID loop
+    // Down position to velocity PID loop
     P = params.get_double("d_P");
     I = params.get_double("d_I");
     D = params.get_double("d_D");
@@ -256,8 +270,6 @@ rosflight_msgs::msg::Command ControllerCascadingPID::compute_offboard_control(ro
       break;
   }
 
-  // TODO: Figure out debug override flags
-
   return output_cmd_;
 }
 
@@ -267,7 +279,7 @@ void ControllerCascadingPID::roll_pitch_yaw_thrust_to_motor(roscopter_msgs::msg:
   double theta = input_cmd.cmd2;
   double psi = input_cmd.cmd3;
 
-  // Update input command values (except throttle)
+  // Update input command values (except thrust)
   input_cmd.cmd1 = PID_roll_.compute_pid(phi, xhat_.phi, dt_, xhat_.p);
   input_cmd.cmd2 = PID_pitch_.compute_pid(theta, xhat_.theta, dt_, xhat_.q);
   input_cmd.cmd3 = PID_yaw_.compute_pid(psi, xhat_.psi, dt_, xhat_.r);
@@ -327,7 +339,7 @@ void ControllerCascadingPID::npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerC
   input_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);   // n_dot in vehicle-1 frame
   input_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi);  // e_dot in vehicle-1 frame
   input_cmd.cmd3 = pddot_c;                                           // d_dot in vehicle-1 frame
-  input_cmd.cmd4 = PID_yaw_.compute_pid(psi, xhat_.psi, dt_);         // r in vehicle-1 frame
+  input_cmd.cmd4 = PID_yaw_to_rate_.compute_pid(psi, xhat_.psi, dt_);         // r in vehicle-1 frame
 
   nvel_evel_dvel_yawrate(input_cmd);
 }
@@ -340,25 +352,22 @@ void ControllerCascadingPID::nvel_evel_dvel_yawrate(roscopter_msgs::msg::Control
   double vel_d = input_cmd.cmd3;
   double r = input_cmd.cmd4;
 
-  // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
-  // Rotate body frame velocities to vehicle 1 frame velocities
-  double sinp = sin(xhat_.phi);
-  double cosp = cos(xhat_.phi);
-  double sint = sin(xhat_.theta);
-  double cost = cos(xhat_.theta);
-  double pxdot =
-      cost * xhat_.v_n + sinp * sint * xhat_.v_e + cosp * sint * xhat_.v_d;
-  double pydot = cosp * xhat_.v_e - sinp * xhat_.v_d;
-  double pddot =
-      -sint * xhat_.v_n + sinp * cost * xhat_.v_e + cosp * cost * xhat_.v_d;
+  // Rotate inertial frame velocities to vehicle 1 frame velocities
+  double sin_psi = sin(xhat_.psi);
+  double cos_psi = cos(xhat_.psi);
+  
+  double pxdot = cos_psi * xhat_.v_n + sin_psi * xhat_.v_e;
+  double pydot = -sin_psi * xhat_.v_n + cos_psi * xhat_.v_e;
+  double pddot = xhat_.v_d;
 
   // Save the calculated velocities to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
 
+  // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
   input_cmd.cmd1 = PID_vel_n_.compute_pid(vel_n, pxdot, dt_);  // ax
   input_cmd.cmd2 = PID_vel_e_.compute_pid(vel_e, pydot, dt_);  // ay
   input_cmd.cmd3 = PID_vel_d_.compute_pid(vel_d, pddot, dt_);  // az
-  input_cmd.cmd4 = r;                                         // r
+  input_cmd.cmd4 = r;                                          // r
 
   nacc_eacc_dacc_yawrate(input_cmd);
 }
@@ -367,6 +376,7 @@ void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::Control
 {
   double equilibrium_throttle = params.get_double("equilibrium_throttle");
 
+  // In vehicle-1 frame, units of g's
   double ax = input_cmd.cmd1;
   double ay = input_cmd.cmd2;
   double az = input_cmd.cmd3;
@@ -378,6 +388,7 @@ void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::Control
   // Model inversion (m[ax;ay;az] = m[0;0;g] + R'[0;0;-T]
   double total_acc_c = sqrt((1.0 - az) * (1.0 - az) +
                             ax * ax + ay * ay);  // (in g's)
+  // Avoid dividing by zero
   if (total_acc_c > 0.001)
   {
     phi = asin(ay / total_acc_c);
@@ -389,9 +400,11 @@ void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::Control
     theta = 0;
   }
 
-  // Compute desired thrust based on current pose
+  // Compute desired thrust based on current pose (with mass divided out)
   double cosp = cos(xhat_.phi);
   double cost = cos(xhat_.theta);
+  // TODO: Why doesn't this go to infinity when cosp and cost are small?
+  double desired_thrust = (1.0 - az) / cosp / cost;
 
   // Save the calculated values to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
@@ -399,8 +412,7 @@ void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::Control
   input_cmd.cmd1 = phi;                                        // phi
   input_cmd.cmd2 = theta;                                      // theta
   input_cmd.cmd3 = r;                                          // r
-  // TODO: Check if this is correct -- are the units correct?
-  input_cmd.cmd4 = (1.0 - az) * equilibrium_throttle / cosp / cost; // throttle
+  input_cmd.cmd4 = desired_thrust * equilibrium_throttle;      // throttle
 
   pass_to_firmware_controller(input_cmd);
 }
@@ -431,10 +443,11 @@ void ControllerCascadingPID::npos_epos_dvel_yaw(roscopter_msgs::msg::ControllerC
   // Save the calculated velocities to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
 
-  input_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);  // vel_n
-  input_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi); // vel_e
-  input_cmd.cmd3 = vd;                                             // vel_d
-  input_cmd.cmd4 = PID_yaw_.compute_pid(psi, xhat_.psi, dt_);     // r
+  // In vehicle-1 frame
+  input_cmd.cmd1 = pndot_c*cos(xhat_.psi) + pedot_c*sin(xhat_.psi);   // vel_n
+  input_cmd.cmd2 = -pndot_c*sin(xhat_.psi) + pedot_c*cos(xhat_.psi);  // vel_e
+  input_cmd.cmd3 = vd;                                                // vel_d
+  input_cmd.cmd4 = PID_yaw_to_rate_.compute_pid(psi, xhat_.psi, dt_); // r
 
   nvel_evel_dvel_yawrate(input_cmd);
 }
@@ -447,27 +460,24 @@ void ControllerCascadingPID::nvel_evel_dpos_yawrate(roscopter_msgs::msg::Control
   double r = input_cmd.cmd4;
 
   // Compute desired accelerations (in terms of g's) in the vehicle 1 frame
-  // Rotate body frame velocities to vehicle 1 frame velocities
-  double sinp = sin(xhat_.phi);
-  double cosp = cos(xhat_.phi);
-  double sint = sin(xhat_.theta);
-  double cost = cos(xhat_.theta);
-  double pxdot =
-      cost * xhat_.v_n + sinp * sint * xhat_.v_e + cosp * sint * xhat_.v_d;
-  double pydot = cosp * xhat_.v_e - sinp * xhat_.v_d;
-  double pddot =
-      -sint * xhat_.v_n + sinp * cost * xhat_.v_e + cosp * cost * xhat_.v_d;
+  // Rotate inertial frame velocities to vehicle 1 frame velocities
+  double sin_psi = sin(xhat_.psi);
+  double cos_psi = cos(xhat_.psi);
+  
+  double pxdot = cos_psi * xhat_.v_n + sin_psi * xhat_.v_e;
+  double pydot = -sin_psi * xhat_.v_n + cos_psi * xhat_.v_e;
+  double pddot = xhat_.v_d;
 
-  // Nested Loop for Altitude
+  // Nested Loop for Altitude - from desired position to desired velocity
   double pddot_c = PID_d_.compute_pid(pd, xhat_.position[2], dt_, pddot);
 
   // Save the calculated velocities to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
 
-  input_cmd.cmd1 = PID_vel_n_.compute_pid(vel_n, pxdot, dt_);  // ax
-  input_cmd.cmd2 = PID_vel_e_.compute_pid(vel_e, pydot, dt_);  // ay
-  input_cmd.cmd3 = PID_vel_d_.compute_pid(pddot_c, pddot, dt_);    // az
-  input_cmd.cmd4 = r;                                            // r
+  input_cmd.cmd1 = PID_vel_n_.compute_pid(vel_n, pxdot, dt_);   // ax
+  input_cmd.cmd2 = PID_vel_e_.compute_pid(vel_e, pydot, dt_);   // ay
+  input_cmd.cmd3 = PID_vel_d_.compute_pid(pddot_c, pddot, dt_); // az
+  input_cmd.cmd4 = r;                                           // r
 
   nacc_eacc_dacc_yawrate(input_cmd);
 }
@@ -476,7 +486,7 @@ void ControllerCascadingPID::roll_pitch_yaw_throttle(roscopter_msgs::msg::Contro
 {
   // Replace the yaw control command with the calculated yawrate command
   double yaw_cmd = input_cmd.cmd3;
-  input_cmd.cmd3 = PID_yaw_.compute_pid(yaw_cmd, xhat_.psi, dt_, xhat_.r);
+  input_cmd.cmd3 = PID_yaw_to_rate_.compute_pid(yaw_cmd, xhat_.psi, dt_, xhat_.r);
 
   // Assign the correct control mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
@@ -486,6 +496,7 @@ void ControllerCascadingPID::roll_pitch_yaw_throttle(roscopter_msgs::msg::Contro
 
 void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::ControllerCommand input_cmd)
 {
+  // Saturate and return the output command object
   double min_altitude_for_attitude_ctrl = params.get_double("min_altitude_for_attitude_ctrl");
   double max_x, max_y, max_z, max_f, min_f;
   max_f = params.get_double("max_throttle");
