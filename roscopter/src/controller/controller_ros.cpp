@@ -114,15 +114,10 @@ int main(int argc, char* argv[])
 {
   rclcpp::init(argc, argv);
 
-  if (strcmp(argv[1], "default") == 0) {
-    auto node = std::make_shared<roscopter::ControllerCascadingPID>();
-    RCLCPP_INFO_ONCE(node->get_logger(), "Using default (cascading PID) controller");
-    rclcpp::spin(node);
-  } else if (strcmp(argv[1], "other") == 0) {
-    auto node = std::make_shared<roscopter::ControllerCascadingPID>();
-    RCLCPP_INFO_ONCE(node->get_logger(), "Not a valid controller contoller! Using default (cascading PID) controller");
-    rclcpp::spin(node);
-  }
+  auto node = std::make_shared<roscopter::ControllerCascadingPID>();
+  RCLCPP_INFO_ONCE(node->get_logger(), "Using default (cascading PID) controller");
+  rclcpp::spin(node);
+  rclcpp::shutdown();
 
   return 0;
 }

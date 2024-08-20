@@ -106,8 +106,8 @@ int main(int argc, char* argv[])
 
     // Create and spin node
     auto node = std::make_shared<roscopter::TrajectoryFollower>();
-
     rclcpp::spin(node);
+    rclcpp::shutdown();
 
     return 0;
 }
