@@ -27,6 +27,7 @@ EstimatorROS::EstimatorROS()
   armed_first_time_ = false;
   baro_init_ = false;
   gps_init_ = false;
+  has_fix_ = false;
 
   // Set the parameter callback, for when parameters are changed.
   parameter_callback_handle_ = this->add_on_set_parameters_callback(
@@ -142,13 +143,13 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr m
   float msg_vel_d = msg->vel_d/1e3;
 
   // HACK: This needs to be a parameter. 2 is a 2D fix, 3 is a 3D fix, 4 is DGPS and 5 is RTK
-  bool has_fix = msg->fix_type >= 3; // Higher values refer to augmented fixes
+  has_fix_ = msg->fix_type >= 3; // Higher values refer to augmented fixes
   //
-  if (!has_fix || !std::isfinite(msg->lat)) {
+  if (!has_fix_ || !std::isfinite(msg->lat)) {
     input_.gps_new = false;
     return;
   }
-  if (!gps_init_ && has_fix) {
+  if (!gps_init_ && has_fix_) {
     gps_init_ = true;
     init_alt_ = msg_height;
     init_lat_ = msg_lat;
@@ -183,14 +184,6 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr m
     if (ground_speed > ground_speed_threshold)
       input_.gps_course = course;
   }
-}
-
-void EstimatorROS::trueStateCallback(const roscopter_msgs::msg::State::SharedPtr msg){
-  true_state_ = *msg;
-}
-
-void EstimatorROS::compFiltCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg){
-  comp_filt_ = *msg;
 }
 
 void EstimatorROS::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)

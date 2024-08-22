@@ -100,28 +100,19 @@ protected:
                         Output & output) = 0;
 
   ParamManager params_;
-  bool gps_init_;
+  bool gps_init_ = false;
+  bool has_fix_ = false;
   double init_lat_ = 0.0;                 /**< Initial latitude in degrees */
   double init_lon_ = 0.0;                 /**< Initial longitude in degrees */
   float init_alt_ = 0.0;                  /**< Initial altitude in meters above MSL  */
   float init_static_;                     /**< Initial static pressure (mbar)  */
-
-  rclcpp::Publisher<sensor_msgs::msg::MagneticField>::SharedPtr true_mag_pub_;
-  
-  roscopter_msgs::msg::State true_state_;
-  geometry_msgs::msg::Vector3Stamped comp_filt_;
-
 private:
   rclcpp::Publisher<roscopter_msgs::msg::State>::SharedPtr vehicle_state_pub_;
   rclcpp::Subscription<rosflight_msgs::msg::GNSSFull>::SharedPtr gnss_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr
-  gnss_vel_sub_; //used in conjunction with the gnss_fix_sub_
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
   rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr magnetometer_sub_;
-  rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr true_state_sub_;
-  rclcpp::Subscription<geometry_msgs::msg::Vector3Stamped>::SharedPtr comp_filt_sub_;
 
   std::string param_filepath_ = "estimator_params.yaml";
 
@@ -138,8 +129,6 @@ private:
   // void saveParameter(std::string param_name, double param_val);
   void statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg);
   void magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg);
-  void trueStateCallback(const roscopter_msgs::msg::State::SharedPtr msg);
-  void compFiltCallback(const geometry_msgs::msg::Vector3Stamped::SharedPtr msg);
 
   rclcpp::TimerBase::SharedPtr update_timer_;
   std::chrono::microseconds update_period_;

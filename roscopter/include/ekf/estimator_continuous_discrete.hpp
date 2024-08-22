@@ -163,7 +163,7 @@ private:
   /**
    * @brief The sensor noises for the slower sensors.
    */
-  Eigen::MatrixXf R_; // 4x4
+  Eigen::MatrixXf R_; // 5x5
   /**
    * @brief The sensor noises for the faster sensors.
    */
@@ -177,6 +177,23 @@ private:
    * @brief The declination of the magnetic field at the current location.
    */
   double declination_;
+
+  bool mag_init_;
+
+  void prediction_step(const Input& input);
+
+  void fast_measurement_update_step(const Input& input);
+
+  void gnss_measurement_update_step(const Input& input);
+
+  void update_magnetometer_model(const Input& input);
+
+  Eigen::Vector3f calculate_inertial_magnetic_field(const Eigen::VectorXf& state, const float& declination, const float& inclination);
+  Eigen::Matrix3f R(const Eigen::Vector3f& Theta);
+  Eigen::Matrix3f S(const Eigen::Vector3f& Theta);
+  Eigen::Matrix3f del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel);
+  Eigen::Matrix3f del_S_Theta_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& biases, const Eigen::Vector3f& gyro);
+  Eigen::Matrix3f del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag);
 
   // TODO: not used
   // ASK: What should we do long term?
@@ -202,14 +219,16 @@ private:
   void update_measurement_model_parameters();
 
   /**
-   * @brief Initializes the covariance matrices and process noise matrices with the ROS2 parameters
+   * @brief Initializes the process noise matrices with the ROS2 parameters
    */
-  void initialize_uncertainties();
+  void initialize_process_noises();
 
   /**
    * @brief Initializes the state covariance matrix with the ROS2 parameters
    */
   void initialize_state_covariances();
+
+  void check_estimate(const Input& input);
 }; 
 
 } // namespace roscopter

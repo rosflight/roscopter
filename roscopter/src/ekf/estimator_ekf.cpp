@@ -8,7 +8,10 @@ namespace roscopter
 {
 
 EstimatorEKF::EstimatorEKF() : EstimatorROS()
-{}
+{
+  params_.declare_int("num_propagation_steps", 1);
+  params_.set_parameters();
+}
   
 std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Eigen::VectorXf x,
                                                                 Eigen::VectorXf inputs,
@@ -50,7 +53,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::propagate_model(Eigen
                                                              float Ts)
 {
 
-  int N = params_.get_int("num_propagation_steps"); // TODO: Declare this parameter in the ekf class.
+  int N = params_.get_int("num_propagation_steps");
 
   for (int _ = 0; _ < N; _++)
   {
