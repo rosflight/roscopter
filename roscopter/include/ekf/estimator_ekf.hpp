@@ -10,6 +10,11 @@
 
 #include "estimator_ros.hpp"
 
+// These declutter code, and incur a minimum time cost when passing these types to functions.
+using DynamicModelFuncRef = std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)>;
+using MeasurementModelFuncRef = std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)>;
+using JacobianFuncRef = std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)>;
+
 // TODO: make sure this does not allocate mem on the heap.
 
 namespace roscopter
@@ -23,17 +28,17 @@ public:
 protected:
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> measurement_update(Eigen::VectorXf x,
                                                                   Eigen::VectorXf inputs,
-                                                                  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> measurement_model,
+                                                                  MeasurementModelFuncRef measurement_model,
                                                                   Eigen::VectorXf y,
-                                                                  std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> measurement_jacobian,
+                                                                  JacobianFuncRef measurement_jacobian,
                                                                   Eigen::MatrixXf R,
                                                                   Eigen::MatrixXf P);
 
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> propagate_model(Eigen::VectorXf x,
-                                                               std::function<Eigen::VectorXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> dynamic_model,
-                                                               std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> jacobian,
+                                                               DynamicModelFuncRef dynamic_model,
+                                                               JacobianFuncRef jacobian,
                                                                Eigen::VectorXf inputs,
-                                                               std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> input_jacobian,
+                                                               JacobianFuncRef input_jacobian,
                                                                Eigen::MatrixXf P,
                                                                Eigen::MatrixXf Q,
                                                                Eigen::MatrixXf Q_g,

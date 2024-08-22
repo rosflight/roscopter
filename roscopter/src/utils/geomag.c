@@ -205,7 +205,7 @@ static double *p = snorm;
  * Initialize library.
  * @return 0 on SUCCESS, 1 on ERROR
  */
-int geomag_init() {
+int load_magnetic_model() {
     /* Initialize geomag routine */
     int m, n, j, D1, D2;
     double flnmj;

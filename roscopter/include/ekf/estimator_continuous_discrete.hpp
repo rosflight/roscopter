@@ -61,7 +61,7 @@ private:
    * @brief This is a reference to the multirotor_dynamics function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
    */
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_dynamics_model;
+  DynamicModelFuncRef multirotor_dynamics_model;
 
   /**
    * @brief Calculates the jacobian of the system dynamics given the current states and inputs.
@@ -74,7 +74,7 @@ private:
    * @brief This is a reference to the multirotor_jacobian function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
    */
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> multirotor_jacobian_model;
+  JacobianFuncRef multirotor_jacobian_model;
 
   /**
    * @brief Calculates the jacobian of the inputs to the estimator.
@@ -87,7 +87,7 @@ private:
    * @brief This is a reference to the multirotor_input_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> multirotor_input_jacobian_model;
+  JacobianFuncRef multirotor_input_jacobian_model;
 
   /**
    * @brief Calculates prediction of the measurements using a model of the sensors.
@@ -101,7 +101,20 @@ private:
    * @brief This is a reference to the multirotor_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_model;
+   MeasurementModelFuncRef multirotor_measurement_model;
+  
+  /**
+   * @brief Calculates the measurement jacobian for the measurement model.
+   *
+   * @param state State of the system.
+   * @param input Any necessary inputs not included in the state.
+   */
+  Eigen::MatrixXf multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_measurement_jacobian function. This incurs minimum time cost
+   * when passing into a function.
+   */
+  JacobianFuncRef multirotor_measurement_jacobian_model;
   
   /**
    * @brief Calculates measurement prediction for the fast sensors.
@@ -115,7 +128,7 @@ private:
    * @brief This is a reference to the multirotor_fast_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-  std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_fast_measurement_model;
+  MeasurementModelFuncRef multirotor_fast_measurement_model;
   
   /**
    * @brief Calculates the jacobian of the measurement model for the fast sensors.
@@ -128,20 +141,7 @@ private:
    * @brief This is a reference to the multirotor_fast_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_fast_measurement_jacobian_model;
-
-  /**
-   * @brief Calculates the measurement jacobian for the measurement model.
-   *
-   * @param state State of the system.
-   * @param input Any necessary inputs not included in the state.
-   */
-  Eigen::MatrixXf multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
-  /**
-   * @brief This is a reference to the multirotor_measurement_jacobian function. This incurs minimum time cost
-   * when passing into a function.
-   */
-  std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> multirotor_measurement_jacobian_model;
+  JacobianFuncRef multirotor_fast_measurement_jacobian_model;
 
   /**
    * @brief The state of the system.
@@ -186,9 +186,9 @@ private:
 
   void gnss_measurement_update_step(const Input& input);
 
-  void update_magnetometer_model(const Input& input);
+  void calc_mag_field_properties(const Input& input);
 
-  Eigen::Vector3f calculate_inertial_magnetic_field(const Eigen::VectorXf& state, const float& declination, const float& inclination);
+  Eigen::Vector3f calculate_inertial_magnetic_field(const float& declination, const float& inclination);
   Eigen::Matrix3f R(const Eigen::Vector3f& Theta);
   Eigen::Matrix3f S(const Eigen::Vector3f& Theta);
   Eigen::Matrix3f del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel);

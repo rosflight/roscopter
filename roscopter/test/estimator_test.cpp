@@ -95,7 +95,7 @@ TEST(estimator_test, mem_test)
 TEST(estimator_test, mag_test)
 {
 
-  geomag_init();
+  load_magnetic_model();
 
   float gps_altitude = 1489.0;
   float gps_lat = 40.0;

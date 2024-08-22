@@ -15,9 +15,9 @@ EstimatorEKF::EstimatorEKF() : EstimatorROS()
   
 std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Eigen::VectorXf x,
                                                                 Eigen::VectorXf inputs,
-                                                                std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)> measurement_model,
+                                                                MeasurementModelFuncRef measurement_model,
                                                                 Eigen::VectorXf y,
-                                                                std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)> measurement_jacobian,
+                                                                JacobianFuncRef measurement_jacobian,
                                                                 Eigen::MatrixXf R,
                                                                 Eigen::MatrixXf P)
 {
@@ -43,10 +43,10 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Ei
 }
 
 std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::propagate_model(Eigen::VectorXf x,
-                                                             std::function<Eigen::VectorXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> dynamic_model,
-                                                             std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> jacobian,
+                                                             DynamicModelFuncRef dynamic_model,
+                                                             JacobianFuncRef jacobian,
                                                              Eigen::VectorXf inputs,
-                                                             std::function<Eigen::MatrixXf(const Eigen::VectorXf&, const Eigen::VectorXf&)> input_jacobian,
+                                                             JacobianFuncRef input_jacobian,
                                                              Eigen::MatrixXf P,
                                                              Eigen::MatrixXf Q,
                                                              Eigen::MatrixXf Q_g,
