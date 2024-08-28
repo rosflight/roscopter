@@ -24,9 +24,9 @@ double wrap_within_180(double fixed_heading, double wrapped_heading)
 // ======== CONSTRUCTOR ========
 EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     : EstimatorEKF()
-    , xhat_(Eigen::VectorXf::Zero(12))
-    , P_(Eigen::MatrixXf::Identity(12, 12))
-    , Q_(Eigen::MatrixXf::Identity(12, 12))
+    , xhat_(Eigen::VectorXf::Zero(13))
+    , P_(Eigen::MatrixXf::Identity(13, 13))
+    , Q_(Eigen::MatrixXf::Identity(13, 13))
     , Q_g_(Eigen::MatrixXf::Identity(6, 6))
     , R_(Eigen::MatrixXf::Zero(5, 5))
     , R_fast(Eigen::MatrixXf::Zero(4, 4))
@@ -86,6 +86,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   output.bx = xhat_(9);
   output.by = xhat_(10);
   output.bz = xhat_(11);
+  output.inclination = inclination_; // FIXME:Make it reference not a memeber field.
 }
 
 // ======== ESTIMATION LOOP STEPS ========
@@ -124,7 +125,7 @@ void EstimatorContinuousDiscrete::fast_measurement_update_step(const Input& inpu
   Eigen::Vector3f mag_readings;
   mag_readings << input.mag_x, input.mag_y, input.mag_z;
   if (convert_to_gauss) {
-    mag_readings /= 100'000.;
+    mag_readings *= 10'000.;
   }
   
   Eigen::Vector<float, 4> y_fast;
@@ -181,7 +182,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::Ve
   Eigen::Vector3f euler_angles_dot = S(Theta)*(y_gyro - biases);
   
   // Stuff the derivative vector with the respective derivatives.
-  Eigen::Vector<float, 12> f = Eigen::Vector<float, 12>::Zero();
+  Eigen::Vector<float, 13> f = Eigen::Vector<float, 13>::Zero();
   f << vels, velocity_dot, euler_angles_dot;
 
   return f;
@@ -195,7 +196,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
   Eigen::Vector3f biases = state.block<3,1>(9,0);
 
-  Eigen::Matrix<float, 12, 12> A = Eigen::Matrix<float, 12, 12>::Zero();
+  Eigen::Matrix<float, 13, 13> A = Eigen::Matrix<float, 13, 13>::Zero();
 
   // Identity matrix.
   A.block<3,3>(0,3) = Eigen::Matrix3f::Identity();
@@ -214,7 +215,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
 Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
 {
   // This uses both the accel and gyro. The associated jacobians have been combined.
-  Eigen::Matrix<float, 12, 6> G = Eigen::Matrix<float, 12, 6>::Zero();
+  Eigen::Matrix<float, 13, 6> G = Eigen::Matrix<float, 13, 6>::Zero();
   
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
   
@@ -263,18 +264,16 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
   float declination = input(0);
   float inclination = input(1);
 
-  // These are the mag measures in the inertial frame.
-  Eigen::Vector3f inertial_mag = calculate_inertial_magnetic_field(declination, inclination);
+  Eigen::Matrix<float, 3, 4> R_theta_mag_jac = del_R_Theta_inc_y_mag_del_Theta(Theta, inclination, declination);
 
-  Eigen::Matrix3f R_theta_mag_jac = del_R_Theta_y_mag_del_Theta(Theta, inertial_mag);
-
-  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(4,12);
+  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(4,13);
 
   // Static pressure
   C(0,2) = -rho*gravity;
   
   // Magnetometer update
-  C.block<3,3>(1,6) = R_theta_mag_jac;
+  C.block<3,3>(1,6) = R_theta_mag_jac.block<3,3>(0,0);
+  C.col(12) = R_theta_mag_jac.col(4);
 
   return C;
 }
@@ -311,7 +310,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_measurement_prediction(c
 
 Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(5,12);
+  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(5,13);
   
   // GPS north
   C(0,0) = 1;
@@ -409,7 +408,6 @@ Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_y_accel_del_Theta(const
   return R_Theta_jacobian;
 }
 
-
 Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag)
 {
   float m_x = inertial_mag(0); // These are the mag measures in the inertial frame.
@@ -430,6 +428,21 @@ Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_y_mag_del_Theta(const E
   (m_y*cosf(phi) - m_z*sinf(phi))*cosf(theta), - m_x*cosf(theta) - m_y*sinf(phi)*sinf(theta) - m_z*sinf(theta)*cosf(phi), 0;
 
   return R_theta_mag_jac;
+}
+
+Eigen::Matrix<float, 3,4> EstimatorContinuousDiscrete::del_R_Theta_inc_y_mag_del_Theta(const Eigen::Vector3f& Theta, const double& inclination,  const double& declination)
+{
+  float phi = Theta(0);
+  float theta = Theta(1);
+  float psi = Theta(2);
+
+  Eigen::Matrix<float, 3, 4> R_theta_inc_mag_jac;
+
+R_theta_inc_mag_jac << -(sinf(psi) * cosf(declination + phi) - sinf(theta) * sinf(declination + phi) * cosf(psi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * cosf(psi),(sinf(psi) * sinf(theta) * cosf(declination + phi) - sinf(declination + phi) * cosf(psi)) * sinf(inclination) -sinf(psi) * cosf(inclination) * cosf(theta), -(sinf(psi) * sinf(declination + phi) + sinf(theta) * cosf(psi) * cosf(declination + phi)) * cosf(inclination) -sinf(inclination) * cosf(psi) * cosf(theta),
+(sinf(psi) * sinf(theta) * sinf(declination + phi) + cosf(psi) * cosf(declination + phi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * sinf(psi), -(sinf(psi) * sinf(declination + phi)  + sinf(theta) * cosf(psi) * cosf(declination + phi)) * sinf(inclination) +cosf(inclination) * cosf(psi) * cosf(theta),(- sinf(psi) * sinf(theta) * cosf(declination + phi) + sinf(declination + phi) * cosf(psi)) * cosf(inclination) -sinf(inclination) * sinf(psi) * cosf(theta),
+sinf(inclination) * sinf(declination + phi) * cosf(theta),sinf(inclination) * sinf(theta) * cosf(declination + phi) -cosf(inclination) * cosf(theta), 0,sinf(inclination) * sinf(theta) -cosf(inclination) * cosf (theta) * cosf(declination + phi);
+
+  return R_theta_inc_mag_jac;
 }
 
 // ======== MISC HELPER FUNCTIONS========
@@ -556,8 +569,9 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   double bias_x_initial_cov = params_.get_double("bias_x_initial_cov");
   double bias_y_initial_cov = params_.get_double("bias_y_initial_cov");
   double bias_z_initial_cov = params_.get_double("bias_z_initial_cov");
+  double inclination_initial_cov = params_.get_double("inclination_initial_cov");
   
-  P_ = Eigen::MatrixXf::Identity(12, 12); 
+  P_ = Eigen::MatrixXf::Identity(13, 13); // TODO: make number of states a global variable so you only have to change it once.
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
   P_(2, 2) = pos_d_initial_cov;
@@ -570,6 +584,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   P_(9, 9) = bias_x_initial_cov; 
   P_(10, 10) = bias_y_initial_cov; 
   P_(11, 11) = bias_z_initial_cov; 
+  P_(12, 12) = inclination_initial_cov; 
 }
 
 void EstimatorContinuousDiscrete::initialize_process_noises() 
@@ -584,6 +599,7 @@ void EstimatorContinuousDiscrete::initialize_process_noises()
   double velocity_process_noise = params_.get_double("vel_horizontal_process_noise");
   double velocity_vertical_process_noise = params_.get_double("vel_horizontal_process_noise");
   double bias_process_noise = params_.get_double("bias_process_noise");
+  double inclination_process_noise = params_.get_double("inclination_process_noise");
   
   Eigen::VectorXf imu_process_noises = Eigen::VectorXf::Zero(6);
   imu_process_noises << pow(accel_process_noise,2), pow(accel_process_noise,2), pow(accel_process_noise,2),
@@ -603,6 +619,7 @@ void EstimatorContinuousDiscrete::initialize_process_noises()
   Q_(9,9) = bias_process_noise;
   Q_(10,10) = bias_process_noise;
   Q_(11,11) = bias_process_noise;
+  Q_(12,12) = inclination_process_noise;
 }
 
 void EstimatorContinuousDiscrete::update_measurement_model_parameters()
@@ -664,6 +681,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("vel_horizontal_process_noise", 0.0001); 
   params_.declare_double("vel_vertical_process_noise", 0.00001);
   params_.declare_double("bias_process_noise", 0.00001);
+  params_.declare_double("inclination_process_noise", 0.000001);
   
   // Initial covariances
   params_.declare_double("pos_n_initial_cov", 100.);
@@ -678,6 +696,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("bias_x_initial_cov", 0.0);
   params_.declare_double("bias_y_initial_cov", 0.0);
   params_.declare_double("bias_z_initial_cov", 0.0);
+  params_.declare_double("inclination_initial_cov", 0.0);
   
   // Conversion flags
   params_.declare_bool("convert_to_gauss", true);

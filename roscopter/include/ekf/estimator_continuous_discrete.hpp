@@ -20,7 +20,7 @@ public:
   EstimatorContinuousDiscrete(bool use_params);
 
 protected:
-  virtual void estimate(const Input & input, Output & output);
+  virtual void estimate(const Input & input, Output & output); // TODO: ADD OVERRIDE KEYWORD.
 private:
 
   /**
@@ -146,16 +146,16 @@ private:
   /**
    * @brief The state of the system.
    */
-  Eigen::VectorXf xhat_; // 12
+  Eigen::VectorXf xhat_; // 13
   /**
    * @brief The covariance of the estimate.
    */
-  Eigen::MatrixXf P_;    // 12x12
+  Eigen::MatrixXf P_;    // 13x13
 
   /**
-   * @brief The process noise for the GPS measurements.
+   * @brief The process noise for state propagation.
    */
-  Eigen::MatrixXf Q_; // 12x12
+  Eigen::MatrixXf Q_; // 13x13
   /**
    * @brief The process noise from the inputs to the estimator.
    */
@@ -194,6 +194,7 @@ private:
   Eigen::Matrix3f del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel);
   Eigen::Matrix3f del_S_Theta_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& biases, const Eigen::Vector3f& gyro);
   Eigen::Matrix3f del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag);
+  Eigen::Matrix<float, 3,4> del_R_Theta_inc_y_mag_del_Theta(const Eigen::Vector3f& Theta, const double& inclination,  const double& declination);
 
   // TODO: not used
   // ASK: What should we do long term?

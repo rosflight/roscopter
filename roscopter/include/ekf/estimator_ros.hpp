@@ -91,6 +91,7 @@ protected:
     float q;
     float r;
     float Vg;
+    float inclination;
   };
 
   bool baro_init_; /**< Initial barometric pressure */
