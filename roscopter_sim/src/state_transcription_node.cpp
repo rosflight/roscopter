@@ -69,15 +69,26 @@ private:
     state.theta = euler(1);
     state.psi = euler(2);
 
-    double u = msg.twist.twist.linear.x;
-    double v = msg.twist.twist.linear.y;
-    double w = msg.twist.twist.linear.z;
+    Eigen::Vector3f body_frame_velocity;
+    body_frame_velocity << msg.twist.twist.linear.x, msg.twist.twist.linear.y, msg.twist.twist.linear.z;
 
-    state.v_n = u;
-    state.v_e = v;
-    state.v_d = w;
+    // Rotate the velocity vector from the body frame to the inertial frame.
+    Eigen::Matrix3f Rv_v1, Rv1_v2, Rv2_b;
+    Rv2_b << 1, 0, 0, 0, cos(state.phi), sin(state.phi), 0, -sin(state.phi), cos(state.phi);
+    Rv1_v2 << cos(state.theta), 0, -sin(state.theta), 0, 1, 0, sin(state.theta), 0, cos(state.theta);
+    Rv_v1 << cos(state.psi), sin(state.psi), 0, -sin(state.psi), cos(state.psi), 0, 0, 0, 1;
 
-    state.vg = std::sqrt(pow(u, 2) + pow(v, 2) + pow(w, 2));
+    Eigen::Matrix3f Rb_i = (Rv2_b * Rv1_v2 * Rv_v1).transpose();
+
+    Eigen::Vector3f inertial_frame_velocity = Rb_i * body_frame_velocity;
+
+    state.v_n = inertial_frame_velocity(0);
+    state.v_e = inertial_frame_velocity(1);
+    state.v_d = inertial_frame_velocity(2);
+
+    state.vg = std::sqrt(pow(inertial_frame_velocity(0), 2)
+		       + pow(inertial_frame_velocity(1), 2)
+		       + pow(inertial_frame_velocity(2), 2));
 
     state.p = msg.twist.twist.angular.x;
     state.q = msg.twist.twist.angular.y;
