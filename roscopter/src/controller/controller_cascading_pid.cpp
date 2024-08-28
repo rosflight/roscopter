@@ -79,6 +79,8 @@ void ControllerCascadingPID::declare_params() {
 
   // System parameters
   params.declare_double("tau", 0.05);
+  params.declare_double("mass", 2.0);
+  params.declare_double("gravity", 9.81);
 
   // Saturation Limit parameters
   params.declare_double("max_roll_rate", 1.0);
@@ -97,6 +99,9 @@ void ControllerCascadingPID::declare_params() {
   // See the max_accel_xy calculation for example.
   params.declare_double("max_roll", 0.30);  
   params.declare_double("max_pitch", 0.30);
+
+  params.declare_double("max_descend_accel", 1.0);
+  params.declare_double("max_descend_rate", 3.0);
 
   params.declare_double("equilibrium_throttle", 0.45); 
   params.declare_double("max_throttle", 0.85);
@@ -167,9 +172,8 @@ void ControllerCascadingPID::update_gains() {
   // 1 g of acceleration and a linear thrust model, these max acceleration
   // values are computed in g's as well.
   double equilibrium_throttle = params.get_double("equilibrium_throttle");
-  double max_accel_xy = sin(acos(equilibrium_throttle)) 
-        / equilibrium_throttle; // This assumes that the minimum vehicle-1 frame z acceleration is 1g
   double max_accel_z = 1.0 / equilibrium_throttle;
+  double max_accel_xy = calculate_max_xy_accel(max_accel_z, equilibrium_throttle);
 
   // North velocity to accel PID loop
   P = params.get_double("vel_n_P");
@@ -191,7 +195,8 @@ void ControllerCascadingPID::update_gains() {
   D = params.get_double("vel_d_D");
   // set max z accelerations so that we can't fall faster than 1 gravity
   max = max_accel_z;
-  PID_vel_d_.set_gains(P, I, D, tau, 1.0, -max);
+  double min = params.get_double("max_descend_accel");
+  PID_vel_d_.set_gains(P, I, D, tau, min, -max);
 
   // North position to velocity PID loop
   P = params.get_double("n_P");
@@ -212,7 +217,26 @@ void ControllerCascadingPID::update_gains() {
   I = params.get_double("d_I");
   D = params.get_double("d_D");
   max = params.get_double("max_d_vel");
-  PID_d_.set_gains(P, I, D, tau, max, -max);
+  min = params.get_double("max_descend_rate");
+  PID_d_.set_gains(P, I, D, tau, min, -max);
+}
+
+double ControllerCascadingPID::calculate_max_xy_accel(double max_accel_z, double equilibrium_throttle) {
+  // Compute the maximum acceleration in the xy plane based on the maximum z accel
+  double max_accel_xy = sin(acos(equilibrium_throttle)) 
+    * max_accel_z; // This assumes that the minimum vehicle-1 frame z acceleration is 1g
+
+  // Also compute the max acceleration that doesn't exceed the max roll and pitch values
+  double max_accel_due_to_roll = sin(params.get_double("max_roll") * TO_RADIANS) * max_accel_z;
+  double max_accel_due_to_pitch = sin(params.get_double("max_pitch") * TO_RADIANS) * max_accel_z;
+
+  // Take the minimum of the computed maximum accelerations
+  max_accel_xy = std::min(max_accel_xy, max_accel_due_to_roll);
+  max_accel_xy = std::min(max_accel_xy, max_accel_due_to_pitch);
+
+  RCLCPP_INFO_STREAM(this->get_logger(), "Max accel in xy: " << max_accel_xy << " Max accel in z: " << max_accel_z);
+
+  return max_accel_xy;
 }
 
 rosflight_msgs::msg::Command ControllerCascadingPID::compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt)
@@ -375,6 +399,8 @@ void ControllerCascadingPID::nvel_evel_dvel_yawrate(roscopter_msgs::msg::Control
 void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd)
 {
   double equilibrium_throttle = params.get_double("equilibrium_throttle");
+  double max_roll = params.get_double("max_roll");
+  double max_pitch = params.get_double("max_pitch");
 
   // In vehicle-1 frame, units of g's
   double ax = input_cmd.cmd1;
@@ -403,14 +429,13 @@ void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::Control
   // Compute desired thrust based on current pose (with mass divided out)
   double cosp = cos(xhat_.phi);
   double cost = cos(xhat_.theta);
-  // TODO: Why doesn't this go to infinity when cosp and cost are small?
   double desired_thrust = (1.0 - az) / cosp / cost;
 
   // Save the calculated values to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THROTTLE;
 
-  input_cmd.cmd1 = phi;                                        // phi
-  input_cmd.cmd2 = theta;                                      // theta
+  input_cmd.cmd1 = saturate(phi, max_roll, -max_roll);         // phi
+  input_cmd.cmd2 = saturate(theta, max_pitch, -max_pitch);     // theta
   input_cmd.cmd3 = r;                                          // r
   input_cmd.cmd4 = desired_thrust * equilibrium_throttle;      // throttle
 
@@ -545,7 +570,7 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
   output_cmd_.f = saturate(input_cmd.cmd4, max_f, min_f);
 
   // Check to see if we are above the minimum attitude altitude
-  if (-xhat_.position[2] < min_altitude_for_attitude_ctrl)
+  if (abs(xhat_.position[2]) < min_altitude_for_attitude_ctrl)
   {
     output_cmd_.x = 0.;
     output_cmd_.y = 0.;

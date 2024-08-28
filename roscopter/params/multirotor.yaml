@@ -1,49 +1,49 @@
 /**:    # autopilot and trajectory controller share some of the same parameters
     ros__parameters:
         # Autopilot gains
-        roll_kp: 3.0
+        roll_kp: 0.4
         roll_ki: 0.0
         roll_kd: 0.2
-        pitch_kp: 3.0
+        pitch_kp: 0.4
         pitch_ki: 0.0
         pitch_kd: 0.2
-        yaw_kp: 0.4
-        yaw_ki: 0.0
+        yaw_kp: 0.2
+        yaw_ki: 0.002
         yaw_kd: 0.2
 
-        roll_rate_kp: 3.0
+        roll_rate_kp: 0.5
         roll_rate_ki: 0.0
-        roll_rate_kd: 0.2
-        pitch_rate_kp: 3.0
+        roll_rate_kd: 0.0
+        pitch_rate_kp: 0.5
         pitch_rate_ki: 0.0
-        pitch_rate_kd: 0.2
-        yaw_rate_kp: 0.4
+        pitch_rate_kd: 0.0
+        yaw_rate_kp: 0.5
         yaw_rate_ki: 0.0
-        yaw_rate_kd: 0.2
+        yaw_rate_kd: 0.0
 
-        yaw_to_rate_kp: 0.2
+        yaw_to_rate_kp: 2.0
         yaw_to_rate_ki: 0.0
         yaw_to_rate_kd: 0.2
 
-        vel_n_P: 0.5
-        vel_n_I: 0.0
-        vel_n_D: 0.05
-        vel_e_P: 0.5
-        vel_e_I: 0.0
-        vel_e_D: 0.05
+        vel_n_P: 0.3
+        vel_n_I: 0.01
+        vel_n_D: 0.1
+        vel_e_P: 0.3
+        vel_e_I: 0.01
+        vel_e_D: 0.1
         vel_d_P: 0.4
         vel_d_I: 0.25
         vel_d_D: 0.1
 
-        n_P: 1.0
-        n_I: 0.1
+        n_P: 3.5
+        n_I: 1.0
         n_D: 0.35
-        e_P: 1.0
-        e_I: 0.1
-        e_D: 0.2
+        e_P: 3.5
+        e_I: 1.0
+        e_D: 0.35
         d_P: 1.0
         d_I: 0.0
-        d_D: 0.0
+        d_D: 0.4
 
         # Saturation limits
         max_roll_rate: 1.0
@@ -64,23 +64,26 @@
         max_roll: 15.0      # degrees
         max_pitch: 15.0     # degrees
 
+        max_descend_accel: 1.0  # in g's
+        max_descend_rate: 3.0
+
         # Trajectory controller gains
-        u_n_kp: 3.0
-        u_n_ki: 0.0
-        u_n_kd: 3.0
-        u_e_kp: 3.0
-        u_e_ki: 0.0
-        u_e_kd: 3.0
-        u_d_kp: 3.0
-        u_d_ki: 0.0
-        u_d_kd: 3.0
+        u_n_kp: 0.5
+        u_n_ki: 0.1
+        u_n_kd: 0.5
+        u_e_kp: 0.5
+        u_e_ki: 0.1
+        u_e_kd: 0.5
+        u_d_kp: 4.0
+        u_d_ki: 0.1
+        u_d_kd: 15.0
 
         # Miscellanous
         tau: 0.05
         C_d: 0.0
         gravity: 9.81
         mass: 2.0
-        equilibrium_throttle: 0.45
+        equilibrium_throttle: 0.35
 
         # Takeoff and landing
         takeoff_d_pos: -10.0
@@ -89,3 +92,4 @@
         takeoff_d_vel: -0.5
         takeoff_landing_pos_hold_time: 3.0
         min_altitude_for_attitude_ctrl: 0.15
+        max_descend_rate: 3.0
