@@ -86,7 +86,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   output.bx = xhat_(9);
   output.by = xhat_(10);
   output.bz = xhat_(11);
-  output.inclination = inclination_; // FIXME:Make it reference not a memeber field.
+  output.inclination = xhat_(12);
 }
 
 // ======== ESTIMATION LOOP STEPS ========
@@ -130,9 +130,10 @@ void EstimatorContinuousDiscrete::fast_measurement_update_step(const Input& inpu
   
   Eigen::Vector<float, 4> y_fast;
   y_fast << lpf_static_, mag_readings/mag_readings.norm();
+  
 
-  Eigen::Vector2f mag_info;
-  mag_info << radians(declination_), radians(inclination_);
+  Eigen::Vector<float, 1> mag_info;
+  mag_info << radians(declination_);
   std::tie(P_, xhat_) = measurement_update(xhat_, mag_info, multirotor_fast_measurement_model,
                                            y_fast, multirotor_fast_measurement_jacobian_model,
                                            R_fast, P_);
@@ -233,7 +234,8 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_predict
   float gravity = params_.get_double("gravity");
 
   float declination = input(0);
-  float inclination = input(1);
+
+  float inclination = xhat_(12);
   
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
 
@@ -262,7 +264,8 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
 
   float declination = input(0);
-  float inclination = input(1);
+
+  float inclination = -xhat_(12);
 
   Eigen::Matrix<float, 3, 4> R_theta_mag_jac = del_R_Theta_inc_y_mag_del_Theta(Theta, inclination, declination);
 
@@ -273,8 +276,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
   
   // Magnetometer update
   C.block<3,3>(1,6) = R_theta_mag_jac.block<3,3>(0,0);
-  C.col(12) = R_theta_mag_jac.col(4);
-
+  C.block<3,1>(1,12) = R_theta_mag_jac.col(3);
   return C;
 }
 
@@ -461,7 +463,7 @@ Eigen::Vector3f EstimatorContinuousDiscrete::calculate_inertial_magnetic_field(c
   Eigen::Matrix3f mag_rotation = mag_declination_rotation*mag_inclination_rotation;
   Eigen::Vector3f inertial_mag_readings = mag_rotation*mag_x;
 
-  return inertial_mag_readings;
+  return inertial_mag_readings/inertial_mag_readings.norm();
 }
 
 
@@ -488,6 +490,8 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input) 
                                 &inclination_,
                                 &total_intensity,
                                 &grid_variation);
+
+  xhat_(12) = radians(inclination_); // FIXME: feels hacky.
 
   if (mag_success == -1) {
     RCLCPP_ERROR(this->get_logger(), "Something went wrong while calculating inclination and declination.");
@@ -646,7 +650,7 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   R_fast(0,0) = powf(sigma_static_press,2);
   R_fast(1,1) = powf(sigma_mag,2);
   R_fast(2,2) = powf(sigma_mag,2);
-  R_fast(3,3) = powf(sigma_mag,2);
+  R_fast(3,3) = powf(sigma_mag,2);// TODO: consider modifying just the bottom one.
   
   // Calculate low pass filter alpha values.
   alpha_ = exp(-lpf_a * Ts);
@@ -663,7 +667,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_ve_gps", .01);
   params_.declare_double("sigma_vd_gps", .01);
   params_.declare_double("sigma_static_press", 1.0);
-  params_.declare_double("sigma_mag", 0.05); 
+  params_.declare_double("sigma_mag", 0.8); 
   params_.declare_double("sigma_accel", .0025 * 9.81);
 
   // Low pass filter parameters
@@ -681,7 +685,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("vel_horizontal_process_noise", 0.0001); 
   params_.declare_double("vel_vertical_process_noise", 0.00001);
   params_.declare_double("bias_process_noise", 0.00001);
-  params_.declare_double("inclination_process_noise", 0.000001);
+  params_.declare_double("inclination_process_noise", 0.0000001);
   
   // Initial covariances
   params_.declare_double("pos_n_initial_cov", 100.);
@@ -696,7 +700,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("bias_x_initial_cov", 0.0);
   params_.declare_double("bias_y_initial_cov", 0.0);
   params_.declare_double("bias_z_initial_cov", 0.0);
-  params_.declare_double("inclination_initial_cov", 0.0);
+  params_.declare_double("inclination_initial_cov", 0.0001);
   
   // Conversion flags
   params_.declare_bool("convert_to_gauss", true);

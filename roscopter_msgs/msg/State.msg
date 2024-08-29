@@ -19,6 +19,8 @@ float32 bx		# Gyro bias x
 float32 by		# Gyro bias y
 float32 bz		# Gyro bias z
 
+float32 inclination		# Inclination of magnetic field
+
 float32[4] quat		# Quaternion (wxyz, NED)
 bool quat_valid		# Quaternion valid
 

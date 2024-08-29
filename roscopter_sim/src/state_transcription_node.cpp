@@ -58,6 +58,8 @@ private:
     q.y() = msg.pose.pose.orientation.y;
     q.z() = msg.pose.pose.orientation.z;
 
+    state.inclination = 0.0;
+
     Eigen::Vector3f euler;
     euler(0) = atan2(2.0 * (q.w() * q.x() + q.y() * q.z()),
                      pow(q.w(), 2) + pow(q.z(), 2) - pow(q.x(), 2) - pow(q.y(), 2));

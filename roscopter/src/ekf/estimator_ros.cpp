@@ -127,6 +127,7 @@ void EstimatorROS::update()
   msg.bx = output.bx;
   msg.by = output.by;
   msg.bz = output.bz;
+  msg.inclination = output.inclination;
   
   vehicle_state_pub_->publish(msg);
 }
