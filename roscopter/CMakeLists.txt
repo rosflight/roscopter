@@ -63,22 +63,29 @@ install(
 ###########
 
 include_directories(
-  include 
+  include
   ${EIGEN3_INCLUDE_DIRS} 
   ${ament_INCLUDE_DIRS}
   )
 
-## Declare cpp executables
-add_executable(controller
-  src/controller/controller_node.cpp
-  src/controller/controller.cpp
-  include/controller/controller.h
-  src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy tf2 tf2_geometry_msgs roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3)
-target_link_libraries(controller ${ament_LIBRARIES})
-install(
-  TARGETS controller
-  DESTINATION lib/${PROJECT_NAME})
+
+### LIBRARIES ###
+
+# Param Manager
+add_library(param_manager
+  include/param_manager/param_manager.hpp
+  src/param_manager/param_manager.cpp
+)
+ament_target_dependencies(param_manager rclcpp)
+ament_export_targets(param_manager HAS_LIBRARY_TARGET)
+install(DIRECTORY include/param_manager DESTINATION include)
+install(TARGETS param_manager
+  EXPORT param_manager
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 add_library(ekf
   src/ekf/state.cpp
@@ -106,6 +113,33 @@ add_executable(ext_att_transcriber
 ament_target_dependencies(ext_att_transcriber rclcpp roscopter_msgs rosflight_msgs)
 target_link_libraries(ext_att_transcriber ${ament_LIBRARIES})
 install(TARGETS ext_att_transcriber
+  DESTINATION lib/${PROJECT_NAME})
+
+
+
+### EXECUTABLES ###
+
+# Controller
+add_executable(controller
+  src/controller/controller_ros.cpp
+  src/controller/controller_state_machine.cpp
+  src/controller/controller_cascading_pid.cpp
+  src/controller/simple_pid.cpp)
+ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs)
+target_link_libraries(controller ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS controller
+  DESTINATION lib/${PROJECT_NAME})
+
+# Trajectory Follower
+add_executable(trajectory_follower
+  src/navigation/trajectory_follower_ros.cpp
+  src/navigation/trajectory_follower.cpp
+  src/controller/simple_pid.cpp)
+ament_target_dependencies(trajectory_follower rclcpp rclpy roscopter_msgs)
+target_link_libraries(trajectory_follower ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS trajectory_follower
   DESTINATION lib/${PROJECT_NAME})
 
 

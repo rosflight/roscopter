@@ -29,9 +29,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <controller/simple_pid.h>
+#include <controller/simple_pid.hpp>
 
-namespace controller
+namespace roscopter
 {
 //
 // Basic initialization
@@ -65,18 +65,16 @@ SimplePID::SimplePID(double p, double i, double d, double max, double min, doubl
 //
 // Compute the control;
 //
-double SimplePID::computePID(double desired, double current, double dt, double x_dot)
+double SimplePID::compute_pid(double desired, double current, double dt, double x_dot)
 {
   double error = desired - current;
 
   // Don't do stupid things (like divide by nearly zero, gigantic control jumps)
-  if (dt < 0.00001 || std::abs(error) > 9999999)
-  {
+  if (dt < 0.00001 || std::abs(error) > 9999999) {
     return 0.0;
   }
 
-  if (dt > 1.0)
-  {
+  if (dt > 1.0) {
     // This means that this is a ''stale'' controller and needs to be reset.
     // This would happen if we have been operating in a different mode for a while
     // and will result in some enormous integrator.
@@ -93,14 +91,11 @@ double SimplePID::computePID(double desired, double current, double dt, double x
 
 
   // Calculate Derivative Term
-  if (kd_ > 0.0)
-  {
-    if (std::isfinite(x_dot))
-    {
+  if (kd_ > 0.0) {
+    if (std::isfinite(x_dot)) {
       d_term = kd_ * x_dot;
     }
-    else if (dt > 0.0)
-    {
+    else if (dt > 0.0) {
       // Noise reduction (See "Small Unmanned Aircraft". Chapter 6. Slide 31/33)
       // d/dx w.r.t. error:: differentiator_ = (2*tau_ - dt)/(2*tau_ + dt)*differentiator_ + 2/(2*tau_ + dt)*(error -
       // last_error_);
@@ -111,8 +106,7 @@ double SimplePID::computePID(double desired, double current, double dt, double x
   }
 
   // Calculate Integrator Term
-  if (ki_ > 0.0)
-  {
+  if (ki_ > 0.0) {
     integrator_ += dt / 2 * (error + last_error_); // (trapezoidal rule)
     i_term = ki_ * integrator_;
   }
@@ -124,12 +118,10 @@ double SimplePID::computePID(double desired, double current, double dt, double x
   // Sum three terms
   double u = p_term + i_term - d_term;
 
-  // return u;
-
   // Integrator anti-windup
   double u_sat = saturate(u, min_, max_);
-  if (u != u_sat && std::fabs(i_term) > fabs(u - p_term + d_term))
-  {
+  // TODO: Do we need the second check here?
+  if (u != u_sat && std::fabs(i_term) > fabs(u_sat - p_term + d_term)) {
     // If we are at the saturation limits, then make sure the integrator doesn't get
     // bigger if it won't do anything (except take longer to unwind).  Just set it to the
     // largest value it could be to max out the control
@@ -142,7 +134,7 @@ double SimplePID::computePID(double desired, double current, double dt, double x
 //
 // Late initialization or redo
 //
-void SimplePID::setGains(double p, double i, double d, double tau, double max_u, double min_u)
+void SimplePID::set_gains(double p, double i, double d, double tau, double max_u, double min_u)
 {
   //! \todo Should we really be zeroing this while we are gain tuning?
   kp_ = p;

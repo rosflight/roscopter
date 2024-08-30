@@ -18,8 +18,126 @@
 # ...
 
 
-North Position:
+Roll Angle to motor:
   node: '/autopilot'
+  params:
+    roll_kp:
+      description: 'Roll angle P gain'
+    roll_kd:
+      description: 'Roll angle D gain'
+
+Pitch Angle to motor:
+  node: '/autopilot'
+  params:
+    pitch_kp:
+      description: 'Pitch angle P gain'
+    pitch_kd:
+      description:  'Pitch angle D gain'
+
+Yaw Angle to Motor:
+  node: '/autopilot'
+  params:
+    yaw_kp:
+      description: 'Yaw angle P gain'
+    yaw_ki:
+      description: 'Yaw angle I gain'
+    yaw_kd:
+      description: 'Yaw angle D gain'
+
+Roll Rate Angle to motor:
+  node: '/autopilot'
+  params:
+    roll_rate_kp:
+      description: 'Roll angle P gain'
+    roll_rate_kd:
+      description: 'Roll angle D gain'
+
+Pitch Rate Angle to motor:
+  node: '/autopilot'
+  params:
+    pitch_rate_kp:
+      description: 'Pitch angle P gain'
+    pitch_rate_kd:
+      description:  'Pitch angle D gain'
+
+Yaw Rate Angle to Motor:
+  node: '/autopilot'
+  params:
+    yaw_rate_kp:
+      description: 'Yaw angle P gain'
+    yaw_rate_kd:
+      description: 'Yaw angle D gain'
+  
+Yaw to Rate:
+  node: "/autopilot"
+  params:
+    yaw_to_rate_kp:
+      description: 'Yaw to rate P gain'
+    yaw_to_rate_kd:
+      description: 'Yaw to rate D gain'
+  
+North Velocity:
+  node: "/autopilot"
+  params:
+    vel_n_P:
+      description: 'North velocity P gain'
+    vel_n_I:
+      description: 'North velocity I gain'
+    vel_n_D:
+      description: 'North velocity D gain'
+  
+East Velocity:
+  node: "/autopilot"
+  params:
+    vel_e_P:
+      description: 'East velocity P gain'
+    vel_e_I:
+      description: 'East velocity I gain'
+    vel_e_D:
+      description: 'East velocity D gain'
+  
+Down Velocity:
+  node: "/autopilot"
+  params:
+    vel_d_P:
+      description: 'Down velocity P gain'
+    vel_d_I:
+      description: 'Down velocity I gain'
+    vel_d_D:
+      description: 'Down velocity D gain'
+  
+North Position:
+  node: "/autopilot"
+  params:
+    n_P:
+      description: 'North position P gain'
+    n_I:
+      description: 'North position I gain'
+    n_D:
+      description: 'North position D gain'
+  
+East Position:
+  node: "/autopilot"
+  params:
+    e_P:
+      description: 'East position P gain'
+    e_I:
+      description: 'East position I gain'
+    e_D:
+      description: 'East position D gain'
+  
+Down Position:
+  node: "/autopilot"
+  params:
+    d_P:
+      description: 'Down position P gain'
+    d_I:
+      description: 'Down position I gain'
+    d_D:
+      description: 'Down position D gain'
+  
+Trajectory Controller North:
+  node: "/trajectory_follower"
   params:
     u_n_kp:
       description: 'North position P gain'
@@ -27,18 +145,9 @@ North Position:
       description: 'North position I gain'
     u_n_kd:
       description: 'North position D gain'
-  plot_topics:
-    North State:
-      topic: '/state/position[0]'
-      scale: 1.0
-    North Command:
-      topic: '/high_level_command/cmd1'
-      scale: 1.0
-  plot_axis_label: 'Roll angle (deg)'
-  plot_axis_range: [-30, 30]
 
-East Position:
-  node: '/autopilot'
+Trajectory Controller East:
+  node: "/trajectory_follower"
   params:
     u_e_kp:
       description: 'East position P gain'
@@ -46,15 +155,9 @@ East Position:
       description: 'East position I gain'
     u_e_kd:
       description: 'East position D gain'
-  plot_topics:
-    East State:
-      topic: '/state/position[1]'
-      scale: 1.0
-  plot_axis_label: 'Roll angle (deg)'
-  plot_axis_range: [-30, 30]
 
-Down Position:
-  node: '/autopilot'
+Trajectory Controller Down:
+  node: "/trajectory_follower"
   params:
     u_d_kp:
       description: 'Down position P gain'
@@ -62,63 +165,3 @@ Down Position:
       description: 'Down position I gain'
     u_d_kd:
       description: 'Down position D gain'
-  plot_topics:
-    Down State:
-      topic: '/state/position[2]'
-      scale: 1.0
-    Down Command:
-      topic: '/high_level_command/cmd3'
-      scale: 1.0
-  plot_axis_label: 'Roll angle (deg)'
-  plot_axis_range: [-60, 1]
-
-Roll Angle:
-  node: '/autopilot'
-  params:
-    phi_kp:
-      description: 'Roll P gain'
-    phi_ki:
-      description: 'Roll I gain'
-    phi_kd:
-      description: 'Roll D gain'
-  plot_topics:
-    Roll State:
-      topic: '/state/phi'
-      scale: 57.2957795131
-    Roll Command:
-      topic: '/high_level_command/phi_c'
-      scale: 57.2957795131
-  plot_axis_label: 'Roll angle (deg)'
-  plot_axis_range: [-30, 30]
-
-Pitch Angle:
-  node: '/autopilot'
-  params:
-    theta_kp:
-      description: 'Theta P gain'
-    theta_ki:
-      description: 'Theta I gain'
-    theta_kd:
-      description: 'Theta D gain'
-  plot_topics:
-    Pitch State:
-      topic: '/state/theta'
-      scale: 1.0
-  plot_axis_label: 'Pitch angle (deg)'
-  plot_axis_range: [-30, 30]
-
-Yaw Angle:
-  node: '/autopilot'
-  params:
-    psi_kp:
-      description: 'Yaw P gain'
-    psi_ki:
-      description: 'Yaw I gain'
-    psi_kd:
-      description: 'Yaw D gain'
-  plot_topics:
-    Yaw State:
-      topic: '/state/psi'
-      scale: 1.0
-  plot_axis_label: 'Yaw angle (deg)'
-  plot_axis_range: [-30, 30]
