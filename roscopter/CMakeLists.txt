@@ -100,6 +100,14 @@ install(
   TARGETS ekf_node
   DESTINATION lib/${PROJECT_NAME})
 
+# External attitude transcriber
+add_executable(ext_att_transcriber
+  src/ekf/external_attitude_transcriber.cpp)
+ament_target_dependencies(ext_att_transcriber rclcpp roscopter_msgs rosflight_msgs)
+target_link_libraries(ext_att_transcriber ${ament_LIBRARIES})
+install(TARGETS ext_att_transcriber
+  DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
