@@ -45,6 +45,10 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
+include_directories(
+  include
+  ${ament_INCLUDE_DIRS})
+
 ### START OF EXECUTABLES ###
 
 # Signal Generator
@@ -70,4 +74,4 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_package(
+ament_package()
