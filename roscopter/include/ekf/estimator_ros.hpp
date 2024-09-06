@@ -121,6 +121,7 @@ private:
   void gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg);
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
   void baroAltCallback(const rosflight_msgs::msg::Barometer::SharedPtr msg);
+  void update_barometer_calibration(const rosflight_msgs::msg::Barometer::SharedPtr msg);
   /**
    * @brief This saves parameters to the param file for later use.
    *

@@ -51,7 +51,7 @@ void EstimatorROS::declare_parameters()
   params_.declare_double("baro_measurement_gate", 1.35);  // TODO: this is a magic number. What is it determined from?
   params_.declare_double("airspeed_measurement_gate", 5.0);  // TODO: this is a magic number. What is it determined from?
   params_.declare_int("baro_calibration_count", 100);  // TODO: this is a magic number. What is it determined from?
-  params_.declare_int("min_fix_type", 3);
+  params_.declare_int("min_gnss_fix_type", 3);
   params_.declare_double("baro_calibration_val", 0.0);
   params_.declare_double("init_lat", 0.0);
   params_.declare_double("init_lon", 0.0);
@@ -135,7 +135,7 @@ void EstimatorROS::update()
 
 void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg)
 {
-  int min_fix_type = params_.get_int("min_gnss_fix");
+  int min_fix_type = params_.get_int("min_gnss_fix_type");
   // Convert msg to standard DDS and m/s.
   float msg_lat = msg->lat/1e7;
   float msg_lon = msg->lon/1e7;
@@ -145,9 +145,8 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr m
   float msg_vel_e = msg->vel_e/1e3;
   float msg_vel_d = msg->vel_d/1e3;
 
-  // HACK: This needs to be a parameter. 2 is a 2D fix, 3 is a 3D fix, 4 is DGPS and 5 is RTK
-  has_fix_ = msg->fix_type >= 3; // Higher values refer to augmented fixes
-  //
+  has_fix_ = msg->fix_type >= min_fix_type; 
+  
   if (!has_fix_ || !std::isfinite(msg->lat)) {
     input_.gps_new = false;
     return;
@@ -205,46 +204,13 @@ void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedP
   double rho = params_.get_double("rho");
   double gravity = params_.get_double("gravity");
   double gate_gain_constant = params_.get_double("baro_measurement_gate");
-  double baro_calib_count = params_.get_int("baro_calibration_count");
 
   new_baro_ = true;
 
-  if (armed_first_time_ && !baro_init_) { // TODO: Abstract this into more readable funcitons.
-    if (baro_count_ < baro_calib_count) {
-      init_static_ += msg->pressure;
-      init_static_vector_.push_back(msg->pressure);
-      input_.static_pres = 0;
-      baro_count_ += 1;
-    } else {
-      init_static_ = std::accumulate(init_static_vector_.begin(), init_static_vector_.end(), 0.0)
-        / init_static_vector_.size();
-      baro_init_ = true;
-      // saveParameter("baro_calibration_val", init_static_);
-
-      //Check that it got a good calibration.
-      std::sort(init_static_vector_.begin(), init_static_vector_.end());
-      float q1 = (init_static_vector_[24] + init_static_vector_[25]) / 2.0;
-      float q3 = (init_static_vector_[74] + init_static_vector_[75]) / 2.0;
-      float IQR = q3 - q1;
-      float upper_bound = q3 + 2.0 * IQR;
-      float lower_bound = q1 - 2.0 * IQR;
-      for (int i = 0; i < baro_calib_count; i++) {
-        if (init_static_vector_[i] > upper_bound) {
-          baro_init_ = false;
-          baro_count_ = 0;
-          init_static_vector_.clear();
-          RCLCPP_WARN(this->get_logger(), "Bad baro calibration. Recalibrating");
-          break;
-        } else if (init_static_vector_[i] < lower_bound) {
-          baro_init_ = false;
-          baro_count_ = 0;
-          init_static_vector_.clear();
-          RCLCPP_WARN(this->get_logger(), "Bad baro calibration. Recalibrating");
-          break;
-        }
-      }
-    }
+  if (armed_first_time_ && !baro_init_) {
+    update_barometer_calibration(msg);
   } else {
+    // Save the barometer pressure, cap the maximum change registered.
     float static_pres_old = input_.static_pres;
     input_.static_pres = -msg->pressure + init_static_;
 
@@ -253,6 +219,46 @@ void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedP
       input_.static_pres = static_pres_old - gate_gain;
     } else if (input_.static_pres > static_pres_old + gate_gain) {
       input_.static_pres = static_pres_old + gate_gain;
+    }
+  }
+}
+
+void EstimatorROS::update_barometer_calibration(const rosflight_msgs::msg::Barometer::SharedPtr msg)
+{
+  double baro_calib_count = params_.get_int("baro_calibration_count");
+
+  if (baro_count_ < baro_calib_count) {
+    init_static_ += msg->pressure;
+    init_static_vector_.push_back(msg->pressure);
+    input_.static_pres = 0;
+    baro_count_ += 1;
+  } else {
+    init_static_ = std::accumulate(init_static_vector_.begin(), init_static_vector_.end(), 0.0)
+      / init_static_vector_.size();
+    baro_init_ = true;
+    // saveParameter("baro_calibration_val", init_static_);
+
+    //Check that it got a good calibration.
+    std::sort(init_static_vector_.begin(), init_static_vector_.end());
+    float q1 = (init_static_vector_[24] + init_static_vector_[25]) / 2.0;
+    float q3 = (init_static_vector_[74] + init_static_vector_[75]) / 2.0;
+    float IQR = q3 - q1;
+    float upper_bound = q3 + 2.0 * IQR;
+    float lower_bound = q1 - 2.0 * IQR;
+    for (int i = 0; i < baro_calib_count; i++) {
+      if (init_static_vector_[i] > upper_bound) {
+        baro_init_ = false;
+        baro_count_ = 0;
+        init_static_vector_.clear();
+        RCLCPP_WARN(this->get_logger(), "Bad baro calibration. Recalibrating");
+        break;
+      } else if (init_static_vector_[i] < lower_bound) {
+        baro_init_ = false;
+        baro_count_ = 0;
+        init_static_vector_.clear();
+        RCLCPP_WARN(this->get_logger(), "Bad baro calibration. Recalibrating");
+        break;
+      }
     }
   }
 }
