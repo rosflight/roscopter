@@ -491,7 +491,7 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input) 
                                 &total_intensity,
                                 &grid_variation);
 
-  xhat_(12) = radians(inclination_); // FIXME: feels hacky.
+  xhat_(12) = radians(inclination_);
 
   if (mag_success == -1) {
     RCLCPP_ERROR(this->get_logger(), "Something went wrong while calculating inclination and declination.");

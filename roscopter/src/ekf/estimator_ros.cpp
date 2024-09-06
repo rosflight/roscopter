@@ -51,6 +51,7 @@ void EstimatorROS::declare_parameters()
   params_.declare_double("baro_measurement_gate", 1.35);  // TODO: this is a magic number. What is it determined from?
   params_.declare_double("airspeed_measurement_gate", 5.0);  // TODO: this is a magic number. What is it determined from?
   params_.declare_int("baro_calibration_count", 100);  // TODO: this is a magic number. What is it determined from?
+  params_.declare_int("min_fix_type", 3);
   params_.declare_double("baro_calibration_val", 0.0);
   params_.declare_double("init_lat", 0.0);
   params_.declare_double("init_lon", 0.0);
@@ -134,6 +135,7 @@ void EstimatorROS::update()
 
 void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg)
 {
+  int min_fix_type = params_.get_int("min_gnss_fix");
   // Convert msg to standard DDS and m/s.
   float msg_lat = msg->lat/1e7;
   float msg_lon = msg->lon/1e7;
@@ -171,8 +173,7 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr m
     input_.gps_h = msg_height - init_alt_;
     input_.gps_new = true;
 
-    // TODO: Rename parameter here for clarity
-    double ground_speed_threshold = params_.get_double("gps_ground_speed_threshold");
+    double Vg_when_course_valid = params_.get_double("gps_ground_speed_threshold");
 
     double ground_speed = sqrt(msg_vel_n * msg_vel_n + msg_vel_e * msg_vel_e);
     double course = atan2(msg_vel_e, msg_vel_n); 
@@ -182,7 +183,7 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr m
     input_.gps_ve = msg_vel_e;
     input_.gps_vd = msg_vel_d;
 
-    if (ground_speed > ground_speed_threshold)
+    if (ground_speed > Vg_when_course_valid)
       input_.gps_course = course;
   }
 }

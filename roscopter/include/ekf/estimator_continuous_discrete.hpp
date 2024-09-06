@@ -20,7 +20,7 @@ public:
   EstimatorContinuousDiscrete(bool use_params);
 
 protected:
-  virtual void estimate(const Input & input, Output & output); // TODO: ADD OVERRIDE KEYWORD.
+  virtual void estimate(const Input & input, Output & output) override;
 private:
 
   /**
@@ -170,11 +170,11 @@ private:
   Eigen::MatrixXf R_fast; // 4x4
   
   /**
-   * @brief The inclination of the magnetic field at the current location.
+   * @brief The calculated inclination of the magnetic field at the current location.
    */
   double inclination_;
   /**
-   * @brief The declination of the magnetic field at the current location.
+   * @brief The calculated declination of the magnetic field at the current location.
    */
   double declination_;
 
