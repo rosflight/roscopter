@@ -112,6 +112,7 @@ void EstimatorROS::update()
   
   // Create estimated state message and publish it.
   roscopter_msgs::msg::State msg = roscopter_msgs::msg::State();
+  msg.header.stamp = this->get_clock()->now();
 
   msg.position[0] = output.pn;
   msg.position[1] = output.pe;
