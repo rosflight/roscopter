@@ -667,7 +667,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_ve_gps", .01);
   params_.declare_double("sigma_vd_gps", .01);
   params_.declare_double("sigma_static_press", 1.0);
-  params_.declare_double("sigma_mag", 0.8); 
+  params_.declare_double("sigma_mag", 1.0); 
   params_.declare_double("sigma_accel", .0025 * 9.81);
 
   // Low pass filter parameters
@@ -685,7 +685,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("vel_horizontal_process_noise", 0.0001); 
   params_.declare_double("vel_vertical_process_noise", 0.00001);
   params_.declare_double("bias_process_noise", 0.00001);
-  params_.declare_double("inclination_process_noise", 0.0000001);
+  params_.declare_double("inclination_process_noise", 0.000000001);
   
   // Initial covariances
   params_.declare_double("pos_n_initial_cov", 100.);
