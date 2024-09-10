@@ -88,40 +88,6 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
-
-### EXECUTABLES ###
-
-add_executable(controller
-  src/controller/controller_ros.cpp
-  src/controller/controller.cpp
-  src/controller/controller_successive_loop.cpp
-  src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs EIGEN3)
-target_link_libraries(controller ${ament_LIBRARIES} param_manager)
-install(
-  TARGETS controller
-  DESTINATION lib/${PROJECT_NAME})
-
-# add_library(ekf
-#   src/ekf/state.cpp
-#   src/ekf/dynamics.cpp
-#   src/ekf/ekf.cpp
-#   src/ekf/meas.cpp
-#   src/ekf/log.cpp)
-# target_include_directories(ekf PUBLIC include lib/geometry/include)
-# target_link_libraries(ekf ${YAML_CPP_LIBRARIES} stdc++fs)
-#
-# add_library(ekf_ros src/ekf/ekf_ros.cpp)
-# target_link_libraries(ekf_ros ekf ${ament_LIBRARIES})
-# ament_target_dependencies(ekf_ros rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
-#
-# add_executable(ekf_node src/ekf/ekf_node.cpp)
-# target_link_libraries(ekf_node ekf_ros ${ament_LIBRARIES})
-# ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
-# install(
-#   TARGETS ekf_node
-#   DESTINATION lib/${PROJECT_NAME})
-
 set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
 # Estimator
 add_executable(roscopter_estimator
@@ -144,6 +110,39 @@ add_library(estimator_lib src/ekf/estimator_node.cpp src/ekf/estimator_ros.cpp s
 target_link_libraries(roscopter_estimator estimator_lib)
 target_link_libraries(estimator_lib param_manager)
 ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
+
+# External attitude transcriber
+add_executable(ext_att_transcriber
+  src/ekf/external_attitude_transcriber.cpp)
+ament_target_dependencies(ext_att_transcriber rclcpp roscopter_msgs rosflight_msgs)
+target_link_libraries(ext_att_transcriber ${ament_LIBRARIES})
+install(TARGETS ext_att_transcriber
+  DESTINATION lib/${PROJECT_NAME})
+
+### EXECUTABLES ###
+
+# Controller
+add_executable(controller
+  src/controller/controller_ros.cpp
+  src/controller/controller_state_machine.cpp
+  src/controller/controller_cascading_pid.cpp
+  src/controller/simple_pid.cpp)
+ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs)
+target_link_libraries(controller ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS controller
+  DESTINATION lib/${PROJECT_NAME})
+
+# Trajectory Follower
+add_executable(trajectory_follower
+  src/navigation/trajectory_follower_ros.cpp
+  src/navigation/trajectory_follower.cpp
+  src/controller/simple_pid.cpp)
+ament_target_dependencies(trajectory_follower rclcpp rclpy roscopter_msgs)
+target_link_libraries(trajectory_follower ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS trajectory_follower
+  DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
 

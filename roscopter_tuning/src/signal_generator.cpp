@@ -154,7 +154,7 @@ void TuningSignalGenerator::publish_timer_callback()
     case ControllerOutput::D_POS:
       center_value = default_d_pos_c_;
       break;
-    case ControllerOutput::PSI:
+    case ControllerOutput::YAW:
       center_value = default_psi_c_;
       break;
   }
@@ -185,6 +185,8 @@ void TuningSignalGenerator::publish_timer_callback()
   // command_message.h_c = default_h_c_;
   // command_message.chi_c = default_chi_c_;
   command_message.mode = roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DPOS_YAW;
+  command_message.cmd_valid = true;
+
   command_message.cmd1 = default_n_pos_c_;
   command_message.cmd2 = default_e_pos_c_;
   command_message.cmd3 = default_d_pos_c_;
@@ -218,7 +220,7 @@ void TuningSignalGenerator::publish_timer_callback()
     case ControllerOutput::D_POS:
       command_message.cmd3 = signal_value;
       break;
-    case ControllerOutput::PSI:
+    case ControllerOutput::YAW:
       command_message.cmd4 = signal_value;
       break;
   }
@@ -374,8 +376,8 @@ void TuningSignalGenerator::update_params()
     controller_output_ = ControllerOutput::E_POS;
   } else if (controller_output_string == "down_pos") {
     controller_output_ = ControllerOutput::D_POS;
-  } else if (controller_output_string == "psi") {
-    controller_output_ = ControllerOutput::PSI;
+  } else if (controller_output_string == "yaw") {
+    controller_output_ = ControllerOutput::YAW;
   } else {
     RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Param controller_output set to invalid type %s!",
                  controller_output_string.c_str());

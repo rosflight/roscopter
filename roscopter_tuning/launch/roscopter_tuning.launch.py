@@ -19,7 +19,7 @@ def generate_launch_description():
     autopilot_params = os.path.join(
         roscopter_dir,
         'params',
-        'quadcopter_params.yaml'
+        'multirotor.yaml'
     )
 
     return LaunchDescription([
@@ -44,5 +44,13 @@ def generate_launch_description():
             executable='signal_generator',
             name='signal_generator',
             output = 'screen'
+        ),
+        Node(
+            package='roscopter',
+            executable='trajectory_follower',
+            name='trajectory_follower',
+            output='screen',
+            parameters=[autopilot_params],
+            remappings=[('estimated_state', 'state')]
         )
     ])

@@ -7,7 +7,7 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     roscopter_dir = get_package_share_directory('roscopter')
 
-    param_file = os.path.join(roscopter_dir, 'params', 'quadcopter_params.yaml')
+    param_file = os.path.join(roscopter_dir, 'params', 'multirotor.yaml')
     controller_type = 'default'
 
     for arg in sys.argv:
@@ -24,6 +24,14 @@ def generate_launch_description():
             parameters=[param_file],
             remappings=[('estimated_state', 'state')]
         ),
+        Node(
+            package='roscopter',
+            executable='trajectory_follower',
+            name='trajectory_follower',
+            output='screen',
+            parameters=[param_file],
+            remappings=[('estimated_state', 'state')]
+        )
         # Node(
         #     package='roscopter',
         #     executable='ekf_node',
