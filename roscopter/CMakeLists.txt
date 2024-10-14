@@ -87,26 +87,6 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
-add_library(ekf
-  src/ekf/state.cpp
-  src/ekf/dynamics.cpp
-  src/ekf/ekf.cpp
-  src/ekf/meas.cpp
-  src/ekf/log.cpp)
-target_include_directories(ekf PUBLIC include lib/geometry/include)
-target_link_libraries(ekf ${YAML_CPP_LIBRARIES} stdc++fs)
-
-add_library(ekf_ros src/ekf/ekf_ros.cpp)
-target_link_libraries(ekf_ros ekf ${ament_LIBRARIES})
-ament_target_dependencies(ekf_ros rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
-
-add_executable(ekf_node src/ekf/ekf_node.cpp)
-target_link_libraries(ekf_node ekf_ros ${ament_LIBRARIES})
-ament_target_dependencies(ekf_node rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
-install(
-  TARGETS ekf_node
-  DESTINATION lib/${PROJECT_NAME})
-
 # External attitude transcriber
 add_executable(ext_att_transcriber
   src/ekf/external_attitude_transcriber.cpp)
