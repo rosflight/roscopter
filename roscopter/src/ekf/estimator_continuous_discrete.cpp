@@ -244,7 +244,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_predict
   Eigen::Vector3f inertial_mag_readings = calculate_inertial_magnetic_field(declination, inclination);
 
   // Rotate the magnetometer readings into the body frame.
-  Eigen::Vector3f predicted_mag_readings = R(Theta)*inertial_mag_readings;
+  Eigen::Vector3f predicted_mag_readings = R(Theta).transpose()*inertial_mag_readings;
   predicted_mag_readings /= predicted_mag_readings.norm();
   
   // Predicted static pressure measurements
