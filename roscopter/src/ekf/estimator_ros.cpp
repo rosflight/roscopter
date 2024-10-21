@@ -106,6 +106,7 @@ void EstimatorROS::update()
     output.p = output.q = output.r = 0;
     output.Vg = 0;
     output.bx = output.by = output.bz = 0;
+    output.inclination = 0;
   }
 
   input_.gps_new = false;

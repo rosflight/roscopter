@@ -265,7 +265,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
 
   float declination = input(0);
 
-  float inclination = -xhat_(12);
+  float inclination = xhat_(12);
 
   Eigen::Matrix<float, 3, 4> R_theta_mag_jac = del_R_Theta_inc_y_mag_del_Theta(Theta, inclination, declination);
 
@@ -533,6 +533,8 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
         case 5:
           xhat_(5) = input.gps_vd;
           break;
+        case 12:
+          xhat_(12) = radians(inclination_);
         default:
           xhat_(prob_index) = 0.0;
           break;
