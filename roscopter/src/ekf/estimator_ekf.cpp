@@ -105,7 +105,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::partial_measurement_u
 {
 
   // See Partial-Update Schmidt-Kalman Filter, Kevin Brink, 2017 Journal of Guidance, Control and Dynamics.
-  // Specifcially Equations 37-38
+  // Specifcially Equations 68-69, the algorithm described in Section V subsection B.
   
   Eigen::VectorXf h = measurement_model(x, inputs);
   Eigen::MatrixXf C = measurement_jacobian(x, inputs);
