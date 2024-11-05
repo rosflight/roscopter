@@ -134,9 +134,11 @@ void EstimatorContinuousDiscrete::fast_measurement_update_step(const Input& inpu
 
   Eigen::Vector<float, 1> mag_info;
   mag_info << radians(declination_);
-  std::tie(P_, xhat_) = measurement_update(xhat_, mag_info, multirotor_fast_measurement_model,
-                                           y_fast, multirotor_fast_measurement_jacobian_model,
-                                           R_fast, P_);
+
+  Eigen::Vector<float, 13> gammas;
+  gammas << 0,0,0,0,0,0,0.95,0.95,0.0,0,0,0,0;
+  
+  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_fast_measurement_model, y_fast, multirotor_fast_measurement_jacobian_model, R_fast, P_, gammas);
 
   new_baro_ = false;
 }
@@ -669,7 +671,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_ve_gps", .01);
   params_.declare_double("sigma_vd_gps", .01);
   params_.declare_double("sigma_static_press", 1.0);
-  params_.declare_double("sigma_mag", 1.0); 
+  params_.declare_double("sigma_mag", 0.4); // 0.5 works very well.
   params_.declare_double("sigma_accel", .0025 * 9.81);
 
   // Low pass filter parameters
@@ -686,8 +688,8 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("alt_process_noise", 0.001);
   params_.declare_double("vel_horizontal_process_noise", 0.0001); 
   params_.declare_double("vel_vertical_process_noise", 0.00001);
-  params_.declare_double("bias_process_noise", 0.00001);
-  params_.declare_double("inclination_process_noise", 0.000000001);
+  params_.declare_double("bias_process_noise", 0.01);
+  params_.declare_double("inclination_process_noise", 0.001);
   
   // Initial covariances
   params_.declare_double("pos_n_initial_cov", 100.);
