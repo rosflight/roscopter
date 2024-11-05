@@ -50,6 +50,15 @@ protected:
                                                                          Eigen::VectorXf measurement_jacobian,
                                                                          Eigen::VectorXf x,
                                                                          Eigen::MatrixXf P);
+  
+  std::tuple<Eigen::MatrixXf, Eigen::VectorXf> partial_measurement_update(Eigen::VectorXf x,
+                                                                  Eigen::VectorXf inputs,
+                                                                  MeasurementModelFuncRef measurement_model,
+                                                                  Eigen::VectorXf y,
+                                                                  JacobianFuncRef measurement_jacobian,
+                                                                  Eigen::MatrixXf R,
+                                                                  Eigen::MatrixXf P,
+                                                                  Eigen::VectorXf gammas);
 
 private:
   virtual void estimate(const Input & input, Output & output) override = 0;

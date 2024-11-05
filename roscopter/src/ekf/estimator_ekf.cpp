@@ -94,4 +94,46 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::single_measurement_up
   return result;
 }
 
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::partial_measurement_update(Eigen::VectorXf x,
+                                                                Eigen::VectorXf inputs,
+                                                                MeasurementModelFuncRef measurement_model,
+                                                                Eigen::VectorXf y,
+                                                                JacobianFuncRef measurement_jacobian,
+                                                                Eigen::MatrixXf R,
+                                                                Eigen::MatrixXf P,
+                                                                Eigen::VectorXf gammas)
+{
+
+  // See Partial-Update Schmidt-Kalman Filter, Kevin Brink, 2017 Journal of Guidance, Control and Dynamics.
+  // Specifcially Equations 37-38
+  
+  Eigen::VectorXf h = measurement_model(x, inputs);
+  Eigen::MatrixXf C = measurement_jacobian(x, inputs);
+  
+  // Find the S_inv to find the Kalman gain.
+  Eigen::MatrixXf S_inv = (R + C * P * C.transpose()).inverse();
+  // Find the Kalman gain.
+  Eigen::MatrixXf L = P * C.transpose() * S_inv;
+  // Use a temp to increase readablility.
+  Eigen::MatrixXf temp = Eigen::MatrixXf::Identity(x.size(), x.size()) - L * C;
+  
+  // Adjust the covariance with new information.
+  auto P_update = temp * P * temp.transpose() + L * R * L.transpose();
+  // Use Kalman gain to optimally adjust estimate.
+  auto x_update = x + L * (y - h);
+
+  Eigen::VectorXf ones = Eigen::VectorXf::Ones(x.size());
+
+  x = (gammas.array()*x.array()).matrix() + ((ones - gammas).array()*x_update.array()).matrix();
+
+  auto gamma_outer_product = gammas*gammas.transpose();
+  Eigen::MatrixXf ones_matrix = Eigen::MatrixXf::Constant(x.size(), x.size(), 1);
+  
+  P = (gamma_outer_product.array() * P.array()).matrix() + ((ones_matrix-gamma_outer_product).array()*P_update.array()).matrix();
+
+  std::tuple<Eigen::MatrixXf, Eigen::VectorXf> result(P, x);
+  
+  return result;
+}
+
 } // end nampspace.
