@@ -12,27 +12,24 @@ EstimatorEKF::EstimatorEKF() : EstimatorROS()
   params_.declare_int("num_propagation_steps", 1);
   params_.set_parameters();
 }
-  
-std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Eigen::VectorXf x,
-                                                                Eigen::VectorXf inputs,
-                                                                MeasurementModelFuncRef measurement_model,
-                                                                Eigen::VectorXf y,
-                                                                JacobianFuncRef measurement_jacobian,
-                                                                Eigen::MatrixXf R,
-                                                                Eigen::MatrixXf P)
+
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::kalman_update(Eigen::VectorXf x, // TODO: make x and P const.
+                                                                         Eigen::VectorXf h,
+                                                                         Eigen::VectorXf y,
+                                                                         Eigen::MatrixXf C,
+                                                                         Eigen::MatrixXf R,
+                                                                         Eigen::MatrixXf S,
+                                                                         Eigen::MatrixXf P)
+
 {
-  
-  Eigen::VectorXf h = measurement_model(x, inputs);
-  Eigen::MatrixXf C = measurement_jacobian(x, inputs);
-  
-  // Find the S_inv to find the Kalman gain.
-  Eigen::MatrixXf S_inv = (R + C * P * C.transpose()).inverse();
   // Find the Kalman gain.
-  Eigen::MatrixXf L = P * C.transpose() * S_inv;
+  Eigen::MatrixXf L = P * C.transpose() * S.inverse();
   // Use a temp to increase readablility.
   Eigen::MatrixXf temp = Eigen::MatrixXf::Identity(x.size(), x.size()) - L * C;
   
   // Adjust the covariance with new information.
+  // This uses Joseph's Stabilized form of the covariance update.
+  // This is numerically stable and results in P always being positive definite.
   P = temp * P * temp.transpose() + L * R * L.transpose();
   // Use Kalman gain to optimally adjust estimate.
   x = x + L * (y - h);
@@ -40,6 +37,25 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Ei
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> result(P, x);
   
   return result;
+}
+  
+std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Eigen::VectorXf x,
+                                                                Eigen::VectorXf inputs,
+                                                                MeasurementModelFuncRef measurement_model,
+                                                                Eigen::VectorXf y,
+                                                                JacobianFuncRef measurement_jacobian,
+                                                                SensorNoiseFuncRef sensor_noise_model,
+                                                                Eigen::MatrixXf P)
+{
+  
+  Eigen::VectorXf h = measurement_model(x, inputs);
+  Eigen::MatrixXf C = measurement_jacobian(x, inputs);
+  Eigen::MatrixXf R = sensor_noise_model();
+  
+  // Find the innovation covariance and it's inverse to find the Kalman gain.
+  Eigen::MatrixXf S = (R + C * P * C.transpose());
+  
+  return kalman_update(x, h, y, C, R, S, P);
 }
 
 std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::propagate_model(Eigen::VectorXf x,
@@ -99,7 +115,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::partial_measurement_u
                                                                 MeasurementModelFuncRef measurement_model,
                                                                 Eigen::VectorXf y,
                                                                 JacobianFuncRef measurement_jacobian,
-                                                                Eigen::MatrixXf R,
+                                                                SensorNoiseFuncRef sensor_noise_model,
                                                                 Eigen::MatrixXf P,
                                                                 Eigen::VectorXf gammas)
 {
@@ -109,18 +125,15 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::partial_measurement_u
   
   Eigen::VectorXf h = measurement_model(x, inputs);
   Eigen::MatrixXf C = measurement_jacobian(x, inputs);
+  Eigen::MatrixXf R = sensor_noise_model();
   
   // Find the S_inv to find the Kalman gain.
-  Eigen::MatrixXf S_inv = (R + C * P * C.transpose()).inverse();
-  // Find the Kalman gain.
-  Eigen::MatrixXf L = P * C.transpose() * S_inv;
-  // Use a temp to increase readablility.
-  Eigen::MatrixXf temp = Eigen::MatrixXf::Identity(x.size(), x.size()) - L * C;
+  Eigen::MatrixXf S = (R + C * P * C.transpose());
   
-  // Adjust the covariance with new information.
-  auto P_update = temp * P * temp.transpose() + L * R * L.transpose();
-  // Use Kalman gain to optimally adjust estimate.
-  auto x_update = x + L * (y - h);
+  Eigen::MatrixXf P_update;
+  Eigen::VectorXf x_update;
+
+  std::tie(P_update, x_update) = kalman_update(x, h, y, C, R, S, P);
 
   Eigen::VectorXf ones = Eigen::VectorXf::Ones(x.size());
 

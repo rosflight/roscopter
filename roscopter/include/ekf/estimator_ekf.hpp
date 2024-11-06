@@ -14,6 +14,7 @@
 using DynamicModelFuncRef = std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)>;
 using MeasurementModelFuncRef = std::function<Eigen::VectorXf(const Eigen::VectorXf, const Eigen::VectorXf)>;
 using JacobianFuncRef = std::function<Eigen::MatrixXf(const Eigen::VectorXf, const Eigen::VectorXf)>;
+using SensorNoiseFuncRef = std::function<Eigen::MatrixXf()>;
 
 // TODO: make sure this does not allocate mem on the heap.
 
@@ -26,13 +27,30 @@ public:
   EstimatorEKF();
 
 protected:
+
+  std::tuple<Eigen::MatrixXf, Eigen::VectorXf> kalman_update(Eigen::VectorXf x,
+                                                             Eigen::VectorXf h,
+                                                             Eigen::VectorXf y,
+                                                             Eigen::MatrixXf C,
+                                                             Eigen::MatrixXf R,
+                                                             Eigen::MatrixXf S,
+                                                             Eigen::MatrixXf P);
+
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> measurement_update(Eigen::VectorXf x,
                                                                   Eigen::VectorXf inputs,
                                                                   MeasurementModelFuncRef measurement_model,
                                                                   Eigen::VectorXf y,
                                                                   JacobianFuncRef measurement_jacobian,
-                                                                  Eigen::MatrixXf R,
+                                                                  SensorNoiseFuncRef sensor_noise_model,
                                                                   Eigen::MatrixXf P);
+  
+  std::tuple<Eigen::MatrixXf, Eigen::VectorXf> calculate_measurement_update(Eigen::VectorXf x,
+                                                                            Eigen::VectorXf inputs,
+                                                                            Eigen::MatrixXf h,
+                                                                            Eigen::VectorXf y,
+                                                                            Eigen::MatrixXf C,
+                                                                            Eigen::MatrixXf R,
+                                                                            Eigen::MatrixXf P);
 
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> propagate_model(Eigen::VectorXf x,
                                                                DynamicModelFuncRef dynamic_model,
@@ -52,13 +70,13 @@ protected:
                                                                          Eigen::MatrixXf P);
   
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> partial_measurement_update(Eigen::VectorXf x,
-                                                                  Eigen::VectorXf inputs,
-                                                                  MeasurementModelFuncRef measurement_model,
-                                                                  Eigen::VectorXf y,
-                                                                  JacobianFuncRef measurement_jacobian,
-                                                                  Eigen::MatrixXf R,
-                                                                  Eigen::MatrixXf P,
-                                                                  Eigen::VectorXf gammas);
+                                                                        Eigen::VectorXf inputs,
+                                                                        MeasurementModelFuncRef measurement_model,
+                                                                        Eigen::VectorXf y,
+                                                                        JacobianFuncRef measurement_jacobian,
+                                                                        SensorNoiseFuncRef sensor_noise_model,
+                                                                        Eigen::MatrixXf P,
+                                                                        Eigen::VectorXf gammas);
 
 private:
   virtual void estimate(const Input & input, Output & output) override = 0;

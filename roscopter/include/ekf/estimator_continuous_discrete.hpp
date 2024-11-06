@@ -116,6 +116,11 @@ private:
    */
   JacobianFuncRef multirotor_measurement_jacobian_model;
   
+  // TODO: Fill in DOXYGEN
+  Eigen::MatrixXf multirotor_measurement_sensor_noise();
+  
+  SensorNoiseFuncRef multirotor_measurement_sensor_noise_model;
+  
   /**
    * @brief Calculates measurement prediction for the fast sensors.
    *
@@ -142,6 +147,11 @@ private:
    * when passing into a function.
    */
   JacobianFuncRef multirotor_fast_measurement_jacobian_model;
+  
+  // TODO: Fill in DOXYGEN
+  Eigen::MatrixXf multirotor_fast_measurement_sensor_noise();
+  
+  SensorNoiseFuncRef multirotor_fast_measurement_sensor_noise_model;
 
   /**
    * @brief The state of the system.
