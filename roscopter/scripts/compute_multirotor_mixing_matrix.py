@@ -5,8 +5,7 @@ import os
 import yaml
 import io
 
-
-def compute_mixing_matrix(file:dict) -> dict[str:float]:
+def compute_mixing_matrix(file:dict, output_mixer_type:str) -> dict[str:float]:
     # Extract the data from the file
     num_motors = file['num_motors']
     motor_positions = file['motor_positions']
@@ -40,12 +39,39 @@ def compute_mixing_matrix(file:dict) -> dict[str:float]:
     output = {}
     for i in range(mixing_matrix_inverted.shape[0]):
         for j in range(mixing_matrix_inverted.shape[1]):
-            output['PRI_MIXER_' + str(j) + '_' + str(i)] = float(np.round(mixing_matrix_inverted[i,j], 4))
+            output[output_mixer_type + '_MIXER_' + str(j) + '_' + str(i)] = float(np.round(mixing_matrix_inverted[i,j], 4))
 
     return output, num_motors
 
+def format_matrix(output:dict, num_motors:int) -> dict:
+    output_formatted = {'root': []}
+    for key, val in output.items():
+        param_entry = {'name': key, 'type': 9, 'value': val}
+        output_formatted['root'].append(param_entry)
 
-def main(param_file:str, output_file:str) -> int:
+    return output_formatted
+
+def format_header(output_formatted:dict, num_motors:int) -> dict:
+    # Format the header values for the mixer
+    # Used in the firmware to determine output type and default PWM frequency
+    for i in range(num_motors):     # The number of mixer outputs in rosflight firmware
+        param_entry = {'name': 'PRI_MIXER_OUT_' + str(i), 'type': 6, 'value': 2}
+        output_formatted['root'].append(param_entry)
+
+        param_entry = {'name': 'PRI_MIXER_PWM_' + str(i), 'type': 9, 'value': 490.0}
+        output_formatted['root'].append(param_entry)
+
+    for i in range(num_motors, 10):     # The number of mixer outputs in rosflight firmware
+        param_entry = {'name': 'PRI_MIXER_OUT_' + str(i), 'type': 6, 'value': 0}    # There is no header for the secondary mixer
+        output_formatted['root'].append(param_entry)
+
+        param_entry = {'name': 'PRI_MIXER_PWM_' + str(i), 'type': 9, 'value': 490.0}
+        output_formatted['root'].append(param_entry)
+
+    return output_formatted
+
+
+def main(param_file:str, output_file:str, output_mixer_type:str, append_output:bool) -> int:
     if param_file == None:
         print('Error! Please specify name of parameter file. Run with \'-h\' for more information.')
         return -1
@@ -59,38 +85,29 @@ def main(param_file:str, output_file:str) -> int:
             return -1
 
     print('Computing mixing matrix and inverse...')
-    output, num_motors = compute_mixing_matrix(file)
+    output, num_motors = compute_mixing_matrix(file, output_mixer_type)
 
     # Format the output from the mixer for the ROSflight_io node
-    output_formatted = {'root': []}
-    for key, val in output.items():
-        param_entry = {'name': key, 'type': 9, 'value': val}
-        output_formatted['root'].append(param_entry)
-
-    # Format the header values for the mixer
-    # Used in the firmware to determine output type and default PWM frequency
-    for i in range(num_motors):     # The number of mixer outputs in rosflight firmware
-        param_entry = {'name': 'PRIM_MIXER_OUT_' + str(i), 'type': 6, 'value': 2}
-        output_formatted['root'].append(param_entry)
-
-        param_entry = {'name': 'PRIM_MIXER_PWM_' + str(i), 'type': 9, 'value': 490.0}
-        output_formatted['root'].append(param_entry)
-
-    for i in range(num_motors, 10):     # The number of mixer outputs in rosflight firmware
-        param_entry = {'name': 'PRIM_MIXER_OUT_' + str(i), 'type': 6, 'value': 0}
-        output_formatted['root'].append(param_entry)
-
-        param_entry = {'name': 'PRIM_MIXER_PWM_' + str(i), 'type': 9, 'value': 490.0}
-        output_formatted['root'].append(param_entry)
+    output_formatted = format_matrix(output, num_motors)
+    
+    # Format the header if computing the secondary matrix
+    if output_mixer_type == 'PRI':
+        output_formatted = format_header(output_formatted, num_motors)
 
     # Write the output file
-    with open(output_file, 'w') as ostream:
+    if append_output:
+        file_action = 'a'
+    else:
+        file_action = 'w'
+        
+    with open(output_file, file_action) as ostream:
         try:
-            yaml.dump(output_formatted['root'], ostream, default_flow_style=False)
+            yaml.safe_dump(output_formatted['root'], ostream, default_flow_style=False)
         except yaml.YAMLError as e:
             print('Failure while writing YAML file!')
             print(e)
             return -1
+
 
     print(f'Write to file complete. File location: {output_file}')
     return 0
@@ -99,7 +116,14 @@ if __name__=='__main__':
     parser = argparse.ArgumentParser(description='Script to compute and save mixing matrix parameters')
     parser.add_argument('-f', '--param-file', type=str, default=None, help='Location of the frame configuration file. Required')
     parser.add_argument('-o', '--output-file', type=str, default=os.path.join(os.getcwd(), 'mixing_params.yaml'), help='Location to save output mixing parameters. Defaults to current working directory')
+    parser.add_argument('-t', '--output-mixer-type', type=str, default='PRI', choices=['PRI', 'SEC'], help='Whether to compute the primary or secondary matrix parameters. Defaults to primary.')
+    parser.add_argument('-a', '--append-output', action='store_true', help='Whether to append the computed string to the file instead of overwriting. Defaults to true.')
 
     args = vars(parser.parse_args())
+
+    print('\nScript arguments:')
+    for key, val in args.items():
+        print(key + ':', val)
+    print('\n')
 
     main(**args)
