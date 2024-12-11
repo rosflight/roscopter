@@ -117,7 +117,7 @@ if __name__=='__main__':
     parser.add_argument('-f', '--param-file', type=str, default=None, help='Location of the frame configuration file. Required')
     parser.add_argument('-o', '--output-file', type=str, default=os.path.join(os.getcwd(), 'mixing_params.yaml'), help='Location to save output mixing parameters. Defaults to current working directory')
     parser.add_argument('-t', '--output-mixer-type', type=str, default='PRI', choices=['PRI', 'SEC'], help='Whether to compute the primary or secondary matrix parameters. Defaults to primary.')
-    parser.add_argument('-a', '--append-output', action='store_true', help='Whether to append the computed string to the file instead of overwriting. Defaults to true.')
+    parser.add_argument('-a', '--append-output', default=False, action='store_true', help='Whether to append the computed string to the file instead of overwriting')
 
     args = vars(parser.parse_args())
 
