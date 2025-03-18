@@ -251,8 +251,11 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eig
   Eigen::Matrix<float, 13, 6> G = Eigen::Matrix<float, 13, 6>::Zero();
   
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
+  Eigen::Vector3f vels = state.block<3,1>(3,0);
   
-  G.block<3,3>(3,0) = -R(Theta); // TODO: Change this to the correct Jacobian in equation on page 182 of the UAVbook
+  G.block<3,3>(3,0) = -Eigen::Matrix3f::Identity();
+
+  G.block<3,3>(3,3) = -skew_matrix(vels);
   G.block<3,3>(6,3) = -S(Theta);
 
   return G;
