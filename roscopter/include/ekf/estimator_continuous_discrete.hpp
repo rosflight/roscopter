@@ -118,6 +118,12 @@ private:
   
   // TODO: Fill in DOXYGEN
   Eigen::MatrixXf multirotor_measurement_sensor_noise();
+
+  Eigen::Matrix<float, 3,3> del_R_Theta_T_g_del_Theta(const Eigen::Vector3f& Theta, const double& gravity);
+
+  Eigen::Matrix<float, 3,3> del_R_Theta_v_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& vels);
+
+  double gravity_ = 9.81;
   
   SensorNoiseFuncRef multirotor_measurement_sensor_noise_model;
   
