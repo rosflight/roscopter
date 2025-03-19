@@ -69,7 +69,6 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
 // ======== MAIN ESTIMATION LOOP ========
 void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 {
-
   prediction_step(input);
 
   // Measurement updates.
@@ -120,10 +119,6 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
   std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model,
                                         imu_measurements, multirotor_input_jacobian_model, P_, Q_,
                                         Q_g_, Ts);
-
-  xhat_(9) = 0.0;
-  xhat_(10) = 0.0;
-  xhat_(10) = 0.0;
   
   // Wrap RPY estimates.
   xhat_(6) = wrap_within_180(0.0, xhat_(6));
@@ -782,31 +777,31 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("lpf_a1", 8.0);
   
   // Proccess noises
-  params_.declare_double("roll_process_noise", 0.0000000001);
-  params_.declare_double("pitch_process_noise", 0.000000000001);
-  params_.declare_double("yaw_process_noise", 0.000000001);
+  params_.declare_double("roll_process_noise", 0.000001);
+  params_.declare_double("pitch_process_noise", 0.000001);
+  params_.declare_double("yaw_process_noise", 0.000001);
   params_.declare_double("gyro_process_noise", 0.13);
   params_.declare_double("accel_process_noise", 024525);
   params_.declare_double("pos_process_noise", 0.0000001);
   params_.declare_double("alt_process_noise", 0.001);
   params_.declare_double("vel_horizontal_process_noise", 0.0001); 
   params_.declare_double("vel_vertical_process_noise", 0.00001);
-  params_.declare_double("bias_process_noise", 0.01);
+  params_.declare_double("bias_process_noise", 0.001*0.001);
   params_.declare_double("inclination_process_noise", 0.001);
   
   // Initial covariances
   params_.declare_double("pos_n_initial_cov", 100.);
   params_.declare_double("pos_e_initial_cov", 100.);
   params_.declare_double("pos_d_initial_cov", 100.);
-  params_.declare_double("vn_initial_cov", 40.);
-  params_.declare_double("ve_initial_cov", 40.);
-  params_.declare_double("vd_initial_cov", 40.);
+  params_.declare_double("vn_initial_cov", 4.);
+  params_.declare_double("ve_initial_cov", 4.);
+  params_.declare_double("vd_initial_cov", 4.);
   params_.declare_double("phi_initial_cov", 0.005);
   params_.declare_double("theta_initial_cov", 0.005);
-  params_.declare_double("psi_initial_cov", 0.01);
-  params_.declare_double("bias_x_initial_cov", 0.01);
-  params_.declare_double("bias_y_initial_cov", 0.01);
-  params_.declare_double("bias_z_initial_cov", 0.01);
+  params_.declare_double("psi_initial_cov", 0.005);
+  params_.declare_double("bias_x_initial_cov", 0.0001);
+  params_.declare_double("bias_y_initial_cov", 0.0001);
+  params_.declare_double("bias_z_initial_cov", 0.0001);
   params_.declare_double("inclination_initial_cov", 0.0001);
   
   // Conversion flags
