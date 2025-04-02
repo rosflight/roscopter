@@ -538,8 +538,8 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
     double equilibrium_throttle = params.get_double("equilibrium_throttle");
     double mass = params.get_double("mass");
     double gravity = params.get_double("gravity");
-    max_f = mass * gravity / equilibrium_throttle * max_f;
-    min_f = mass * gravity / equilibrium_throttle * min_f;
+    min_f = -mass * gravity / equilibrium_throttle * max_f; // Negative since NED
+    max_f = -mass * gravity / equilibrium_throttle * min_f;
   }
   else if (input_cmd.mode == roscopter_msgs::msg::ControllerCommand::MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE) {
     output_cmd_.mode = rosflight_msgs::msg::Command::MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE;
@@ -567,6 +567,7 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
   output_cmd_.qx = saturate(input_cmd.cmd1, max_x, -max_x);
   output_cmd_.qy = saturate(input_cmd.cmd2, max_y, -max_y);
   output_cmd_.qz = saturate(input_cmd.cmd3, max_z, -max_z);
+  if (input_cmd.mode == roscopter_msgs::msg::ControllerCommand::MODE_PASS_THROUGH) { input_cmd.cmd4 *= -1; } // NED
   output_cmd_.fz = saturate(input_cmd.cmd4, max_f, min_f);
   output_cmd_.fx = 0.0;
   output_cmd_.fy = 0.0;

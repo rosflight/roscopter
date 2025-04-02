@@ -9,9 +9,9 @@
 #include "roscopter_msgs/msg/state.hpp"
 #include "roscopter_msgs/msg/waypoint.hpp"
 
-#define SCALE 5.0
-#define TEXT_SCALE 15.0
-#define PATH_PUBLISH_MOD 10
+#define SCALE 1.5
+#define TEXT_SCALE 5.0
+#define PATH_PUBLISH_MOD 1
 #define MAX_PATH_HISTORY 10000
 using std::placeholders::_1;
 
@@ -186,7 +186,7 @@ void RvizWaypointPublisher::update_list()
   line_list_.id = 0;
   line_list_.type = visualization_msgs::msg::Marker::LINE_STRIP;
   line_list_.action = visualization_msgs::msg::Marker::ADD;
-  line_list_.scale.x = 3.0;
+  line_list_.scale.x = 1.0;
   line_list_.color.r = 0.0f;
   line_list_.color.g = 1.0f;
   line_list_.color.b = 0.0f;
