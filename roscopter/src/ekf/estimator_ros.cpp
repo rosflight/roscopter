@@ -46,7 +46,7 @@ void EstimatorROS::declare_parameters()
 {
   params_.declare_double("estimator_update_frequency", 390.0);
   params_.declare_double("rho", 1.225);
-  params_.declare_double("gravity", 9.8);
+  params_.declare_double("gravity", 9.81);
   params_.declare_double("gps_ground_speed_threshold", 0.3);  // TODO: this is a magic number. What is it determined from?
   params_.declare_double("baro_measurement_gate", 1.35);  // TODO: this is a magic number. What is it determined from?
   params_.declare_double("airspeed_measurement_gate", 5.0);  // TODO: this is a magic number. What is it determined from?
@@ -92,7 +92,7 @@ EstimatorROS::parametersCallback(const std::vector<rclcpp::Parameter> & paramete
 
   return result;
 }
-
+  
 void EstimatorROS::update()
 {
   Output output;
@@ -138,6 +138,7 @@ void EstimatorROS::update()
 void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg)
 {
   int min_fix_type = params_.get_int("min_gnss_fix_type");
+
   // Convert msg to standard DDS and m/s.
   float msg_lat = msg->lat/1e7;
   float msg_lon = msg->lon/1e7;

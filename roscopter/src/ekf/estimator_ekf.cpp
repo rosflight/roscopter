@@ -38,7 +38,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::kalman_update(Eigen::
   
   return result;
 }
-  
+
 std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::measurement_update(Eigen::VectorXf x,
                                                                 Eigen::VectorXf inputs,
                                                                 MeasurementModelFuncRef measurement_model,
@@ -85,7 +85,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::propagate_model(Eigen
       + pow(Ts / N, 2) / 2.0 * A * A;
 
     Eigen::MatrixXf G = input_jacobian(x, inputs);
-
+    
     // Propagate the covariance.
     P = A_d * P * A_d.transpose() + (Q + G * Q_g * G.transpose()) * pow(Ts / N, 2);
     

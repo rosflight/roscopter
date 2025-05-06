@@ -84,9 +84,9 @@ private:
 
     Eigen::Vector3f inertial_frame_velocity = Rb_i * body_frame_velocity;
 
-    state.v_n = inertial_frame_velocity(0);
-    state.v_e = inertial_frame_velocity(1);
-    state.v_d = inertial_frame_velocity(2);
+    state.v_n = body_frame_velocity(0);
+    state.v_e = body_frame_velocity(1);
+    state.v_d = body_frame_velocity(2);
 
     state.vg = std::sqrt(pow(inertial_frame_velocity(0), 2)
 		       + pow(inertial_frame_velocity(1), 2)
