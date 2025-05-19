@@ -58,6 +58,8 @@ private:
     q.y() = msg.pose.pose.orientation.y;
     q.z() = msg.pose.pose.orientation.z;
 
+    state.inclination = 0.0;
+
     Eigen::Vector3f euler;
     euler(0) = atan2(2.0 * (q.w() * q.x() + q.y() * q.z()),
                      pow(q.w(), 2) + pow(q.z(), 2) - pow(q.x(), 2) - pow(q.y(), 2));
@@ -82,9 +84,9 @@ private:
 
     Eigen::Vector3f inertial_frame_velocity = Rb_i * body_frame_velocity;
 
-    state.v_n = inertial_frame_velocity(0);
-    state.v_e = inertial_frame_velocity(1);
-    state.v_d = inertial_frame_velocity(2);
+    state.v_n = body_frame_velocity(0);
+    state.v_e = body_frame_velocity(1);
+    state.v_d = body_frame_velocity(2);
 
     state.vg = std::sqrt(pow(inertial_frame_velocity(0), 2)
 		       + pow(inertial_frame_velocity(1), 2)

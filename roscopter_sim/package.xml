@@ -33,6 +33,7 @@
   <depend>roscpp</depend>
   <depend>std_srvs</depend>
   <depend>rosflight_msgs</depend>
+  <depend>roscopter_msgs</depend>
   <depend>rosflight_utils</depend>
   <depend>nav_msgs</depend>
   <depend>std_msgs</depend>

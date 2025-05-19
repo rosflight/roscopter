@@ -1,7 +1,7 @@
 /**
  * @file param_manager.hpp
  * 
- * Manager for the parameters in ROSflight. Includes helper functions to set and get parameters
+ * Manager for the parameters in ROSplane. Includes helper functions to set and get parameters
  * 
  * @author Jacob Moore <jacobmoor2@gmail.com>
 */
