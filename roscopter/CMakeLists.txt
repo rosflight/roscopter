@@ -56,10 +56,9 @@ ament_export_dependencies(rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs na
 
 add_definitions(-DROSCOPTER_DIR="${CMAKE_CURRENT_LIST_DIR}")
 
-# Included from ROSPlane
 install(
   DIRECTORY launch params 
-  DESTINATION share/${PROJECT_NAME}/)
+  DESTINATION share/${PROJECT_NAME})
 
 ###########
 ## Build ##
