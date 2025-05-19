@@ -63,7 +63,7 @@ protected:
                                                                float Ts);          
 
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> single_measurement_update(float measurement,
-                                                                         float mesurement_prediction,
+                                                                         float measurement_prediction,
                                                                          float measurement_uncertainty,
                                                                          Eigen::VectorXf measurement_jacobian,
                                                                          Eigen::VectorXf x,
