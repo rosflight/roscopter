@@ -11,7 +11,7 @@ EstimatorROS::EstimatorROS()
 {
   vehicle_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("estimated_state", 10);
 
-  gnss_sub_ = this->create_subscription<rosflight_msgs::msg::GNSSFull>(
+  gnss_sub_ = this->create_subscription<rosflight_msgs::msg::GNSS>(
     gnss_fix_topic_, 10, std::bind(&EstimatorROS::gnssCallback, this, std::placeholders::_1));
   imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
     imu_topic_, 10, std::bind(&EstimatorROS::imuCallback, this, std::placeholders::_1));
@@ -135,14 +135,14 @@ void EstimatorROS::update()
   vehicle_state_pub_->publish(msg);
 }
 
-void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg)
+void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
 {
   int min_fix_type = params_.get_int("min_gnss_fix_type");
 
   // Convert msg to standard DDS and m/s.
   float msg_lat = msg->lat/1e7;
   float msg_lon = msg->lon/1e7;
-  float msg_height = msg->height/1e3;
+  float msg_height = msg->alt/1e3;
   
   float msg_vel_n = msg->vel_n/1e3;
   float msg_vel_e = msg->vel_e/1e3;
@@ -166,9 +166,14 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr m
     input_.gps_lat = msg_lat;
     input_.gps_lon = msg_lon;
     input_.gps_alt = msg_height;
-    input_.gps_year = msg->year;
-    input_.gps_month = msg->month;
-    input_.gps_day = msg->day;
+
+    // Convert UTC time into broken down format
+    std::time_t time = msg->header.stamp.sec;
+    const std::tm *broken_down_time = std::localtime(&time);
+    input_.gps_year = broken_down_time->tm_year + 1900;
+    input_.gps_month = broken_down_time->tm_mon;
+    input_.gps_day = broken_down_time->tm_mday;
+
     input_.gps_n = EARTH_RADIUS * (msg_lat - init_lat_) * M_PI / 180.0;
     input_.gps_e =
       EARTH_RADIUS * cos(init_lat_ * M_PI / 180.0) * (msg_lon - init_lon_) * M_PI / 180.0;

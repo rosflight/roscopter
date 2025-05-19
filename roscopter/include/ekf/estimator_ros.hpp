@@ -18,7 +18,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rosflight_msgs/msg/barometer.hpp>
 #include <rosflight_msgs/msg/status.hpp>
-#include <rosflight_msgs/msg/gnss_full.hpp>
+#include <rosflight_msgs/msg/gnss.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <sensor_msgs/msg/imu.hpp>
@@ -109,7 +109,7 @@ protected:
   float init_static_;                     /**< Initial static pressure (mbar)  */
 private:
   rclcpp::Publisher<roscopter_msgs::msg::State>::SharedPtr vehicle_state_pub_;
-  rclcpp::Subscription<rosflight_msgs::msg::GNSSFull>::SharedPtr gnss_sub_;
+  rclcpp::Subscription<rosflight_msgs::msg::GNSS>::SharedPtr gnss_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
@@ -118,7 +118,7 @@ private:
   std::string param_filepath_ = "estimator_params.yaml";
 
   void update();
-  void gnssCallback(const rosflight_msgs::msg::GNSSFull::SharedPtr msg);
+  void gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg);
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
   void baroAltCallback(const rosflight_msgs::msg::Barometer::SharedPtr msg);
   void update_barometer_calibration(const rosflight_msgs::msg::Barometer::SharedPtr msg);
@@ -135,7 +135,7 @@ private:
   rclcpp::TimerBase::SharedPtr update_timer_;
   std::chrono::microseconds update_period_;
   bool params_initialized_;
-  std::string gnss_fix_topic_ = "gnss_full";
+  std::string gnss_fix_topic_ = "gnss";
   std::string imu_topic_ = "imu/data";
   std::string baro_topic_ = "baro";
   std::string status_topic_ = "status";

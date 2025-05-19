@@ -146,7 +146,7 @@ void EstimatorContinuousDiscrete::fast_measurement_update_step(const Input& inpu
   Eigen::Vector<float, 4> y_fast;
   y_fast << lpf_static_, mag_readings/mag_readings.norm();
 
-  Eigen::Vector<float, 1> mag_info;
+  Eigen::Vector<float, 2> mag_info;
   mag_info << radians(declination_), radians(inclination_);
 
   Eigen::Vector<float, 12> gammas = Eigen::Vector<float, 12>::Zero();
@@ -286,14 +286,6 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_predict
 
   // Predicted magnetometer measurement in each body axis.
   h.block<3,1>(1,0) = predicted_mag_readings;
-
-  auto predicted_mag_msg = sensor_msgs::msg::MagneticField();
-  predicted_mag_msg.header.stamp = this->get_clock()->now();
-  predicted_mag_msg.magnetic_field.x = predicted_mag_readings(0);
-  predicted_mag_msg.magnetic_field.y = predicted_mag_readings(1);
-  predicted_mag_msg.magnetic_field.z = predicted_mag_readings(2);
-
-  predicted_mag_pub_->publish(predicted_mag_msg);
 
   return h;
 }
@@ -595,6 +587,7 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input) 
   // Take the current year and then add a decimal for the current day. USE GPS TIME.
   // This is a rough interpolation for speed. This will be accurate +- 1 day which is a time decimal change of ~0.0027
   // therefore this method isn't completely accurate. Other sources of error will be much larger.
+  // TODO: Change the gps day to pull out yday instead of the month and day
   float decimal_month = input.gps_month + input.gps_day/31.0;
   float decimal_year = input.gps_year + decimal_month/12.0;
   
