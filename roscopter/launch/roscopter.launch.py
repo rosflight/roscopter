@@ -8,11 +8,6 @@ def generate_launch_description():
     roscopter_dir = get_package_share_directory('roscopter')
 
     param_file = os.path.join(roscopter_dir, 'params', 'multirotor.yaml')
-    controller_type = 'default'
-
-    for arg in sys.argv:
-        if arg.startswith("controller:="):
-            controller_type = arg.split(':=')[1]
 
     return LaunchDescription([
         Node(
@@ -20,9 +15,8 @@ def generate_launch_description():
             executable='controller',
             name='autopilot',
             output='screen',
-            arguments=[controller_type],
             parameters=[param_file],
-            remappings=[('estimated_state', 'state')]
+            # remappings=[('estimated_state', 'state')]
         ),
         Node(
             package='roscopter',
@@ -30,7 +24,7 @@ def generate_launch_description():
             name='trajectory_follower',
             output='screen',
             parameters=[param_file],
-            remappings=[('estimated_state', 'state')]
+            # remappings=[('estimated_state', 'state')]
         ),
         # Node(
         #     package='roscopter',
@@ -42,13 +36,13 @@ def generate_launch_description():
             executable='path_manager',
             name='path_manager',
             output='screen',
-            remappings=[('estimated_state', 'state')]
+            # remappings=[('estimated_state', 'state')]
         ),
         Node(
             package='roscopter',
             executable='path_planner',
             name='path_planner',
             output='screen',
-            remappings=[('estimated_state', 'state')]
+            # remappings=[('estimated_state', 'state')]
         ),
     ])
