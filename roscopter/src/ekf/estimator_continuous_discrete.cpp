@@ -287,14 +287,6 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_predict
   // Predicted magnetometer measurement in each body axis.
   h.block<3,1>(1,0) = predicted_mag_readings;
 
-  auto predicted_mag_msg = sensor_msgs::msg::MagneticField();
-  predicted_mag_msg.header.stamp = this->get_clock()->now();
-  predicted_mag_msg.magnetic_field.x = predicted_mag_readings(0);
-  predicted_mag_msg.magnetic_field.y = predicted_mag_readings(1);
-  predicted_mag_msg.magnetic_field.z = predicted_mag_readings(2);
-
-  predicted_mag_pub_->publish(predicted_mag_msg);
-
   return h;
 }
 
