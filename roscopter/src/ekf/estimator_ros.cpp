@@ -140,13 +140,13 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
   int min_fix_type = params_.get_int("min_gnss_fix_type");
 
   // Convert msg to standard DDS and m/s.
-  float msg_lat = msg->lat/1e7;
-  float msg_lon = msg->lon/1e7;
-  float msg_height = msg->alt/1e3;
+  float msg_lat = msg->lat;
+  float msg_lon = msg->lon;
+  float msg_height = msg->alt;
   
-  float msg_vel_n = msg->vel_n/1e3;
-  float msg_vel_e = msg->vel_e/1e3;
-  float msg_vel_d = msg->vel_d/1e3;
+  float msg_vel_n = msg->vel_n;
+  float msg_vel_e = msg->vel_e;
+  float msg_vel_d = msg->vel_d;
 
   has_fix_ = msg->fix_type >= min_fix_type; 
   
