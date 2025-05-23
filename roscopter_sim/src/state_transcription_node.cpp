@@ -76,14 +76,10 @@ private:
 
     // Inertial linear velocities in body frame
     Eigen::Vector3f body_frame_velocity(msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z);
-
-    // Rotate the velocity vector from the body frame to the inertial frame.
-    Eigen::Vector3f inertial_frame_velocity = q * body_frame_velocity;
-
-    state.v_n = inertial_frame_velocity(0);
-    state.v_e = inertial_frame_velocity(1);
-    state.v_d = inertial_frame_velocity(2);
-    state.vg = inertial_frame_velocity.norm();
+    state.v_n = body_frame_velocity[0];
+    state.v_e = body_frame_velocity[1];
+    state.v_d = body_frame_velocity[2];
+    state.vg = body_frame_velocity.norm();
 
     // Angular velocities in body frame
     state.p = msg.twist.angular.x;

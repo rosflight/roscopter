@@ -90,27 +90,38 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
-set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
+
+### EXECUTABLES ###
+
 # Estimator
-add_executable(roscopter_estimator
+set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
+add_executable(estimator
               src/ekf/estimator_node.cpp
               src/ekf/estimator_ros.cpp
               src/ekf/estimator_ekf.cpp
               src/ekf/estimator_continuous_discrete.cpp
               src/utils/geomag.c)
-target_link_libraries(roscopter_estimator
+target_link_libraries(estimator
   ${YAML_CPP_LIBRARIES}
 )
-ament_target_dependencies(roscopter_estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3)
-target_link_libraries(roscopter_estimator param_manager)
-target_include_directories(roscopter_estimator PUBLIC include)
+ament_target_dependencies(estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3)
+target_link_libraries(estimator param_manager)
+target_include_directories(estimator PUBLIC include)
 install(TARGETS
-  roscopter_estimator
+  estimator
   DESTINATION lib/${PROJECT_NAME})
 
-add_library(estimator_lib src/ekf/estimator_node.cpp src/ekf/estimator_ros.cpp src/ekf/estimator_ekf.cpp src/ekf/estimator_continuous_discrete.cpp src/utils/geomag.c include/ekf/estimator_ros.hpp include/ekf/estimator_ekf.hpp include/ekf/estimator_continuous_discrete.hpp)
-target_link_libraries(roscopter_estimator estimator_lib)
+add_library(estimator_lib
+  src/ekf/estimator_node.cpp
+  src/ekf/estimator_ros.cpp
+  src/ekf/estimator_ekf.cpp
+  src/ekf/estimator_continuous_discrete.cpp
+  src/utils/geomag.c
+  include/ekf/estimator_ros.hpp
+  include/ekf/estimator_ekf.hpp
+  include/ekf/estimator_continuous_discrete.hpp)
 target_link_libraries(estimator_lib param_manager)
+target_link_libraries(estimator estimator_lib)
 ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
 
 # External attitude transcriber
@@ -120,8 +131,6 @@ ament_target_dependencies(ext_att_transcriber rclcpp roscopter_msgs rosflight_ms
 target_link_libraries(ext_att_transcriber ${ament_LIBRARIES})
 install(TARGETS ext_att_transcriber
   DESTINATION lib/${PROJECT_NAME})
-
-### EXECUTABLES ###
 
 # Controller
 add_executable(controller
@@ -164,8 +173,8 @@ target_link_libraries(path_planner ${ament_LIBRARIES} param_manager ${YAML_CPP_L
 install(
   TARGETS path_planner
   DESTINATION lib/${PROJECT_NAME})
-  
-  
+
+
 if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)

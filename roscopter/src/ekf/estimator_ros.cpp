@@ -131,7 +131,14 @@ void EstimatorROS::update()
   msg.by = output.by;
   msg.bz = output.bz;
   msg.inclination = output.inclination;
-  
+
+  // Fill in the quaternion
+  msg.quat[0] = output.quat.w();
+  msg.quat[1] = output.quat.x();
+  msg.quat[2] = output.quat.y();
+  msg.quat[3] = output.quat.z();
+  msg.quat_valid = true;
+
   vehicle_state_pub_->publish(msg);
 }
 

@@ -21,9 +21,9 @@
         yaw_rate_ki: 0.0
         yaw_rate_kd: 0.0
 
-        yaw_to_rate_kp: 2.0
-        yaw_to_rate_ki: 0.0
-        yaw_to_rate_kd: 0.2
+        yaw_to_rate_kp: 0.5 ###
+        yaw_to_rate_ki: 0.0 ###
+        yaw_to_rate_kd: 0.15 ###
 
         vel_n_P: 0.3
         vel_n_I: 0.01

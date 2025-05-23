@@ -22,7 +22,7 @@ def generate_launch_description():
     return LaunchDescription([
         base_launch_include,
         Node(
-            package='roscoper_sim',
+            package='roscopter_sim',
             executable='sim_state_transcriber',
             output='screen',
             name='roscopter_truth'
