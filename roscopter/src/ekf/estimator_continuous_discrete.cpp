@@ -278,7 +278,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_predict
   Eigen::Vector3f inertial_mag_readings = calculate_inertial_magnetic_field(declination, inclination);
 
   // Rotate the magnetometer readings into the body frame.
-  Eigen::Vector3f predicted_mag_readings = R(Theta)*inertial_mag_readings;
+  Eigen::Vector3f predicted_mag_readings = R(Theta).transpose()*inertial_mag_readings;
   predicted_mag_readings /= predicted_mag_readings.norm();
   
   // Predicted static pressure measurements
@@ -303,7 +303,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
 
   Eigen::Vector3f inertial_mag = calculate_inertial_magnetic_field(declination, inclination); 
 
-  Eigen::Matrix<float, 3, 3> R_theta_mag_jac = del_R_Theta_y_mag_del_Theta(Theta, inertial_mag);
+  Eigen::Matrix<float, 3, 3> R_theta_mag_jac = del_R_Theta_T_y_mag_del_Theta(Theta, inertial_mag);
 
   Eigen::MatrixXf C = Eigen::MatrixXf::Zero(4,12);
 
@@ -548,11 +548,28 @@ Eigen::Matrix<float, 3,4> EstimatorContinuousDiscrete::del_R_Theta_inc_y_mag_del
 
   Eigen::Matrix<float, 3, 4> R_theta_inc_mag_jac;
 
-R_theta_inc_mag_jac << -(sinf(psi) * cosf(declination + phi) - sinf(theta) * sinf(declination + phi) * cosf(psi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * cosf(psi),(sinf(psi) * sinf(theta) * cosf(declination + phi) - sinf(declination + phi) * cosf(psi)) * sinf(inclination) -sinf(psi) * cosf(inclination) * cosf(theta), -(sinf(psi) * sinf(declination + phi) + sinf(theta) * cosf(psi) * cosf(declination + phi)) * cosf(inclination) -sinf(inclination) * cosf(psi) * cosf(theta),
-(sinf(psi) * sinf(theta) * sinf(declination + phi) + cosf(psi) * cosf(declination + phi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * sinf(psi), -(sinf(psi) * sinf(declination + phi)  + sinf(theta) * cosf(psi) * cosf(declination + phi)) * sinf(inclination) +cosf(inclination) * cosf(psi) * cosf(theta),(- sinf(psi) * sinf(theta) * cosf(declination + phi) + sinf(declination + phi) * cosf(psi)) * cosf(inclination) -sinf(inclination) * sinf(psi) * cosf(theta),
-sinf(inclination) * sinf(declination + phi) * cosf(theta),sinf(inclination) * sinf(theta) * cosf(declination + phi) -cosf(inclination) * cosf(theta), 0,sinf(inclination) * sinf(theta) -cosf(inclination) * cosf (theta) * cosf(declination + phi);
+  R_theta_inc_mag_jac << -(sinf(psi) * cosf(declination + phi) - sinf(theta) * sinf(declination + phi) * cosf(psi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * cosf(psi),(sinf(psi) * sinf(theta) * cosf(declination + phi) - sinf(declination + phi) * cosf(psi)) * sinf(inclination) -sinf(psi) * cosf(inclination) * cosf(theta), -(sinf(psi) * sinf(declination + phi) + sinf(theta) * cosf(psi) * cosf(declination + phi)) * cosf(inclination) -sinf(inclination) * cosf(psi) * cosf(theta),
+  (sinf(psi) * sinf(theta) * sinf(declination + phi) + cosf(psi) * cosf(declination + phi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * sinf(psi), -(sinf(psi) * sinf(declination + phi)  + sinf(theta) * cosf(psi) * cosf(declination + phi)) * sinf(inclination) +cosf(inclination) * cosf(psi) * cosf(theta),(- sinf(psi) * sinf(theta) * cosf(declination + phi) + sinf(declination + phi) * cosf(psi)) * cosf(inclination) -sinf(inclination) * sinf(psi) * cosf(theta),
+  sinf(inclination) * sinf(declination + phi) * cosf(theta),sinf(inclination) * sinf(theta) * cosf(declination + phi) -cosf(inclination) * cosf(theta), 0,sinf(inclination) * sinf(theta) -cosf(inclination) * cosf (theta) * cosf(declination + phi);
 
   return R_theta_inc_mag_jac;
+}
+
+Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_T_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& mag)
+{
+  float phi = Theta(0);
+  float theta = Theta(1);
+  float psi = Theta(2);
+
+  float m_x = mag(0);
+  float m_y = mag(1);
+  float m_z = mag(2);
+
+  Eigen::Matrix3f R_theta_T_mag_jac;
+
+  R_theta_T_mag_jac << 0, - m_x * sinf(theta) * cosf(psi) - m_y * sinf(psi) * sinf(theta) - m_z * cosf(theta), - m_x * sinf(psi) * cosf(theta) + m_y * cosf(psi) * cosf(theta), m_x * (sinf(phi) * sinf(psi) + sinf(theta) * cosf(phi) * cosf(psi)) + m_y * (- sinf(phi) * cosf(psi) + sinf(psi) * sinf(theta) * cosf(phi)) + m_z * cosf(phi) * cosf(theta), m_x * sinf(phi) * cosf(psi) * cosf(theta) + m_y * sinf(phi) * sinf(psi) * cosf(theta) - m_z * sinf(phi) * sinf(theta), m_x * (- sinf(phi) * sinf(psi) * sinf(theta) - cosf(phi) * cosf(psi)) + m_y * (sinf(phi) * sinf(theta) * cosf(psi) - sinf(psi) * cosf(phi)), m_x * (- sinf(phi) * sinf(theta) * cosf(psi) + sinf(psi) * cosf(phi)) + m_y * (- sinf(phi) * sinf(psi) * sinf(theta) - cosf(phi) * cosf(psi)) - m_z * sinf(phi) * cosf(theta), m_x * cosf(phi) * cosf(psi) * cosf(theta) + m_y * sinf(psi) * cosf(phi) * cosf(theta) - m_z * sinf(theta) * cosf(phi), m_x * (sinf(phi) * cosf(psi) - sinf(psi) * sinf(theta) * cosf(phi)) + m_y * (sinf(phi) * sinf(psi) + sinf(theta) * cosf(phi) * cosf(psi));
+
+  return R_theta_T_mag_jac;
 }
 
 // ======== MISC HELPER FUNCTIONS========

@@ -210,6 +210,7 @@ private:
   Eigen::Matrix3f del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel);
   Eigen::Matrix3f del_S_Theta_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& biases, const Eigen::Vector3f& gyro);
   Eigen::Matrix3f del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag);
+  Eigen::Matrix3f del_R_Theta_T_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& mag);
   Eigen::Matrix<float, 3,4> del_R_Theta_inc_y_mag_del_Theta(const Eigen::Vector3f& Theta, const double& inclination,  const double& declination);
 
   // TODO: not used
