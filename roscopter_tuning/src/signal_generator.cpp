@@ -72,6 +72,12 @@ TuningSignalGenerator::TuningSignalGenerator()
   this->declare_parameter("default_d_pos_c", -20.0);
   this->declare_parameter("default_psi_c", 0.0);
 
+  // TODO: To make this work, we need to make a list of all the topics we might want to publish to.
+  // 2. Based on parameters, choose which one to publish to
+  // 3. Create the publishers dynamically
+  // 4. Select output modes, values, etc. using parameters. Need to have a signal for each channel (1-4) so we can do things like send commands in east and north at the same time
+  //    Alteratively, you could have the user define a few yaml files that define the "on" and "off" messages -- potentially a lot of files
+
   update_params();
   initial_time_ = this->get_clock()->now().seconds();
 

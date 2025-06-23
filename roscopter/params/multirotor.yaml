@@ -1,49 +1,58 @@
+# TODO: Clean up this file (split by node)
 /**:    # autopilot and trajectory controller share some of the same parameters
     ros__parameters:
         # Autopilot gains
-        roll_kp: 6.0
-        roll_ki: 0.0
-        roll_kd: 1.0
-        pitch_kp: 6.0
-        pitch_ki: 0.0
-        pitch_kd: 1.0
-        yaw_kp: 0.8
-        yaw_ki: 0.002
-        yaw_kd: 0.8
+        roll_to_torque_kp: 6.0
+        roll_to_torque_ki: 0.0
+        roll_to_torque_kd: 1.0
 
-        roll_rate_kp: 0.5
-        roll_rate_ki: 0.0
-        roll_rate_kd: 0.0
-        pitch_rate_kp: 0.5
-        pitch_rate_ki: 0.0
-        pitch_rate_kd: 0.0
-        yaw_rate_kp: 0.5
-        yaw_rate_ki: 0.0
-        yaw_rate_kd: 0.0
+        pitch_to_torque_kp: 6.0
+        pitch_to_torque_ki: 0.0
+        pitch_to_torque_kd: 1.0
 
-        yaw_to_rate_kp: 0.5 ###
-        yaw_to_rate_ki: 0.0 ###
-        yaw_to_rate_kd: 0.15 ###
+        yaw_to_torque_kp: 0.8
+        yaw_to_torque_ki: 0.002
+        yaw_to_torque_kd: 0.8
 
-        vel_n_P: 0.3
-        vel_n_I: 0.01
-        vel_n_D: 0.1
-        vel_e_P: 0.3
-        vel_e_I: 0.01
-        vel_e_D: 0.1
-        vel_d_P: 0.4
-        vel_d_I: 0.25
-        vel_d_D: 0.1
+        roll_rate_to_torque_kp: 0.5
+        roll_rate_to_torque_ki: 0.0
+        roll_rate_to_torque_kd: 0.0
 
-        n_P: 3.5
-        n_I: 1.0
-        n_D: 0.35
-        e_P: 3.5
-        e_I: 1.0
-        e_D: 0.35
-        d_P: 1.0
-        d_I: 0.0
-        d_D: 0.4
+        pitch_rate_to_torque_kp: 0.5
+        pitch_rate_to_torque_ki: 0.0
+        pitch_rate_to_torque_kd: 0.0
+
+        yaw_rate_to_torque_kp: 0.5
+        yaw_rate_to_torque_ki: 0.0
+        yaw_rate_to_torque_kd: 0.0
+
+        yaw_to_rate_kp: 0.7
+        yaw_to_rate_ki: 0.0
+        yaw_to_rate_kd: 0.15
+
+        vel_n_to_accel_kp: 0.1
+        vel_n_to_accel_ki: 0.01
+        vel_n_to_accel_kd: 0.1
+
+        vel_e_to_accel_kp: 0.1
+        vel_e_to_accel_ki: 0.01
+        vel_e_to_accel_kd: 0.1
+
+        vel_d_to_accel_kp: 0.4
+        vel_d_to_accel_ki: 0.01
+        vel_d_to_accel_kd: 0.1
+
+        pos_n_to_vel_kp: 0.5
+        pos_n_to_vel_ki: 0.01
+        pos_n_to_vel_kd: 0.1
+
+        pos_e_to_vel_kp: 1.0
+        pos_e_to_vel_ki: 0.01
+        pos_e_to_vel_kd: 0.4
+
+        pos_d_to_vel_kp: 1.0
+        pos_d_to_vel_ki: 0.0
+        pos_d_to_vel_kd: 0.4
 
         # Saturation limits
         max_roll_rate: 1.0

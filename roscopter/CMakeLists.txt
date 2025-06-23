@@ -138,7 +138,7 @@ add_executable(controller
   src/controller/controller_state_machine.cpp
   src/controller/controller_cascading_pid.cpp
   src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs)
+ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs Eigen3)
 target_link_libraries(controller ${ament_LIBRARIES} param_manager)
 install(
   TARGETS controller
