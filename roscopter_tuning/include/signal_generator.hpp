@@ -44,15 +44,18 @@
 
 #include "roscopter_msgs/msg/controller_command.hpp"
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
+#include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <unordered_set>
+#include <system_error>
+#include <sstream>
 
 namespace roscopter
 {
 /**
  * This class is used to generate various input signals to test and tune all the control layers
- * in ROScopter. It currently supports square, sawtooth, triangle, and sine signals, and supports
- * outputting to the roll, pitch, altitude, course, and airspeed controllers.
+ * in ROScopter. It currently supports square, sawtooth, triangle, and sine signals.
  */
 class TuningSignalGenerator : public rclcpp::Node
 {
@@ -61,18 +64,29 @@ public:
   TuningSignalGenerator();
 
 private:
-  /// This defines what controller to publish the generated signal to.
+  /// This defines what level of the controller to publish the generated signal to.
+  enum class RosCopterControllerMode
+  {
+    NPOS_EPOS_DPOS_YAW,
+    NVEL_EVEL_DPOS_YAWRATE,
+    NACC_EACC_DACC_YAWRATE,
+    NVEL_EVEL_DVEL_YAWRATE,
+    NPOS_EPOS_DVEL_YAW,
+    ROLL_PITCH_YAW_THROTTLE,
+    ROLL_PITCH_YAWRATE_THROTTLE,
+    ROLLRATE_PITCHRATE_YAWRATE_THROTTLE,
+    PASS_THROUGH_TO_MIXER,
+    ROLL_PITCH_YAW_THRUST_TO_MIXER,
+    ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MIXER
+  };
+
+  /// Defines which channel (1-4) the controller will publish to
   enum class ControllerOutput
   {
-    ROLL,
-    PITCH,
-    YAW,
-    // ALTITUDE,
-    // COURSE,
-    // AIRSPEED,
-    N_POS,
-    E_POS,
-    D_POS
+    CMD1,
+    CMD2,
+    CMD3,
+    CMD4
   };
 
   /// This defines what type of signal to publish to the selected controller.
@@ -84,22 +98,19 @@ private:
     TRIANGLE,
     SINE
   };
+  std::unordered_set<std::string> signal_types_ = {"step", "square", "sawtooth", "triangle", "sine"};
 
   // Parameters
-  ControllerOutput controller_output_; ///< Controller to output command signals to.
+  RosCopterControllerMode controller_mode_; ///< Controller mode to output command signals to.
+  ControllerOutput controller_output_; ///< Which channel the controller outputs to
   SignalType signal_type_;             ///< Signal type to output.
   double publish_rate_hz_;             ///< Frequency to publish commands.
   double signal_magnitude_;            ///< The the magnitude of the signal being generated.
   double frequency_hz_;                ///< Frequency of the signal.
-  double default_va_c_;                ///< Default for va_c.
-  double default_h_c_;                 ///< Default for h_c.
-  double default_chi_c_;               ///< Default for chi_c.
-  double default_theta_c_;             ///< Default for theta_c.
-  double default_phi_c_;               ///< Default for phi_c.
-  double default_n_pos_c_;             ///< Default for n_pos.
-  double default_e_pos_c_;             ///< Default for e_pos.
-  double default_d_pos_c_;             ///< Default for d_pos.
-  double default_psi_c_;               ///< Default for d_pos.
+  double default_cmd1_;               ///< Default cmd1 value.
+  double default_cmd2_;               ///< Default cmd2 value.
+  double default_cmd3_;               ///< Default cmd3 value.
+  double default_cmd4_;               ///< Default cmd4 value.
 
   // Internal values
   bool step_toggled_;               ///< Flag for when step signal has been toggled.
@@ -206,6 +217,8 @@ private:
   static double get_sine_signal(double elapsed_time, double amplitude, double frequency,
                                 double center_value);
 
+  /// Declares parameters and the parameter descriptors with ROS2
+  void declare_params();
   /// Updates the parameters within the class with the latest values from ROS.
   void update_params();
 

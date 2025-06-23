@@ -47,7 +47,8 @@ namespace roscopter
 {
 TuningSignalGenerator::TuningSignalGenerator()
     : Node("signal_generator")
-    , controller_output_(ControllerOutput::ROLL)
+    , controller_mode_(RosCopterControllerMode::NPOS_EPOS_DPOS_YAW)
+    , controller_output_(ControllerOutput::CMD1)
     , signal_type_(SignalType::SQUARE)
     , publish_rate_hz_(0)
     , signal_magnitude_(0)
@@ -57,27 +58,7 @@ TuningSignalGenerator::TuningSignalGenerator()
     , paused_time_(0)
     , single_period_start_time_(0)
 {
-  this->declare_parameter("controller_output", "down_pos");
-  this->declare_parameter("signal_type", "step");
-  this->declare_parameter("publish_rate_hz", 100.0);
-  this->declare_parameter("signal_magnitude", 1.0);
-  this->declare_parameter("frequency_hz", 0.2);
-  // this->declare_parameter("default_va_c", 15.0);
-  // this->declare_parameter("default_h_c", 40.0);
-  // this->declare_parameter("default_chi_c", 0.0);
-  this->declare_parameter("default_theta_c", 0.0);
-  this->declare_parameter("default_phi_c", 0.0);
-  this->declare_parameter("default_n_pos_c", 0.0);
-  this->declare_parameter("default_e_pos_c", 0.0);
-  this->declare_parameter("default_d_pos_c", -20.0);
-  this->declare_parameter("default_psi_c", 0.0);
-
-  // TODO: To make this work, we need to make a list of all the topics we might want to publish to.
-  // 2. Based on parameters, choose which one to publish to
-  // 3. Create the publishers dynamically
-  // 4. Select output modes, values, etc. using parameters. Need to have a signal for each channel (1-4) so we can do things like send commands in east and north at the same time
-  //    Alteratively, you could have the user define a few yaml files that define the "on" and "off" messages -- potentially a lot of files
-
+  declare_params();
   update_params();
   initial_time_ = this->get_clock()->now().seconds();
 
@@ -92,23 +73,23 @@ TuningSignalGenerator::TuningSignalGenerator()
     std::bind(&TuningSignalGenerator::param_callback, this, std::placeholders::_1));
 
   step_toggle_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "toggle_step_signal",
+    "signal_generator/toggle_step_signal",
     std::bind(&TuningSignalGenerator::step_toggle_service_callback, this, std::placeholders::_1,
               std::placeholders::_2));
   reset_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "reset_signal",
+    "signal_generator/reset_signal",
     std::bind(&TuningSignalGenerator::reset_service_callback, this, std::placeholders::_1,
               std::placeholders::_2));
   pause_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "pause_signal",
+    "signal_generator/pause_signal",
     std::bind(&TuningSignalGenerator::pause_service_callback, this, std::placeholders::_1,
               std::placeholders::_2));
   start_continuous_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "start_continuous_signal",
+    "signal_generator/start_continuous_signal",
     std::bind(&TuningSignalGenerator::start_continuous_service_callback, this,
               std::placeholders::_1, std::placeholders::_2));
   start_single_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "start_single_period_signal",
+    "signal_generator/start_single_period_signal",
     std::bind(&TuningSignalGenerator::start_single_service_callback, this, std::placeholders::_1,
               std::placeholders::_2));
 }
@@ -136,35 +117,22 @@ void TuningSignalGenerator::publish_timer_callback()
   double amplitude = signal_magnitude_ / 2;
   double center_value = 0;
   switch (controller_output_) {
-    case ControllerOutput::ROLL:
-      center_value = default_phi_c_;
+    case ControllerOutput::CMD1:
+      center_value = default_cmd1_;
       break;
-    case ControllerOutput::PITCH:
-      center_value = default_theta_c_;
+    case ControllerOutput::CMD2:
+      center_value = default_cmd2_;
       break;
-    // case ControllerOutput::ALTITUDE:
-    //   center_value = default_h_c_;
-    //   break;
-    // case ControllerOutput::COURSE:
-    //   center_value = default_chi_c_;
-    //   break;
-    // case ControllerOutput::AIRSPEED:
-    //   center_value = default_va_c_;
-    //   break;
-    case ControllerOutput::N_POS:
-      center_value = default_n_pos_c_;
+    case ControllerOutput::CMD3:
+      center_value = default_cmd3_;
       break;
-    case ControllerOutput::E_POS:
-      center_value = default_e_pos_c_;
-      break;
-    case ControllerOutput::D_POS:
-      center_value = default_d_pos_c_;
-      break;
-    case ControllerOutput::YAW:
-      center_value = default_psi_c_;
+    case ControllerOutput::CMD4:
+      center_value = default_cmd4_;
       break;
   }
+
   center_value += amplitude;
+
   double signal_value = 0;
   switch (signal_type_) {
     case SignalType::STEP:
@@ -187,46 +155,26 @@ void TuningSignalGenerator::publish_timer_callback()
   // Creates message with default values
   roscopter_msgs::msg::ControllerCommand command_message;
   command_message.header.stamp = this->get_clock()->now();
-  // command_message.va_c = default_va_c_;
-  // command_message.h_c = default_h_c_;
-  // command_message.chi_c = default_chi_c_;
-  command_message.mode = roscopter_msgs::msg::ControllerCommand::MODE_NPOS_EPOS_DPOS_YAW;
+  command_message.mode = static_cast<uint8_t>(controller_mode_);
   command_message.cmd_valid = true;
 
-  command_message.cmd1 = default_n_pos_c_;
-  command_message.cmd2 = default_e_pos_c_;
-  command_message.cmd3 = default_d_pos_c_;
-  command_message.cmd4 = default_psi_c_;
-  command_message.theta_c = default_theta_c_;
-  command_message.phi_c = default_phi_c_;
+  command_message.cmd1 = default_cmd1_;;
+  command_message.cmd2 = default_cmd2_;;
+  command_message.cmd3 = default_cmd3_;;
+  command_message.cmd4 = default_cmd4_;;
 
   // Publish message
   switch (controller_output_) {
-    case ControllerOutput::ROLL:
-      command_message.phi_c = signal_value;
-      break;
-    case ControllerOutput::PITCH:
-      command_message.theta_c = signal_value;
-      break;
-    // case ControllerOutput::ALTITUDE:
-    //   command_message.h_c = signal_value;
-    //   break;
-    // case ControllerOutput::COURSE:
-    //   command_message.chi_c = signal_value;
-    //   break;
-    // case ControllerOutput::AIRSPEED:
-    //   command_message.va_c = signal_value;
-    //   break;
-    case ControllerOutput::N_POS:
+    case ControllerOutput::CMD1:
       command_message.cmd1 = signal_value;
       break;
-    case ControllerOutput::E_POS:
+    case ControllerOutput::CMD2:
       command_message.cmd2 = signal_value;
       break;
-    case ControllerOutput::D_POS:
+    case ControllerOutput::CMD3:
       command_message.cmd3 = signal_value;
       break;
-    case ControllerOutput::YAW:
+    case ControllerOutput::CMD4:
       command_message.cmd4 = signal_value;
       break;
   }
@@ -236,12 +184,29 @@ void TuningSignalGenerator::publish_timer_callback()
 rcl_interfaces::msg::SetParametersResult
 TuningSignalGenerator::param_callback(const std::vector<rclcpp::Parameter> & params)
 {
-  for (const auto & param : params) {
-    if (param.get_name() == "controller_output" || param.get_name() == "signal_type") { reset(); }
-  }
-
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = true;
+
+  bool do_reset = false;
+  for (const auto & param : params) {
+    if (param.get_name() == "controller_mode") {
+      do_reset = true;
+    } else if (param.get_name() == "signal_type") {
+      do_reset = true;
+      if (signal_types_.count(param.as_string()) == 0) {
+        RCLCPP_WARN_STREAM(this->get_logger(), "Parameter signal_type set to an invalid value: "
+                           << param.as_string() << "! Rejecting param update.");
+        do_reset = false;
+        result.successful = false;
+      }
+    }
+  }
+
+  if (do_reset) {
+    // Only reset if all params were valid
+    reset();
+  }
+
   return result;
 }
 
@@ -362,32 +327,56 @@ double TuningSignalGenerator::get_sine_signal(double elapsed_time, double amplit
   return -cos(elapsed_time * frequency * 2 * M_PI) * amplitude + center_value;
 }
 
+void TuningSignalGenerator::declare_params()
+{
+  // Declare the parameters and the parameter descriptors
+  auto controller_mode_param_desc = rcl_interfaces::msg::ParameterDescriptor();
+  controller_mode_param_desc.type = rclcpp::PARAMETER_INTEGER;
+  // controller_mode_param_desc.description =
+  //   "Output mode on the /high_level_command topic. See the roscopter_msgs/msg/ControllerCommand for a description of the modes.";
+  std::ostringstream desc;
+  desc << "Output mode on the /high_level_command topic. From the roscopter_msgs/msg/ControllerOutput message definition: \n";
+  desc << "MODE_NPOS_EPOS_DPOS_YAW = 0\n";
+  desc << "MODE_NVEL_EVEL_DPOS_YAWRATE = 1\n";
+  desc << "MODE_NACC_EACC_DACC_YAWRATE = 2\n";
+  desc << "MODE_NVEL_EVEL_DVEL_YAWRATE = 3\n";
+  desc << "MODE_NPOS_EPOS_DVEL_YAW = 4\n";
+  desc << "MODE_ROLL_PITCH_YAW_THROTTLE = 5\n";
+  desc << "MODE_ROLL_PITCH_YAWRATE_THROTTLE = 6\n";
+  desc << "MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 7\n";
+  desc << "MODE_PASS_THROUGH_TO_MIXER = 8\n";
+  desc << "MODE_ROLL_PITCH_YAW_THRUST_TO_MIXER = 9\n";
+  desc << "MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MIXER = 10";
+  controller_mode_param_desc.description = desc.str();
+  controller_mode_param_desc.integer_range = {rcl_interfaces::msg::IntegerRange().set__from_value(0).set__to_value(10)};
+  this->declare_parameter("controller_mode", 0, controller_mode_param_desc);
+
+  auto controller_output_param_desc = rcl_interfaces::msg::ParameterDescriptor();
+  controller_output_param_desc.type = rclcpp::PARAMETER_INTEGER;
+  controller_output_param_desc.description = "Channel the output command gets sent on. Options: 1,2,3,4.";
+  controller_output_param_desc.integer_range = {rcl_interfaces::msg::IntegerRange().set__from_value(1).set__to_value(4)};
+  this->declare_parameter("controller_output", 1, controller_output_param_desc);
+
+  auto sig_type_param_desc = rcl_interfaces::msg::ParameterDescriptor();
+  sig_type_param_desc.type = rclcpp::PARAMETER_STRING;
+  sig_type_param_desc.description = "Type of the output signal. Options: step, square, sawtooth, triangle, sine.";
+  this->declare_parameter("signal_type", "step", sig_type_param_desc);
+  this->declare_parameter("publish_rate_hz", 100.0);
+  this->declare_parameter("signal_magnitude", 1.0);
+  this->declare_parameter("frequency_hz", 0.2);
+  this->declare_parameter("default_cmd1", 0.0);
+  this->declare_parameter("default_cmd2", 0.0);
+  this->declare_parameter("default_cmd3", 0.0);
+  this->declare_parameter("default_cmd4", 0.0);
+}
+
 void TuningSignalGenerator::update_params()
 {
-  // controller_output
-  std::string controller_output_string = this->get_parameter("controller_output").as_string();
-  if (controller_output_string == "roll") {
-    controller_output_ = ControllerOutput::ROLL;
-  } else if (controller_output_string == "pitch") {
-    controller_output_ = ControllerOutput::PITCH;
-  // } else if (controller_output_string == "altitude") {
-  //   controller_output_ = ControllerOutput::ALTITUDE;
-  // } else if (controller_output_string == "course") {
-  //   controller_output_ = ControllerOutput::COURSE;
-  // } else if (controller_output_string == "airspeed") {
-  //   controller_output_ = ControllerOutput::AIRSPEED;
-  } else if (controller_output_string == "north_pos") {
-    controller_output_ = ControllerOutput::N_POS;
-  } else if (controller_output_string == "east_pos") {
-    controller_output_ = ControllerOutput::E_POS;
-  } else if (controller_output_string == "down_pos") {
-    controller_output_ = ControllerOutput::D_POS;
-  } else if (controller_output_string == "yaw") {
-    controller_output_ = ControllerOutput::YAW;
-  } else {
-    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Param controller_output set to invalid type %s!",
-                 controller_output_string.c_str());
-  }
+  // controller_mode
+  controller_mode_ = static_cast<RosCopterControllerMode>(this->get_parameter("controller_mode").as_int());
+
+  // Controller output
+  controller_output_ = static_cast<ControllerOutput>(this->get_parameter("controller_output").as_int() - 1);
 
   // signal_type
   std::string signal_type_string = this->get_parameter("signal_type").as_string();
@@ -431,32 +420,11 @@ void TuningSignalGenerator::update_params()
     frequency_hz_ = frequency_hz_value;
   }
 
-  // // default_va_c
-  // default_va_c_ = this->get_parameter("default_va_c").as_double();
 
-  // // default_h_c
-  // default_h_c_ = this->get_parameter("default_h_c").as_double();
-
-  // // default_chi_c
-  // default_chi_c_ = this->get_parameter("default_chi_c").as_double();
-
-  // default_theta_c
-  default_theta_c_ = this->get_parameter("default_theta_c").as_double();
-
-  // default_phi_c
-  default_phi_c_ = this->get_parameter("default_phi_c").as_double();
-
-  // default_n_pos_c
-  default_n_pos_c_ = this->get_parameter("default_n_pos_c").as_double();
-
-  // default_e_pos_c
-  default_e_pos_c_ = this->get_parameter("default_e_pos_c").as_double();
-
-  // default_d_pos_c
-  default_d_pos_c_ = this->get_parameter("default_d_pos_c").as_double();
-
-  // default_psi_c
-  default_psi_c_ = this->get_parameter("default_psi_c").as_double();
+  default_cmd1_ = this->get_parameter("default_cmd1").as_double();
+  default_cmd2_ = this->get_parameter("default_cmd2").as_double();
+  default_cmd3_ = this->get_parameter("default_cmd3").as_double();
+  default_cmd4_ = this->get_parameter("default_cmd4").as_double();
 }
 
 void TuningSignalGenerator::reset()
