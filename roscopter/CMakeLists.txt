@@ -19,7 +19,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(yaml-cpp REQUIRED)
+# find_package(yaml-cpp REQUIRED)
 find_package(inertial_sense QUIET)
 find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -27,11 +27,13 @@ find_package(rclpy REQUIRED)
 find_package(roscopter_msgs REQUIRED)
 find_package(rosflight_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
 
 if (${inertial_sense_FOUND})
     message(WARNING "found inertial sense library")
@@ -54,10 +56,9 @@ ament_export_dependencies(rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs na
 
 add_definitions(-DROSCOPTER_DIR="${CMAKE_CURRENT_LIST_DIR}")
 
-# Included from ROSPlane
 install(
   DIRECTORY launch params 
-  DESTINATION share/${PROJECT_NAME}/)
+  DESTINATION share/${PROJECT_NAME})
 
 ###########
 ## Build ##
@@ -67,6 +68,7 @@ include_directories(
   include
   ${EIGEN3_INCLUDE_DIRS} 
   ${ament_INCLUDE_DIRS}
+  ${YAML_CPP_INCLUDEDIR}
   )
 
 
@@ -88,27 +90,38 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
-set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
+
+### EXECUTABLES ###
+
 # Estimator
-add_executable(roscopter_estimator
+set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
+add_executable(estimator
               src/ekf/estimator_node.cpp
               src/ekf/estimator_ros.cpp
               src/ekf/estimator_ekf.cpp
               src/ekf/estimator_continuous_discrete.cpp
               src/utils/geomag.c)
-target_link_libraries(roscopter_estimator
+target_link_libraries(estimator
   ${YAML_CPP_LIBRARIES}
 )
-ament_target_dependencies(roscopter_estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3)
-target_link_libraries(roscopter_estimator param_manager)
-target_include_directories(roscopter_estimator PUBLIC include)
+ament_target_dependencies(estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3)
+target_link_libraries(estimator param_manager)
+target_include_directories(estimator PUBLIC include)
 install(TARGETS
-  roscopter_estimator
+  estimator
   DESTINATION lib/${PROJECT_NAME})
 
-add_library(estimator_lib src/ekf/estimator_node.cpp src/ekf/estimator_ros.cpp src/ekf/estimator_ekf.cpp src/ekf/estimator_continuous_discrete.cpp src/utils/geomag.c include/ekf/estimator_ros.hpp include/ekf/estimator_ekf.hpp include/ekf/estimator_continuous_discrete.hpp)
-target_link_libraries(roscopter_estimator estimator_lib)
+add_library(estimator_lib
+  src/ekf/estimator_node.cpp
+  src/ekf/estimator_ros.cpp
+  src/ekf/estimator_ekf.cpp
+  src/ekf/estimator_continuous_discrete.cpp
+  src/utils/geomag.c
+  include/ekf/estimator_ros.hpp
+  include/ekf/estimator_ekf.hpp
+  include/ekf/estimator_continuous_discrete.hpp)
 target_link_libraries(estimator_lib param_manager)
+target_link_libraries(estimator estimator_lib)
 ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
 
 # External attitude transcriber
@@ -119,15 +132,13 @@ target_link_libraries(ext_att_transcriber ${ament_LIBRARIES})
 install(TARGETS ext_att_transcriber
   DESTINATION lib/${PROJECT_NAME})
 
-### EXECUTABLES ###
-
 # Controller
 add_executable(controller
   src/controller/controller_ros.cpp
   src/controller/controller_state_machine.cpp
   src/controller/controller_cascading_pid.cpp
   src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs)
+ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs Eigen3)
 target_link_libraries(controller ${ament_LIBRARIES} param_manager)
 install(
   TARGETS controller
@@ -143,6 +154,26 @@ target_link_libraries(trajectory_follower ${ament_LIBRARIES} param_manager)
 install(
   TARGETS trajectory_follower
   DESTINATION lib/${PROJECT_NAME})
+
+# Path Manager
+add_executable(path_manager
+  src/navigation/path_manager_ros.cpp
+  src/navigation/path_manager.cpp)
+ament_target_dependencies(path_manager rclcpp rclpy roscopter_msgs std_srvs)
+target_link_libraries(path_manager ${ament_LIBRARIES} param_manager)
+install(
+  TARGETS path_manager
+  DESTINATION lib/${PROJECT_NAME})
+
+# Path Planner
+add_executable(path_planner
+  src/navigation/path_planner.cpp)
+ament_target_dependencies(path_planner rclcpp roscopter_msgs std_srvs rosflight_msgs)
+target_link_libraries(path_planner ${ament_LIBRARIES} param_manager ${YAML_CPP_LIBRARIES})
+install(
+  TARGETS path_planner
+  DESTINATION lib/${PROJECT_NAME})
+
 
 if(BUILD_TESTING)
 

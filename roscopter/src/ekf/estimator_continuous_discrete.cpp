@@ -102,6 +102,17 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   output.bx = xhat_(9);
   output.by = xhat_(10);
   output.bz = xhat_(11);
+
+  // Convert Euler angles to quaternion
+  double psi2 = output.psi/2;
+  double theta2 = output.theta/2;
+  double phi2 = output.phi/2;
+  double qw = cosf(psi2)*cosf(theta2)*cosf(phi2) + sinf(psi2)*sinf(theta2)*sinf(phi2);
+  double qx = cosf(psi2)*cosf(theta2)*sinf(phi2) - sinf(psi2)*sinf(theta2)*cosf(phi2);
+  double qy = cosf(psi2)*sinf(theta2)*cosf(phi2) + sinf(psi2)*cosf(theta2)*sinf(phi2);
+  double qz = sinf(psi2)*cosf(theta2)*cosf(phi2) - cosf(psi2)*sinf(theta2)*sinf(phi2);
+  output.quat = Eigen::Quaternionf(qw, qx, qy, qz);
+  output.quat_valid = true;
 }
 
 // ======== ESTIMATION LOOP STEPS ========
@@ -790,7 +801,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_ve_gps", .007);
   params_.declare_double("sigma_vd_gps", .01);
   params_.declare_double("sigma_static_press", 10.0);
-  params_.declare_double("sigma_mag", 0.08);
+  params_.declare_double("sigma_mag", 0.04);
   params_.declare_double("sigma_accel", .025 * 9.81);
 
   // Low pass filter parameters
@@ -818,7 +829,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("vd_initial_cov", .0001);
   params_.declare_double("phi_initial_cov", 0.005);
   params_.declare_double("theta_initial_cov", 0.005);
-  params_.declare_double("psi_initial_cov", 0.005);
+  params_.declare_double("psi_initial_cov", 1.0);
   params_.declare_double("bias_x_initial_cov", 0.0001);
   params_.declare_double("bias_y_initial_cov", 0.0001);
   params_.declare_double("bias_z_initial_cov", 0.0001);

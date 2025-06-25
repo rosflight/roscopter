@@ -1,6 +1,8 @@
 #ifndef CONTROLLER_CASCADING_PID_HPP
 #define CONTROLLER_CASCADING_PID_HPP
 
+#include <Eigen/Geometry>
+
 #include <controller/controller_state_machine.hpp>
 #include <controller/simple_pid.hpp>
 

@@ -15,6 +15,7 @@
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <geometry_msgs/msg/twist_stamped.hpp>
+#include <Eigen/Geometry>
 #include <rclcpp/rclcpp.hpp>
 #include <rosflight_msgs/msg/barometer.hpp>
 #include <rosflight_msgs/msg/status.hpp>
@@ -92,6 +93,8 @@ protected:
     float r;
     float Vg;
     float inclination;
+    bool quat_valid;
+    Eigen::Quaternionf quat;
   };
 
   bool baro_init_; /**< Initial barometric pressure */

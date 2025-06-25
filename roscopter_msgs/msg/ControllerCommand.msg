@@ -1,10 +1,16 @@
 # roscopter commands
 # can be used for any level of command:
-# high level: n_pos, e_pos, d_pos, yaw
-# mid level: n_pos, e_pos, d_vel, yaw
-#        or: n_vel, e_vel, d_pos, yaw_rate
-#        or: n_vel, e_vel, d_vel, yaw_rate
-# low level: n_acc, e_acc, d_acc, yaw_acc
+#                         high level: n_pos,     e_pos,      d_pos,    yaw
+#                          mid level: n_pos,     e_pos,      d_vel,    yaw
+#                                 or: n_vel,     e_vel,      d_pos,    yaw_rate
+#                                 or: n_vel,     e_vel,      d_vel,    yaw_rate
+#                          low level: n_acc,     e_acc,      d_acc,    yaw_acc
+#                                 or: roll,      pitch,      yaw,      throttle
+# passthrough to firmware controller: roll,      pitch,      yaw_rate, throttle
+#                                 or: roll_rate, pitch_rate, yaw_rate, throttle
+#               passthrough to mixer: cmd1,      cmd2,       cmd3,     cmd4
+#                                 or: roll,      pitch,      yaw,      thrust
+#                                 or: roll_rate, pitch_rate, yaw_rate, thrust
 
 # Input control types - Uses ROSflight controller
 uint8 MODE_NPOS_EPOS_DPOS_YAW = 0
@@ -16,11 +22,14 @@ uint8 MODE_ROLL_PITCH_YAW_THROTTLE = 5
 uint8 MODE_ROLL_PITCH_YAWRATE_THROTTLE = 6
 uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 7
 
-# Additional control types - Does not use ROSflight controller
+# Additional control types - These do not use ROSflight controller
 # i.e., these modes pass thrust/torque commands directly to ROSflight mixer
-uint8 MODE_PASS_THROUGH = 8
-uint8 MODE_ROLL_PITCH_YAW_THRUST_TO_MOTOR = 9
-uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MOTOR = 10
+# These are present primarily for convenience. For full use of the 6 fields
+# in the rosflight_msgs/msg/Command message, skip this node and pass messages
+# directly to rosflight_io on the appropriate topic
+uint8 MODE_PASS_THROUGH_TO_MIXER = 8
+uint8 MODE_ROLL_PITCH_YAW_THRUST_TO_MIXER = 9
+uint8 MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MIXER = 10
 
 
 std_msgs/Header header

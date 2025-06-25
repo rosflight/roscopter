@@ -1,10 +1,6 @@
 cmake_minimum_required(VERSION 3.8)
 project(roscopter_sim)
 
-find_package(gazebo QUIET)
-IF(NOT gazebo_FOUND)
-  message(STATUS "Gazebo not found. Not building roscopter_sim.")
-ELSE()
 set(CMAKE_CXX_STANDARD 11)
 if (NOT CMAKE_BUILD_TYPE)
     # Options: Debug, Release, MinSizeRel, RelWithDebInfo
@@ -17,30 +13,12 @@ set(CMAKE_CXX_FLAGS "-fopenmp")
 # To enable assertions when compiled in release mode.
 add_definitions(-DROS_ASSERT_ENABLED)
 
-# find_package(catkin REQUIRED COMPONENTS
-#   roscpp
-#   rosflight_msgs
-#   rosflight_utils
-#   std_msgs
-#   nav_msgs
-#   geometry_msgs
-#   sensor_msgs
-#   std_srvs
-#   gazebo_ros
-#   gazebo_plugins
-# )
-
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rosflight_msgs REQUIRED)
 find_package(roscopter_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(std_srvs REQUIRED)
-find_package(gazebo_ros REQUIRED)
-find_package(gazebo_plugins REQUIRED)
 find_package(Eigen3 REQUIRED)
 
 # catkin_package(
@@ -52,11 +30,9 @@ find_package(Eigen3 REQUIRED)
 include_directories(include 
   ${ament_INCLUDE_DIRS}
   ${rclcpp_INCLUDE_DIRS}
-  ${SDFormat_INCLUDE_DIRS}
   ${EIGEN3_INCLUDE_DIRS}
-  ${GAZEBO_INCLUDE_DIRS}
 )
-link_directories(${GAZEBO_LIBRARY_DIRS})
+# link_directories(${GAZEBO_LIBRARY_DIRS})
 
 # add_library(multirotor_forces_and_moments_plugin src/multirotor_forces_and_moments.cpp)
 # target_link_libraries(multirotor_forces_and_moments_plugin 
@@ -86,14 +62,23 @@ link_directories(${GAZEBO_LIBRARY_DIRS})
 #   # LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 # )
 
-add_executable(gazebo_truth_publisher
+add_executable(sim_state_transcriber
   src/state_transcription_node.cpp
 )
-ament_target_dependencies(gazebo_truth_publisher roscopter_msgs rclcpp nav_msgs)
+target_link_libraries(sim_state_transcriber Eigen3::Eigen)
+ament_target_dependencies(sim_state_transcriber
+  rclcpp
+  geometry_msgs
+  nav_msgs
+  roscopter_msgs
+  rosflight_msgs)
 install(TARGETS
-        gazebo_truth_publisher
+        sim_state_transcriber
         DESTINATION lib/${PROJECT_NAME})
 
-ENDIF()
+# Install other files
+install(
+    DIRECTORY launch
+    DESTINATION share/${PROJECT_NAME})
 
 ament_package()
