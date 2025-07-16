@@ -68,10 +68,10 @@
         max_d_vel: 10.0
 
         max_throttle: 0.85
-        min_throttle: 0.05
+        min_throttle: 0.3
 
-        max_roll: 30.0      # degrees
-        max_pitch: 30.0     # degrees
+        max_roll: 15.0      # degrees
+        max_pitch: 15.0     # degrees
 
         max_descend_accel: 1.0  # in g's
         max_descend_rate: 3.0
@@ -79,28 +79,28 @@
         down_command_window: 3.0
 
         # Trajectory controller gains
-        u_n_kp: 0.5
-        u_n_ki: 0.001
-        u_n_kd: 0.5
-        u_e_kp: 0.5
-        u_e_ki: 0.001
-        u_e_kd: 0.5
+        u_n_kp: 0.7
+        u_n_ki: 0.0
+        u_n_kd: 2.0
+        u_e_kp: 0.7
+        u_e_ki: 0.0
+        u_e_kd: 2.0
         u_d_kp: 4.0
-        u_d_ki: 0.4
-        u_d_kd: 4.0
+        u_d_ki: 0.0
+        u_d_kd: 3.0
 
         # Miscellanous
         tau: 0.05
-        C_d: 0.0
+        C_d: 0.1
         gravity: 9.81
-        mass: 2.0
-        equilibrium_throttle: 0.35
+        mass: 3.5
+        equilibrium_throttle: 0.5
 
         # Takeoff and landing
-        takeoff_d_pos: -10.0
+        takeoff_d_pos: -2.0
         takeoff_height_threshold: 1.0
         takeoff_yaw: 0.0
         takeoff_d_vel: -0.5
-        takeoff_landing_pos_hold_time: 3.0
+        takeoff_landing_pos_hold_time: 1.0
         min_altitude_for_attitude_ctrl: 0.15
         max_descend_rate: 3.0

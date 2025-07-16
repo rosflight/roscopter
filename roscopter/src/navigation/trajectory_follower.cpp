@@ -34,7 +34,7 @@ void TrajectoryFollower::declare_params()
 
   params.declare_double("equilibrium_throttle", 0.5);
   params.declare_double("max_throttle", 0.85);
-  params.declare_double("min_throttle", 0.1);
+  params.declare_double("min_throttle", 0.3);
   params.declare_double("max_roll", 30.0);
   params.declare_double("max_pitch", 30.0);
   params.declare_double("max_descend_accel", 1.0);
@@ -99,11 +99,21 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   double thrust_cmd = mass * (g - u_d);
 
   // Construct output
-  output_cmd_.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAW_THRUST_TO_MIXER;
+  // output_cmd_.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAW_THRUST_TO_MIXER;
+  // output_cmd_.cmd1 = saturate(phi_cmd_unsat, max_roll, -max_roll);
+  // output_cmd_.cmd2 = saturate(theta_cmd_unsat, max_pitch, -max_pitch);
+  // output_cmd_.cmd3 = wrap_within_180(0.0, input_cmd.psi_cmd);
+  // output_cmd_.cmd4 = thrust_cmd;
+
+  double max_throttle = this->get_parameter("max_throttle").as_double();
+  double min_throttle = this->get_parameter("min_throttle").as_double();
+  double equilibrium_throttle = this->get_parameter("equilibrium_throttle").as_double();
+  output_cmd_.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAW_THROTTLE;
   output_cmd_.cmd1 = saturate(phi_cmd_unsat, max_roll, -max_roll);
   output_cmd_.cmd2 = saturate(theta_cmd_unsat, max_pitch, -max_pitch);
   output_cmd_.cmd3 = wrap_within_180(0.0, input_cmd.psi_cmd);
-  output_cmd_.cmd4 = thrust_cmd;
+  double throttle_cmd = equilibrium_throttle - u_d / g;
+  output_cmd_.cmd4 = saturate(throttle_cmd, max_throttle, min_throttle);
 
   output_cmd_.cmd_valid = true;
 
