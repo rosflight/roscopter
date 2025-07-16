@@ -280,6 +280,8 @@ void EstimatorROS::update_barometer_calibration(const rosflight_msgs::msg::Barom
 
 void EstimatorROS::magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
 {
+  new_mag_ = true;
+
   input_.mag_x = msg->magnetic_field.x;
   input_.mag_y = msg->magnetic_field.y;
   input_.mag_z = msg->magnetic_field.z;

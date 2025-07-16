@@ -99,6 +99,12 @@ protected:
 
   bool baro_init_; /**< Initial barometric pressure */
   bool new_baro_ = false;
+  
+  /**
+   * @brief Indicates if the magnetometer magnetic field parameters have been initialized.
+   */
+  bool mag_init_ = false;
+  bool new_mag_ = false;
 
   virtual void estimate(const Input & input,
                         Output & output) = 0;
