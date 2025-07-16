@@ -31,7 +31,7 @@ Eigen::Matrix3f skew_matrix(Eigen::Vector3f vec)
 // ======== CONSTRUCTOR ========
 EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     : EstimatorEKF()
-    , xhat_(Eigen::Vector<float, num_states>::Zero()) // TODO: Make the yaw make a guess based on the mag what the yaw is.
+    , xhat_(Eigen::Vector<float, num_states>::Zero())
     , P_(Eigen::Matrix<float, num_states, num_states>::Identity())
     , Q_(Eigen::Matrix<float, num_states, num_states>::Identity())
     , Q_inputs_(Eigen::Matrix<float, num_estimator_inputs, num_estimator_inputs>::Identity())
@@ -46,6 +46,10 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   load_magnetic_model();
   // Indicates whether inclination_ and declination_ have been updated.
   mag_init_ = false;
+  
+  // Indicates whether the state has been initalized.
+  state_init_ = false;
+
   // Initialize the baro low pass filter.
   lpf_static_ = 0.0;
 
@@ -60,9 +64,27 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   
 }
 
+// ======== INIT STATE ========
+void EstimatorContinuousDiscrete::init_state(const Input & input)
+{
+  if (mag_init_) {
+    float heading = atan2f(input.mag_y, input.mag_x);
+    heading -= declination_;
+    xhat_(8) = heading;
+    state_init_ = true;
+    return;
+  }
+}
+
 // ======== MAIN ESTIMATION LOOP ========
 void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 {
+  if (!state_init_) {
+    calc_mag_field_properties(input); // Finds inclination_ and declination_.
+    init_state(input);
+    return; 
+  }
+
   prediction_step(input);
   
   // Measurement updates.
@@ -132,8 +154,6 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
 
 void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input)
 {
-  calc_mag_field_properties(input); // Runs only once, finds inclination_ and declination_.
-  
   // Only update when have new mag and the magnetometer models have been found.
   if (!new_mag_ || !mag_init_) {
     return;
@@ -356,7 +376,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_jacobia
 
 Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_sensor_noise()
 {
-  Eigen::Matrix<float, num_baro_measurements, num_baro_measurements> R; // TODO: update all of these to the right fixed size.
+  Eigen::Matrix<float, num_baro_measurements, num_baro_measurements> R;
 
   R = R_baro_;
 
@@ -542,7 +562,6 @@ Eigen::Matrix<float, 3,3> EstimatorContinuousDiscrete::del_R_Theta_T_g_del_Theta
 {
   float phi = Theta(0);
   float theta = Theta(1);
-  float psi = Theta(2);
 
   Eigen::Matrix<float, 3, 3> R_theta_T_g_jac;
 
@@ -630,7 +649,7 @@ Eigen::Vector3f EstimatorContinuousDiscrete::calculate_inertial_magnetic_field(c
 }
 
 
-void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input) // TODO: Put in GPS init?
+void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
 {
   if (mag_init_ || !has_fix_ || !input.gps_new) {
     return;
@@ -722,7 +741,6 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
 // ======== INITIALIZATION FUNCTIONS ========
 void EstimatorContinuousDiscrete::initialize_state_covariances() 
 {
-  // TODO: convert to parameter array.
   double pos_n_initial_cov = params_.get_double("pos_n_initial_cov");
   double pos_e_initial_cov = params_.get_double("pos_e_initial_cov");
   double pos_d_initial_cov = params_.get_double("pos_d_initial_cov");
@@ -736,7 +754,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   double bias_y_initial_cov = params_.get_double("bias_y_initial_cov");
   double bias_z_initial_cov = params_.get_double("bias_z_initial_cov");
   
-  P_ = Eigen::MatrixXf::Identity(num_states, num_states); // TODO: make number of states a global variable so you only have to change it once.
+  P_ = Eigen::MatrixXf::Identity(num_states, num_states);
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
   P_(2, 2) = pos_d_initial_cov;
@@ -751,7 +769,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   P_(11, 11) = bias_z_initial_cov; 
 }
 
-void EstimatorContinuousDiscrete::initialize_process_noises() 
+void EstimatorContinuousDiscrete::initialize_process_noises()  // TODO: Use a parameter update callback to dynamically change this.
 {
   double gyro_process_noise = params_.get_double("gyro_process_noise");
   double accel_process_noise = params_.get_double("accel_process_noise");
@@ -784,8 +802,8 @@ void EstimatorContinuousDiscrete::initialize_process_noises()
   Q_(11,11) = bias_process_noise;
 }
 
-void EstimatorContinuousDiscrete::update_measurement_model_parameters()
-{
+void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO: Use a parameter update callback to dynamically change this.
+{ 
   // For readability, declare the parameters used in the function here
   double sigma_n_gps = params_.get_double("sigma_n_gps");
   double sigma_e_gps = params_.get_double("sigma_e_gps");
