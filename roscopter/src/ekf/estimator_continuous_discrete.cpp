@@ -2,8 +2,6 @@
 #include "ekf/estimator_ros.hpp"
 #include "ekf/geomag.h"
 
-// TODO:Get rid of all MatrixX, only use deterministic sizes.
-
 namespace roscopter
 {
 
@@ -651,6 +649,15 @@ Eigen::Vector3f EstimatorContinuousDiscrete::calculate_inertial_magnetic_field(c
 
 void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
 {
+  float inclination = params_.get_double("inclination");
+  float declination = params_.get_double("declination");
+
+  if ((0. <= inclination && inclination <= 90.) &&
+      (-90. <= declination && declination <= 90.)) {
+    inclination_ = inclination;
+    declination_ = declination;
+    mag_init_ = true;
+  }
   if (mag_init_ || !has_fix_ || !input.gps_new) {
     return;
   }
@@ -882,6 +889,12 @@ void EstimatorContinuousDiscrete::declare_parameters()
   
   // Conversion flags
   params_.declare_bool("convert_to_gauss", true);
+  
+  // Magnetic Field Parameters -- Set to -1000.0 to make estimator
+  // find values using the WMM given GPS. If a reasonable number 
+  // is given for the parameter, it will be used. 
+  params_.declare_double("inclination", -1000.);
+  params_.declare_double("declination", -1000.);
 
   // Saturations limits
   params_.declare_double("max_estimated_phi", 85.0); // Deg
