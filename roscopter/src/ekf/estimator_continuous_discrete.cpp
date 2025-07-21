@@ -83,6 +83,10 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
     return; 
   }
 
+  if (is_parameter_changed()) {
+    update_estimation_params();
+  }
+
   prediction_step(input);
   
   // Measurement updates.
@@ -901,6 +905,22 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("max_estimated_theta", 80.0); // Deg
   params_.declare_double("gps_n_lim", 10000.);
   params_.declare_double("gps_e_lim", 10000.); 
+}
+
+bool EstimatorContinuousDiscrete::is_parameter_changed()
+{
+  if (parameter_changed) {
+    parameter_changed = false;
+    // TODO: Check if the parameter changed was relavent. Will require structural changes. Like putting names in a dictionary.
+    return true;
+  }
+  return false;
+}
+
+void EstimatorContinuousDiscrete::update_estimation_params()
+{
+  initialize_process_noises();
+  update_measurement_model_parameters();
 }
 
 void EstimatorContinuousDiscrete::bind_functions()

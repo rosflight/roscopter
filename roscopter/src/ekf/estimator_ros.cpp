@@ -73,11 +73,13 @@ EstimatorROS::parametersCallback(const std::vector<rclcpp::Parameter> & paramete
   result.reason = "success";
 
   bool success = params_.set_parameters_callback(parameters);
-  if (!success)
-  {
+  if (!success) {
     result.successful = false;
     result.reason =
       "One of the parameters given is not a parameter of the estimator node.";
+  }
+  else {
+    parameter_changed = true;
   }
 
   // Check to see if the timer period was changed. If it was, recreate the timer with the new period

@@ -303,6 +303,10 @@ private:
    * @brief Initializes some variables that depend on ROS2 parameters
   */
   void update_measurement_model_parameters();
+  
+  bool is_parameter_changed();
+
+  void update_estimation_params();
 
   /**
    * @brief Initializes the process noise matrices with the ROS2 parameters

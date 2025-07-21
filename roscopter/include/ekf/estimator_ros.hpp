@@ -97,7 +97,7 @@ protected:
     Eigen::Quaternionf quat;
   };
 
-  bool baro_init_; /**< Initial barometric pressure */
+  bool baro_init_ = false; /**< Initial barometric pressure */
   bool new_baro_ = false;
   
   /**
@@ -108,6 +108,7 @@ protected:
 
   virtual void estimate(const Input & input,
                         Output & output) = 0;
+  bool parameter_changed = false;
 
   ParamManager params_;
   bool gps_init_ = false;
