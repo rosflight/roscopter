@@ -120,15 +120,29 @@ private:
    */
   JacobianFuncRef multirotor_gnss_measurement_jacobian_model;
   
-  // TODO: Fill in DOXYGEN
+  /**
+   * @brief This function returns the GNSS measurement noise.
+   */
   Eigen::MatrixXf multirotor_gnss_measurement_sensor_noise();
 
+  /**
+   * @brief Calculates the partial of gravity in the body frame with respect to the Euler angles.
+   */
   Eigen::Matrix<float, 3,3> del_R_Theta_T_g_del_Theta(const Eigen::Vector3f& Theta, const double& gravity);
 
+  /**
+   * @brief Calculates the partial the inertial velocities with respect to the Euler angles.
+   */
   Eigen::Matrix<float, 3,3> del_R_Theta_v_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& vels);
 
+  /**
+   * @brief Acceleration due to gravity in m/s^2.
+   */
   double gravity_ = 9.81;
   
+  /**
+   * @brief Reference to the function that calculates the sensor noise of the GNSS.
+   */
   SensorNoiseFuncRef multirotor_gnss_measurement_sensor_noise_model;
   
   /**
@@ -158,9 +172,14 @@ private:
    */
   JacobianFuncRef multirotor_mag_measurement_jacobian_model;
   
-  // TODO: Fill in DOXYGEN
+  /**
+   * @brief Calculates the sensor noise of the magnetometer.
+   */
   Eigen::MatrixXf multirotor_mag_measurement_sensor_noise();
   
+  /**
+   * @brief Reference to the magnetometer sensor noise calculation.
+   */
   SensorNoiseFuncRef multirotor_mag_measurement_sensor_noise_model;
   
   /**
@@ -190,10 +209,19 @@ private:
    */
   JacobianFuncRef multirotor_baro_measurement_jacobian_model;
   
+  /**
+   * @brief Calculates the barometer sensor noise.
+   */
   Eigen::MatrixXf multirotor_baro_measurement_sensor_noise();
   
+  /**
+   * @brief Reference to the calculation of the barometer sensor noise.
+   */
   SensorNoiseFuncRef multirotor_baro_measurement_sensor_noise_model;
 
+  /**
+   * @brief The number of states to estimate.
+   */
   static constexpr int num_states = 12;
 
   /**
@@ -262,8 +290,14 @@ private:
    */
   double declination_;
 
+  /**
+   * @brief Flag to indicate if the state has been Initialized.
+   */
   bool state_init_;
 
+  /**
+   * @brief Initializes the state based on the current input.
+   */
   void init_state(const Input & input);
 
   /**
@@ -271,22 +305,50 @@ private:
    */
   void prediction_step(const Input& input);
 
+  /**
+   * @brief Run the magnetometer measurement update.
+   */
   void mag_measurement_update_step(const Input& input);
 
+  /**
+   * @brief Run the barometer measurement update.
+   */
   void baro_measurement_update_step(const Input& input);
 
+  /**
+   * @brief Run the GNSS measurement update.
+   */
   void gnss_measurement_update_step(const Input& input);
 
+  /**
+   * @brief Calculates the properties of teh magnetic field at this particular lat lon.
+   */
   void calc_mag_field_properties(const Input& input);
 
+  /**
+   * @brief Calculates the inertial magnetic field.
+   */
   Eigen::Vector3f calculate_inertial_magnetic_field(const float& declination, const float& inclination);
+  
+  /**
+   * @brief Calculates the body to inertial rotation matrix.
+   */
   Eigen::Matrix3f R(const Eigen::Vector3f& Theta);
+  
+  /**
+   * @brief Calculates the matrix that integrates gyro measurements into Euler angles.
+   */
   Eigen::Matrix3f S(const Eigen::Vector3f& Theta);
-  Eigen::Matrix3f del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel);
+  
+  /**
+   * @brief Calculates the partial of the gyro integration matrix with respect to the Euler angles.
+   */
   Eigen::Matrix3f del_S_Theta_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& biases, const Eigen::Vector3f& gyro);
-  Eigen::Matrix3f del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag);
+  
+  /**
+   * @brief Calculates the partial of body magnetic field measurements with respect to the Euler angles.
+   */
   Eigen::Matrix3f del_R_Theta_T_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& mag);
-  Eigen::Matrix<float, 3,4> del_R_Theta_inc_y_mag_del_Theta(const Eigen::Vector3f& Theta, const double& inclination,  const double& declination);
 
   /**
    * @brief This function binds references to the functions used in the ekf.
@@ -304,8 +366,14 @@ private:
   */
   void update_measurement_model_parameters();
   
+  /*
+   * @brief Indicates if a parameter in the estimator was changed.
+  */
   bool is_parameter_changed();
 
+  /*
+   * @brief Updates the process noises and measurement noises.
+  */
   void update_estimation_params();
 
   /**
@@ -318,6 +386,9 @@ private:
    */
   void initialize_state_covariances();
 
+  /*
+   * @brief Checks if the estimate is outside of acceptable values and resets it.
+  */
   void check_estimate(const Input& input);
 }; 
 
