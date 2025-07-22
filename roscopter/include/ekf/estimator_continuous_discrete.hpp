@@ -30,24 +30,28 @@ private:
   /**
    * @brief The low pass filter alpha value used on the gyro.
    */
-  float alpha_;
+  float alpha_gyro_;
+  
   /**
    * @brief The low pass filter alpha value used on the barometer.
    */
-  float alpha1_;
+  float alpha_baro_;
 
   /**
    * @brief The value of the low pass filtered gyroscope measurement.
    */
   float lpf_gyro_x_;
+
   /**
    * @brief The value of the low pass filtered gyroscope measurement.
    */
   float lpf_gyro_y_;
+
   /**
    * @brief The value of the low pass filtered gyroscope measurement.
    */
   float lpf_gyro_z_;
+
   /**
    * @brief The value of the low pass filtered static pressure sensor (barometer).
    */
@@ -61,6 +65,7 @@ private:
    * @param inputs The inputs to the estimator. Can be something like IMU measurements.
    */
   Eigen::VectorXf multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+
   /**
    * @brief This is a reference to the multirotor_dynamics function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
@@ -74,6 +79,7 @@ private:
    * @param inputs The inputs to the estimator, something like IMU measurements.
    */
   Eigen::MatrixXf multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+
   /**
    * @brief This is a reference to the multirotor_jacobian function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
@@ -87,6 +93,7 @@ private:
    * @param inputs Inputs to the estimator.
    */
   Eigen::MatrixXf multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+
   /**
    * @brief This is a reference to the multirotor_input_jacobian function. This incurs minimum time cost
    * when passing into a function.
@@ -114,6 +121,7 @@ private:
    * @param input Any necessary inputs not included in the state.
    */
   Eigen::MatrixXf multirotor_gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+
   /**
    * @brief This is a reference to the multirotor_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
@@ -153,6 +161,7 @@ private:
    * but is not contained in the state.
    */
   Eigen::VectorXf multirotor_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+
   /**
    * @brief This is a reference to the multirotor_mag_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
@@ -166,6 +175,7 @@ private:
    * @param input Any inputs not in the state needed for the system.
    */
   Eigen::MatrixXf multirotor_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  
   /**
    * @brief This is a reference to the multirotor_mag_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.

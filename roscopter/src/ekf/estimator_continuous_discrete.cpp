@@ -59,8 +59,7 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   initialize_process_noises();
   initialize_state_covariances();
   update_measurement_model_parameters();
-  
-  estimator_values_initialized_ = true;
+}
 
 // ======== INIT STATE ========
 void EstimatorContinuousDiscrete::init_state(const Input & input)
@@ -97,9 +96,9 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   check_estimate(input);
   
   // Low pass filter gyros to estimate angular rates ASK: Should we lpf this?
-  lpf_gyro_x_ = alpha_ * lpf_gyro_x_ + (1 - alpha_) * input.gyro_x;
-  lpf_gyro_y_ = alpha_ * lpf_gyro_y_ + (1 - alpha_) * input.gyro_y;
-  lpf_gyro_z_ = alpha_ * lpf_gyro_z_ + (1 - alpha_) * input.gyro_z;
+  lpf_gyro_x_ = alpha_gyro_ * lpf_gyro_x_ + (1 - alpha_gyro_) * input.gyro_x;
+  lpf_gyro_y_ = alpha_gyro_ * lpf_gyro_y_ + (1 - alpha_gyro_) * input.gyro_y;
+  lpf_gyro_z_ = alpha_gyro_ * lpf_gyro_z_ + (1 - alpha_gyro_) * input.gyro_z;
   
   Eigen::Vector3f mag;
   mag << input.mag_x, input.mag_y, input.mag_z;
@@ -190,7 +189,7 @@ void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& inpu
     return;
   }
 
-  lpf_static_ = alpha1_ * lpf_static_ + (1 - alpha1_) * input.static_pres; // ASK: Should we nix this?
+  lpf_static_ = alpha_baro_ * lpf_static_ + (1 - alpha_baro_) * input.static_pres;
 
   Eigen::Vector<float, num_baro_measurements> y_baro;
   y_baro << lpf_static_;
@@ -765,8 +764,8 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO:
   double sigma_mag = params_.get_double("sigma_mag");
   double frequency = params_.get_double("estimator_update_frequency");
   double Ts = 1.0 / frequency;
-  float lpf_a = params_.get_double("lpf_a");
-  float lpf_a1 = params_.get_double("lpf_a1");
+  float gyro_cutoff_freq = params_.get_double("gyro_cutoff_freq");
+  float baro_cutoff_freq = params_.get_double("baro_cutoff_freq");
 
   R_gnss_(0, 0) = powf(sigma_n_gps, 2);
   R_gnss_(1, 1) = powf(sigma_e_gps, 2);
@@ -782,8 +781,8 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO:
   R_mag_(2,2) = powf(sigma_mag,2);
   
   // Calculate low pass filter alpha values.
-  alpha_ = exp(-lpf_a * Ts);
-  alpha1_ = exp(-lpf_a1 * Ts);
+  alpha_gyro_ = exp(-2.*M_PI*gyro_cutoff_freq * Ts);
+  alpha_baro_ = exp(-2.*M_PI*baro_cutoff_freq * Ts);
 }
 
 void EstimatorContinuousDiscrete::declare_parameters()
@@ -801,8 +800,8 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_accel", .025 * 9.81);
 
   // Low pass filter parameters
-  params_.declare_double("lpf_a", 50.0);
-  params_.declare_double("lpf_a1", 8.0);
+  params_.declare_double("gyro_cutoff_freq", 20.0);
+  params_.declare_double("baro_cutoff_freq", 1.25);
   
   // Proccess noises
   params_.declare_double("roll_process_noise", 1000*powf(0.0001,2));
