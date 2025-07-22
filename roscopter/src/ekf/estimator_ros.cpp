@@ -7,7 +7,7 @@ namespace roscopter
 {
 
 EstimatorROS::EstimatorROS()
-    : Node("estimator_ros"), params_(this), params_initialized_(false)
+    : Node("estimator"), params_(this), params_initialized_(false)
 {
   vehicle_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("estimated_state", 10);
 

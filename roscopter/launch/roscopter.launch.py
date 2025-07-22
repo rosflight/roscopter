@@ -8,7 +8,8 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     roscopter_dir = get_package_share_directory('roscopter')
-    param_file = os.path.join(roscopter_dir, 'params', 'multirotor.yaml')
+    controller_param_file = os.path.join(roscopter_dir, 'params', 'multirotor.yaml')
+    estimator_param_file = os.path.join(roscopter_dir, 'params', 'estimator.yaml')
 
     state_remap_arg = DeclareLaunchArgument(
         "state_topic",
@@ -24,7 +25,7 @@ def generate_launch_description():
             executable='controller',
             name='autopilot',
             output='screen',
-            parameters=[param_file],
+            parameters=[controller_param_file],
             remappings=[('estimated_state', state_remap)]
         ),
         Node(
@@ -32,14 +33,15 @@ def generate_launch_description():
             executable='trajectory_follower',
             name='trajectory_follower',
             output='screen',
-            parameters=[param_file],
+            parameters=[controller_param_file],
             remappings=[('estimated_state', state_remap)]
         ),
         Node(
             package='roscopter',
             executable='estimator',
             name='estimator',
-            output='screen'
+            output='screen',
+            parameters=[estimator_param_file],
         ),
         Node(
             package='roscopter',

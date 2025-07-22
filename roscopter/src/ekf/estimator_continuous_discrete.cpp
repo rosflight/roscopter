@@ -786,7 +786,7 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO:
 }
 
 void EstimatorContinuousDiscrete::declare_parameters()
-{ // TODO: Add a param file to pull from.
+{
   
   // Sensor uncertainties
   params_.declare_double("sigma_n_gps", .01);
