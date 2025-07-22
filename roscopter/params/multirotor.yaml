@@ -85,7 +85,7 @@
         u_e_kp: 1.5
         u_e_ki: 0.01
         u_e_kd: 1.7
-        u_d_kp: 2.0
+        u_d_kp: 4.0
         u_d_ki: 0.01
         u_d_kd: 2.0
 

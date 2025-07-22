@@ -12,6 +12,7 @@ TrajectoryFollowerROS::TrajectoryFollowerROS() : Node("trajectory_follower"), pa
   // Instantiate publishers and subscribers
   state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&TrajectoryFollowerROS::state_callback, this, _1));
   trajectory_sub_ = this->create_subscription<roscopter_msgs::msg::TrajectoryCommand>("trajectory_command", 1, std::bind(&TrajectoryFollowerROS::cmd_callback, this, _1));
+  firmware_status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&TrajectoryFollowerROS::status_callback, this, _1));
   cmd_pub_ = this->create_publisher<roscopter_msgs::msg::ControllerCommand>("high_level_command", 1);
 
   // Clear integrators service
@@ -86,6 +87,11 @@ void TrajectoryFollowerROS::cmd_callback(const roscopter_msgs::msg::TrajectoryCo
 {
   input_cmd_ = msg;
   received_cmd_msg_ = true;
+}
+
+void TrajectoryFollowerROS::status_callback(const rosflight_msgs::msg::Status &msg)
+{
+  firmware_status_ = msg;
 }
 
 void TrajectoryFollowerROS::publish_command(roscopter_msgs::msg::ControllerCommand &command)
