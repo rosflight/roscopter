@@ -75,6 +75,11 @@ void TrajectoryFollower::update_gains()
 
 roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt)
 {
+  // If RC has control, clear the integrators
+  if (firmware_status_.rc_override) {
+    clear_integrators();
+  }
+
   double mass = params.get_double("mass");
   double g = params.get_double("gravity");
   double max_roll = params.get_double("max_roll") * M_PI / 180.0;
