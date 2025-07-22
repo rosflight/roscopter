@@ -88,7 +88,6 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   dt_ = dt;
   if (dt_ < 0.0000001) {
     // PID loops can blow up if dt is too small.
-    // TODO: Check this
     output_cmd_.cmd_valid = false;
     return output_cmd_;
   }

@@ -376,7 +376,6 @@ void ControllerCascadingPID::nvel_evel_dvel_yawrate(roscopter_msgs::msg::Control
   double a_e = PID_vel_e_.compute_pid(vel_e, v_inertial(1), dt_);  // ay
   double a_d = PID_vel_d_.compute_pid(vel_d, v_inertial(2), dt_);  // az
 
-  // TODO: Check these rotations
   // Rotate inertial frame accelerations to vehicle 1 frame accelerations
   double sin_psi = sin(xhat_.psi);
   double cos_psi = cos(xhat_.psi);
