@@ -10,6 +10,13 @@ def generate_launch_description():
     roscopter_dir = get_package_share_directory('roscopter')
     controller_param_file = os.path.join(roscopter_dir, 'params', 'multirotor.yaml')
     estimator_param_file = os.path.join(roscopter_dir, 'params', 'estimator.yaml')
+    
+    hotstart_estimator_arg = DeclareLaunchArgument(
+        "hotstart_estimator",
+        default_value="false",
+        description="Whether the estimator will hotstart based on the contents of 'params/hotstart'"
+    )
+    hotstart_estimator = LaunchConfiguration('hotstart_estimator')
 
     state_remap_arg = DeclareLaunchArgument(
         "state_topic",
@@ -20,6 +27,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         state_remap_arg,
+        hotstart_estimator_arg,
         Node(
             package='roscopter',
             executable='controller',
@@ -41,7 +49,7 @@ def generate_launch_description():
             executable='estimator',
             name='estimator',
             output='screen',
-            parameters=[estimator_param_file],
+            parameters=[estimator_param_file, {"hotstart_estimator": hotstart_estimator}],
         ),
         Node(
             package='roscopter',

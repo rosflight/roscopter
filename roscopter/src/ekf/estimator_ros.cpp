@@ -1,7 +1,6 @@
-#include <cstdlib>
-#include <cstring>
-
 #include "ekf/estimator_ros.hpp"
+#include <fstream>
+#include <rclcpp/logging.hpp>
 
 namespace roscopter
 {
@@ -38,6 +37,16 @@ EstimatorROS::EstimatorROS()
   params_.set_parameters();
 
   params_initialized_ = true;
+  
+  std::filesystem::path workspace_dir = ament_index_cpp::get_package_share_directory("roscopter");
+  std::filesystem::path params_dir = "params";
+  std::filesystem::path hotstart_file = "hotstart";
+
+  hotstart_path_ = workspace_dir / params_dir / hotstart_file;
+
+  if (params_.get_bool("hotstart_estimator")) {
+    hotstart();
+  }
 
   set_timer();
 }
@@ -53,9 +62,27 @@ void EstimatorROS::declare_parameters()
   params_.declare_int("baro_calibration_count", 100);  // TODO: this is a magic number. What is it determined from?
   params_.declare_int("min_gnss_fix_type", 3);
   params_.declare_double("baro_calibration_val", 0.0);
-  params_.declare_double("init_lat", 0.0);
-  params_.declare_double("init_lon", 0.0);
-  params_.declare_double("init_alt", 0.0);
+  params_.declare_bool("hotstart_estimator", false);
+}
+
+void EstimatorROS::hotstart()
+{
+  std::ifstream in(hotstart_path_.string());
+
+  in >> init_lat_;
+  in >> init_lon_;
+  in >> init_alt_;
+  in >> init_static_;
+}
+
+void EstimatorROS::saveInitConditions()
+{
+  std::ofstream out(hotstart_path_.string()); // NOTE: Saves to the install directory.
+
+  out << init_lat_ << " ";
+  out << init_lon_ << " ";
+  out << init_alt_ << " ";
+  out << init_static_;
 }
 
 void EstimatorROS::set_timer() {
@@ -110,6 +137,11 @@ void EstimatorROS::update()
     output.bx = output.by = output.bz = 0;
     output.inclination = 0;
   }
+  
+  if (!init_conds_saved_ && baro_init_ && gps_init_ && !params_.get_bool("hotstart_estimator")) {
+    saveInitConditions();
+    init_conds_saved_ = true;
+  }
 
   input_.gps_new = false;
   
@@ -133,6 +165,9 @@ void EstimatorROS::update()
   msg.by = output.by;
   msg.bz = output.bz;
   msg.inclination = output.inclination;
+  msg.initial_alt = init_alt_;
+  msg.initial_lat = init_lat_;
+  msg.initial_lon = init_lon_;
 
   // Fill in the quaternion
   msg.quat[0] = output.quat.w();
@@ -165,12 +200,12 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
   }
   if (!gps_init_ && has_fix_) {
     gps_init_ = true;
-    init_alt_ = msg_height;
-    init_lat_ = msg_lat;
-    init_lon_ = msg_lon;
-    // saveParameter("init_lat", init_lat_); // TODO: format the estimator to be able to hot start.
-    // saveParameter("init_lon", init_lon_);
-    // saveParameter("init_alt", init_alt_);
+
+    if (!params_.get_bool("hotstart_estimator")) {
+      init_alt_ = msg_height;
+      init_lat_ = msg_lat;
+      init_lon_ = msg_lon;
+    }
   } else {
     input_.gps_lat = msg_lat;
     input_.gps_lon = msg_lon;
@@ -253,7 +288,6 @@ void EstimatorROS::update_barometer_calibration(const rosflight_msgs::msg::Barom
     init_static_ = std::accumulate(init_static_vector_.begin(), init_static_vector_.end(), 0.0)
       / init_static_vector_.size();
     baro_init_ = true;
-    // saveParameter("baro_calibration_val", init_static_);
 
     //Check that it got a good calibration.
     std::sort(init_static_vector_.begin(), init_static_vector_.end());

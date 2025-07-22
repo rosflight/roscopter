@@ -600,6 +600,7 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
     declination_ = declination;
     mag_init_ = true;
   }
+
   if (mag_init_ || !has_fix_ || !input.gps_new) {
     return;
   }
@@ -628,7 +629,7 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
     RCLCPP_ERROR(this->get_logger(), "Inclination and Declination not set, estimation will likely be poor.");
   }
   else {
-    mag_init_ = true; // TODO: allow for there to be a param that can give inclination and declination and make the mag_init true.
+    mag_init_ = true;
   }
 }
 
@@ -835,8 +836,8 @@ void EstimatorContinuousDiscrete::declare_parameters()
   // Magnetic Field Parameters -- Set to -1000.0 to make estimator
   // find values using the WMM given GPS. If a reasonable number 
   // is given for the parameter, it will be used. 
-  params_.declare_double("inclination", -1000.);
-  params_.declare_double("declination", -1000.);
+  params_.declare_double("inclination", NOT_IN_USE);
+  params_.declare_double("declination", NOT_IN_USE);
 
   // Saturations limits
   params_.declare_double("max_estimated_phi", 85.0); // Deg
