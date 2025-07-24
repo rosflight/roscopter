@@ -79,22 +79,22 @@
         down_command_window: 3.0
 
         # Trajectory controller gains
-        u_n_kp: 0.7
-        u_n_ki: 0.0
-        u_n_kd: 2.0
-        u_e_kp: 0.7
-        u_e_ki: 0.0
-        u_e_kd: 2.0
-        u_d_kp: 4.0
-        u_d_ki: 0.0
-        u_d_kd: 3.0
+        u_n_kp: 1.5
+        u_n_ki: 0.01
+        u_n_kd: 1.7
+        u_e_kp: 1.5
+        u_e_ki: 0.01
+        u_e_kd: 1.7
+        u_d_kp: 2.0
+        u_d_ki: 0.01
+        u_d_kd: 2.0
 
         # Miscellanous
         tau: 0.05
-        C_d: 0.1
+        C_d: 0.0
         gravity: 9.81
         mass: 3.5
-        equilibrium_throttle: 0.5
+        equilibrium_throttle: 0.65
 
         # Takeoff and landing
         takeoff_d_pos: -2.0

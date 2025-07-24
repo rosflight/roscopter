@@ -2,6 +2,7 @@
 #include "navigation/trajectory_follower.hpp"
 
 using std::placeholders::_1;
+using std::placeholders::_2;
 
 namespace roscopter
 {
@@ -12,6 +13,10 @@ TrajectoryFollowerROS::TrajectoryFollowerROS() : Node("trajectory_follower"), pa
   state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&TrajectoryFollowerROS::state_callback, this, _1));
   trajectory_sub_ = this->create_subscription<roscopter_msgs::msg::TrajectoryCommand>("trajectory_command", 1, std::bind(&TrajectoryFollowerROS::cmd_callback, this, _1));
   cmd_pub_ = this->create_publisher<roscopter_msgs::msg::ControllerCommand>("high_level_command", 1);
+
+  // Clear integrators service
+  clear_integrators_srvs_ = this->create_service<std_srvs::srv::Trigger>(
+    "trajectory_follower/clear_integrators", std::bind(&TrajectoryFollowerROS::clear_integrators_callback, this, _1, _2));
 
   // Register parameter callback
   parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&TrajectoryFollowerROS::parameters_callback, this, _1));
@@ -87,6 +92,14 @@ void TrajectoryFollowerROS::publish_command(roscopter_msgs::msg::ControllerComma
 {
   command.header.stamp = this->get_clock()->now();
   cmd_pub_->publish(command);
+}
+
+bool TrajectoryFollowerROS::clear_integrators_callback(const std_srvs::srv::Trigger::Request::SharedPtr req,
+                                                       const std_srvs::srv::Trigger::Response::SharedPtr res)
+{
+  clear_integrators();
+  res->success = true;
+  return true;
 }
 
 double TrajectoryFollowerROS::saturate(double x, double max, double min)

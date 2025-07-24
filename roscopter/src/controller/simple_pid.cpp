@@ -105,10 +105,15 @@ double SimplePID::compute_pid(double desired, double current, double dt, double 
     }
   }
 
-  // Calculate Integrator Term
-  if (ki_ > 0.0) {
-    integrator_ += dt / 2 * (error + last_error_); // (trapezoidal rule)
-    i_term = ki_ * integrator_;
+  double u = p_term - d_term;
+  double u_sat = saturate(u, min_, max_);
+
+  // Calculate integrator term only if we haven't already saturated
+  if (u == u_sat) {
+    if (ki_ > 0.0) {
+      integrator_ += dt / 2 * (error + last_error_); // (trapezoidal rule)
+      i_term = ki_ * integrator_;
+    }
   }
 
   // Save off this state for next loop
@@ -116,10 +121,10 @@ double SimplePID::compute_pid(double desired, double current, double dt, double 
   last_state_ = current;
 
   // Sum three terms
-  double u = p_term + i_term - d_term;
+  u = p_term + i_term - d_term;
 
   // Integrator anti-windup
-  double u_sat = saturate(u, min_, max_);
+  u_sat = saturate(u, min_, max_);
   if (u != u_sat && std::fabs(i_term) > fabs(u_sat - p_term + d_term)) {
     // If we are at the saturation limits, then make sure the integrator doesn't get
     // bigger if it won't do anything (except take longer to unwind).  Just set it to the
@@ -137,12 +142,16 @@ void SimplePID::set_gains(double p, double i, double d, double tau, double max_u
 {
   //! \todo Should we really be zeroing this while we are gain tuning?
   kp_ = p;
-  ki_ = i;
   kd_ = d;
   tau_ = tau;
   max_ = max_u;
   min_ = min_u;
+
+  if (ki_ != i) {
+    ki_ = i;
+    clear_integrator();
+  }
 }
 
 
-}  // namespace relative_nav
+}  // namespace roscopter

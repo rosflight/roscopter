@@ -18,7 +18,6 @@ PathManager::PathManager()
 void PathManager::declare_params()
 {
   params.declare_double("default_altitude", 10.0);
-  params.declare_bool("hover_last", 0);
   params.declare_double("waypoint_tolerance", 10.0);
   params.declare_double("path_update_dt", 0.005);
   params.declare_bool("hold_last", true);
@@ -96,6 +95,8 @@ void PathManager::hold_timer_callback() {
 }
 
 void PathManager::increment_wp_index() {
+  if (waypoint_list_.size() == 0) { return; }
+
   if ((current_wp_index_ + 1) % waypoint_list_.size() == 0) {
     if (!params.get_bool("hold_last")) {
       current_wp_index_ = 0;

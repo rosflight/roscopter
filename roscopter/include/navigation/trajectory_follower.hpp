@@ -31,9 +31,9 @@ private:
   double east_control(double pe_cmd, double pe_dot_cmd, double pe_ddot_cmd);
   double down_control(double pd_cmd, double pd_dot_cmd, double pd_ddot_cmd);
 
-  void update_gains();
-  roscopter_msgs::msg::ControllerCommand manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt);
-  
+  void update_gains() override;
+  roscopter_msgs::msg::ControllerCommand manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt) override;
+  void clear_integrators() override;
 };
 
 }  // namespace roscopter

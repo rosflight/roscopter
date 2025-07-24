@@ -149,7 +149,7 @@ add_executable(trajectory_follower
   src/navigation/trajectory_follower_ros.cpp
   src/navigation/trajectory_follower.cpp
   src/controller/simple_pid.cpp)
-ament_target_dependencies(trajectory_follower rclcpp rclpy roscopter_msgs)
+ament_target_dependencies(trajectory_follower rclcpp rclpy roscopter_msgs std_srvs)
 target_link_libraries(trajectory_follower ${ament_LIBRARIES} param_manager)
 install(
   TARGETS trajectory_follower

@@ -176,4 +176,11 @@ double TrajectoryFollower::down_control(double pd_cmd, double pd_dot_cmd, double
   return saturate(u_d_unsat, min_accel_z, -max_accel_z_);
 }
 
+void TrajectoryFollower::clear_integrators()
+{
+  PID_u_n_.clear_integrator();
+  PID_u_e_.clear_integrator();
+  PID_u_d_.clear_integrator();
+}
+
 } // namespace roscopter
