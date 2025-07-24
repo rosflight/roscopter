@@ -1,15 +1,6 @@
-#include <cmath>
-#include <functional>
-#include <rclcpp/logging.hpp>
-#include <tuple>
-
-#include <sensor_msgs/msg/magnetic_field.hpp>
-
 #include "ekf/estimator_continuous_discrete.hpp"
 #include "ekf/estimator_ros.hpp"
 #include "ekf/geomag.h"
-
-// TODO:Get rid of all MatrixX, only use deterministic sizes.
 
 namespace roscopter
 {
@@ -38,12 +29,13 @@ Eigen::Matrix3f skew_matrix(Eigen::Vector3f vec)
 // ======== CONSTRUCTOR ========
 EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     : EstimatorEKF()
-    , xhat_(Eigen::VectorXf::Zero(12))
-    , P_(Eigen::MatrixXf::Identity(12, 12))
-    , Q_(Eigen::MatrixXf::Identity(12, 12))
-    , Q_g_(Eigen::MatrixXf::Identity(6, 6))
-    , R_(Eigen::MatrixXf::Zero(6, 6))
-    , R_fast(Eigen::MatrixXf::Zero(4, 4))
+    , xhat_(Eigen::Vector<float, num_states>::Zero())
+    , P_(Eigen::Matrix<float, num_states, num_states>::Identity())
+    , Q_(Eigen::Matrix<float, num_states, num_states>::Identity())
+    , Q_inputs_(Eigen::Matrix<float, num_estimator_inputs, num_estimator_inputs>::Identity())
+    , R_gnss_(Eigen::Matrix<float, num_gnss_measurements, num_gnss_measurements>::Zero())
+    , R_mag_(Eigen::Matrix<float,num_mag_measurements, num_mag_measurements>::Zero())
+    , R_baro_(Eigen::Matrix<float,num_baro_measurements, num_baro_measurements>::Zero())
 {
   // This binds the various functions for the measurement and dynamic models and their jacobians,
   // to a reference that is efficient to pass to the functions used to do the estimation.
@@ -52,6 +44,10 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   load_magnetic_model();
   // Indicates whether inclination_ and declination_ have been updated.
   mag_init_ = false;
+  
+  // Indicates whether the state has been initalized.
+  state_init_ = false;
+
   // Initialize the baro low pass filter.
   lpf_static_ = 0.0;
 
@@ -63,24 +59,46 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   initialize_process_noises();
   initialize_state_covariances();
   update_measurement_model_parameters();
-  
+}
+
+// ======== INIT STATE ========
+void EstimatorContinuousDiscrete::init_state(const Input & input)
+{
+  if (mag_init_) {
+    float heading = atan2f(input.mag_y, input.mag_x);
+    heading -= declination_;
+    xhat_(8) = heading;
+    state_init_ = true;
+    return;
+  }
 }
 
 // ======== MAIN ESTIMATION LOOP ========
 void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 {
+  if (!state_init_) {
+    calc_mag_field_properties(input); // Finds inclination_ and declination_.
+    init_state(input);
+    return; 
+  }
+
+  if (is_parameter_changed()) {
+    update_estimation_params();
+  }
+
   prediction_step(input);
   
   // Measurement updates.
-  fast_measurement_update_step(input);
+  mag_measurement_update_step(input);
+  baro_measurement_update_step(input);
   gnss_measurement_update_step(input);
 
   check_estimate(input);
   
   // Low pass filter gyros to estimate angular rates ASK: Should we lpf this?
-  lpf_gyro_x_ = alpha_ * lpf_gyro_x_ + (1 - alpha_) * input.gyro_x;
-  lpf_gyro_y_ = alpha_ * lpf_gyro_y_ + (1 - alpha_) * input.gyro_y;
-  lpf_gyro_z_ = alpha_ * lpf_gyro_z_ + (1 - alpha_) * input.gyro_z;
+  lpf_gyro_x_ = alpha_gyro_ * lpf_gyro_x_ + (1 - alpha_gyro_) * input.gyro_x;
+  lpf_gyro_y_ = alpha_gyro_ * lpf_gyro_y_ + (1 - alpha_gyro_) * input.gyro_y;
+  lpf_gyro_z_ = alpha_gyro_ * lpf_gyro_z_ + (1 - alpha_gyro_) * input.gyro_z;
   
   Eigen::Vector3f mag;
   mag << input.mag_x, input.mag_y, input.mag_z;
@@ -121,13 +139,13 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
   double frequency = params_.get_double("estimator_update_frequency");
   double Ts = 1.0 / frequency;
 
-  Eigen::Vector<float, 6> imu_measurements; // These are the input to the propagation.
+  Eigen::Vector<float, num_estimator_inputs> imu_measurements; // These are the input to the propagation.
   imu_measurements << input.accel_x, input.accel_y, input.accel_z,
                       input.gyro_x, input.gyro_y, input.gyro_z;
 
   std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model,
                                         imu_measurements, multirotor_input_jacobian_model, P_, Q_,
-                                        Q_g_, Ts);
+                                        Q_inputs_, Ts);
 
   // Wrap RPY estimates.
   xhat_(6) = wrap_within_180(0.0, xhat_(6));
@@ -135,18 +153,14 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
   xhat_(8) = wrap_within_180(0.0, xhat_(8));
 }
 
-void EstimatorContinuousDiscrete::fast_measurement_update_step(const Input& input)
+void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input)
 {
-  calc_mag_field_properties(input); // Runs only once, finds inclination_ and declination_.
-  
-  // Only update when have new baro and new mag.
-  if (!new_baro_ || !mag_init_) {
-    return; // ASK: Should we split the magnetometer?
+  // Only update when have new mag and the magnetometer models have been found.
+  if (!new_mag_ || !mag_init_) {
+    return;
   }
 
   bool convert_to_gauss = params_.get_bool("convert_to_gauss");
-
-  lpf_static_ = alpha1_ * lpf_static_ + (1 - alpha1_) * input.static_pres; // ASK: Should we nix this?
 
   Eigen::Vector3f mag_readings;
   mag_readings << input.mag_x, input.mag_y, input.mag_z;
@@ -154,22 +168,42 @@ void EstimatorContinuousDiscrete::fast_measurement_update_step(const Input& inpu
     mag_readings *= 10'000.;
   }
   
-  Eigen::Vector<float, 4> y_fast;
-  y_fast << lpf_static_, mag_readings/mag_readings.norm();
+  Eigen::Vector<float, num_mag_measurements> y_mag;
+  y_mag << mag_readings/mag_readings.norm(); // TODO: fix this normailization. This should be a filtered value or based on geomag.
 
   Eigen::Vector<float, 2> mag_info;
   mag_info << radians(declination_), radians(inclination_);
+  
+  // Use gammas to enforce consider states, or partial consider states. See Parial-Update Schmidt-Kalman Filter, Kevin Brink 2017.
+  Eigen::Vector<float, num_states> gammas = Eigen::Vector<float, num_states>::Zero();
 
-  Eigen::Vector<float, 12> gammas = Eigen::Vector<float, 12>::Zero();
+  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_mag_measurement_model, y_mag, multirotor_mag_measurement_jacobian_model, multirotor_mag_measurement_sensor_noise_model, P_, gammas);
 
-  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_fast_measurement_model, y_fast, multirotor_fast_measurement_jacobian_model, multirotor_fast_measurement_sensor_noise_model, P_, gammas);
+  new_mag_ = false;
+}
 
+void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& input) {
+  
+  // Only update when have new baro.
+  if (!new_baro_) {
+    return;
+  }
+
+  lpf_static_ = alpha_baro_ * lpf_static_ + (1 - alpha_baro_) * input.static_pres;
+
+  Eigen::Vector<float, num_baro_measurements> y_baro;
+  y_baro << lpf_static_;
+
+  Eigen::Vector<float, 1> _;
+
+  std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_baro_measurement_model, y_baro,
+                                             multirotor_baro_measurement_jacobian_model, multirotor_baro_measurement_sensor_noise_model, P_);
   new_baro_ = false;
 }
 
 void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& input)
 {
-  Eigen::VectorXf _(1); // This is used when no inputs are needed.
+  Eigen::Vector<float, 1> _; // This is used when no inputs are needed.
 
   // Only update if new GPS information is available.
   if (input.gps_new) {
@@ -178,22 +212,11 @@ void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& inpu
     gps_course = wrap_within_180(xhat_(3), gps_course);
     
     // Measurements for the positional states.
-    Eigen::Vector<float, 6> y_pos;
-    y_pos << input.gps_n, input.gps_e, -input.gps_h, input.gps_vn, input.gps_ve, input.gps_vd;
+    Eigen::Vector<float, num_gnss_measurements> y_gps;
+    y_gps << input.gps_n, input.gps_e, -input.gps_h, input.gps_vn, input.gps_ve, input.gps_vd;
   
-    Eigen::Vector<float, 12> test_state;
-    test_state << 1.0,1.0,1.0,1.0,1.0,1.0,1.0,2.0,1.0,0.5,0.5,0.5; 
-
-    auto test_inputs = Eigen::Vector<float, 6>::Ones(); 
-
-    
-    auto h = multirotor_measurement_prediction(test_state, _);
-    auto C = multirotor_measurement_jacobian(test_state, _);
-    // RCLCPP_INFO_STREAM(this->get_logger(),"C:\n" << C);
-    // RCLCPP_INFO_STREAM(this->get_logger(),"h:\n" << h);
-    // Update the state and covariance with based on the predicted and actual measurements.
-    std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_measurement_model, y_pos,
-                                             multirotor_measurement_jacobian_model, multirotor_measurement_sensor_noise_model, P_);
+    std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_gnss_measurement_model, y_gps,
+                                             multirotor_gnss_measurement_jacobian_model, multirotor_gnss_measurement_sensor_noise_model, P_);
   }
 }
 
@@ -217,7 +240,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::Ve
   Eigen::Vector3f euler_angles_dot = S(Theta)*(y_gyro - biases);
   
   // Stuff the derivative vector with the respective derivatives.
-  Eigen::Vector<float, 12> f = Eigen::Vector<float, 12>::Zero();
+  Eigen::Vector<float, num_states> f = Eigen::Vector<float, num_states>::Zero();
   f << R(Theta)*vels, velocity_dot, euler_angles_dot;
 
   return f;
@@ -232,7 +255,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
   Eigen::Vector3f biases = state.block<3,1>(9,0);
 
-  Eigen::Matrix<float, 12, 12> A = Eigen::Matrix<float, 12, 12>::Zero();
+  Eigen::Matrix<float, num_states, num_states> A = Eigen::Matrix<float, num_states, num_states>::Zero();
 
   // Identity matrix.
   A.block<3,3>(0,3) = R(Theta);
@@ -258,7 +281,7 @@ return A;
 Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
 {
   // This uses both the accel and gyro. The associated jacobians have been combined.
-  Eigen::Matrix<float, 12, 6> G = Eigen::Matrix<float, 12, 6>::Zero();
+  Eigen::Matrix<float, num_states, 6> G = Eigen::Matrix<float, num_states, num_estimator_inputs>::Zero();
   
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
   Eigen::Vector3f vels = state.block<3,1>(3,0);
@@ -271,41 +294,32 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eig
   return G;
 }
 
-// ======== FAST MEAUREMENT STEP EQUATIONS========
-// These are passed by reference to the fast measurement update step.
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_fast_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+// ======== MAG MEAUREMENT STEP EQUATIONS========
+// These are passed by reference to the mag measurement update step.
+Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  float rho = params_.get_double("rho");
-  float gravity = params_.get_double("gravity");
-
   float declination = input(0);
 
   float inclination = input(1);
   
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
 
-  Eigen::VectorXf h = Eigen::VectorXf::Zero(4);
+  Eigen::Vector<float, num_mag_measurements> h = Eigen::Vector<float, num_mag_measurements>::Zero();
 
   Eigen::Vector3f inertial_mag_readings = calculate_inertial_magnetic_field(declination, inclination);
 
   // Rotate the magnetometer readings into the body frame.
   Eigen::Vector3f predicted_mag_readings = R(Theta).transpose()*inertial_mag_readings;
   predicted_mag_readings /= predicted_mag_readings.norm();
-  
-  // Predicted static pressure measurements
-  h(0) = -rho*gravity*state(2);
 
   // Predicted magnetometer measurement in each body axis.
-  h.block<3,1>(1,0) = predicted_mag_readings;
+  h.block<3,1>(0,0) = predicted_mag_readings;
 
   return h;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  float rho = params_.get_double("rho");
-  float gravity = params_.get_double("gravity");
-  
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
 
   float declination = input(0);
@@ -316,31 +330,65 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_jacobia
 
   Eigen::Matrix<float, 3, 3> R_theta_mag_jac = del_R_Theta_T_y_mag_del_Theta(Theta, inertial_mag);
 
-  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(4,12);
-
-  // Static pressure
-  C(0,2) = -rho*gravity;
+  Eigen::Matrix<float, num_mag_measurements, num_states> C = Eigen::Matrix<float, num_mag_measurements, num_states>::Zero();
   
   // Magnetometer update
-  C.block<3,3>(1,6) = R_theta_mag_jac.block<3,3>(0,0); 
+  C.block<3,3>(0,6) = R_theta_mag_jac.block<3,3>(0,0); 
 
   return C;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_fast_measurement_sensor_noise()
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_sensor_noise()
 {
-  Eigen::MatrixXf R;
+  Eigen::Matrix<float, num_mag_measurements, num_mag_measurements> R;
 
-  R = R_fast;
+  R = R_mag_;
+
+  return R;
+}
+
+// ======== BARO MEAUREMENT STEP EQUATIONS========
+// These are passed by reference to the baro measurement update step.
+Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  float rho = params_.get_double("rho");
+  float gravity = params_.get_double("gravity");
+
+  Eigen::Vector<float, num_baro_measurements> h = Eigen::Vector<float, num_baro_measurements>::Zero();
+
+  // Predicted static pressure measurement
+  h(0) = -rho*gravity*state(2);
+
+  return h;
+}
+
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  float rho = params_.get_double("rho");
+  float gravity = params_.get_double("gravity");
+
+  Eigen::Matrix<float, num_baro_measurements, num_states> C = Eigen::Matrix<float, num_baro_measurements, num_states>::Zero();
+
+  // Static pressure
+  C(0,2) = -rho*gravity;
+
+  return C;
+}
+
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_sensor_noise()
+{
+  Eigen::Matrix<float, num_baro_measurements, num_baro_measurements> R;
+
+  R = R_baro_;
 
   return R;
 }
 
 // ======== GNSS MEAUREMENT STEP EQUATIONS========
 // These are passed by reference to the GNSS measurement update step.
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  Eigen::VectorXf h = Eigen::VectorXf::Zero(6);
+  Eigen::Vector<float, num_gnss_measurements> h = Eigen::Vector<float, num_gnss_measurements>::Zero();
 
   // North position
   h(0) = state(0);
@@ -374,9 +422,9 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_measurement_prediction(c
   return h;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  Eigen::MatrixXf C = Eigen::MatrixXf::Zero(6,12);
+  Eigen::Matrix<float, num_gnss_measurements, num_states> C = Eigen::Matrix<float, num_gnss_measurements, num_states>::Zero();
   Eigen::Vector3f vels = state.block<3,1>(3,0);
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
   
@@ -400,11 +448,11 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_measurement_jacobian(con
   return C;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_measurement_sensor_noise()
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_sensor_noise()
 {
-  Eigen::MatrixXf R;
+  Eigen::Matrix<float, num_gnss_measurements, num_gnss_measurements> R;
 
-  R = R_;
+  R = R_gnss_;
 
   return R;
 }
@@ -465,57 +513,10 @@ Eigen::Matrix3f EstimatorContinuousDiscrete::del_S_Theta_del_Theta(const Eigen::
   return S_Theta_jacobian;
 }
 
-Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel)
-{
-  float accel_x = accel(0);
-  float accel_y = accel(1);
-  float accel_z = accel(2);
-  float phi = Theta(0);
-  float theta = Theta(1);
-  float psi = Theta(2);
-
-  Eigen::Matrix3f R_Theta_jacobian;
-  R_Theta_jacobian <<
-  accel_y*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)) - accel_z *(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)),
-  (- accel_x*sin(theta) + accel_y*sin(phi)*cos(theta) + accel_z*cos(phi)*cos(theta))*cos(psi),
-  - accel_x*sinf(psi)*cosf(theta) - accel_y*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)) + accel_z*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)),
-  - accel_y*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)) - accel_z*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)),
-  (- accel_x*sinf(theta) + accel_y*sinf(phi)*cosf(theta) + accel_z*cosf(phi)*cosf(theta))*sinf(psi), 
-  accel_x*cosf(psi)*cosf(theta) + accel_y*(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)) + accel_z*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)),
-  (accel_y*cosf(phi) - accel_z*sinf(phi))*cosf(theta),
-   - accel_x*cosf(theta) - accel_y*sinf(phi)*sinf(theta) - accel_z*sinf(theta)*cosf(phi),
-  0.0;
-
-  return R_Theta_jacobian;
-}
-
-Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag)
-{
-  float m_x = inertial_mag(0); // These are the mag measures in the inertial frame.
-  float m_y = inertial_mag(1);
-  float m_z = inertial_mag(2);
-
-  float phi = Theta(0);
-  float theta = Theta(1);
-  float psi = Theta(2);
-
-  Eigen::Matrix3f R_theta_mag_jac;
-  R_theta_mag_jac << m_y*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)) - m_z*(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)),
-  (- m_x*sinf(theta) + m_y*sinf(phi)*cosf(theta) + m_z*cosf(phi)*cosf(theta)) * cosf(psi),
-  -m_x*sinf(psi)*cosf(theta) - m_y*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)) + m_z*(sinf(phi)*cosf(psi)- sinf(psi)*sinf(theta)*cosf(phi)),
-  -m_y*(sinf(phi)*cosf(psi) - sinf(psi)*sinf(theta)*cosf(phi)) - m_z*(sinf(phi)*sinf(psi)*sinf(theta) + cosf(phi)*cosf(psi)),
-  (-m_x*sinf(theta) + m_y*sinf(phi)*cosf(theta) + m_z*cosf(phi)*cosf(theta))*sinf(psi),
-  m_x*cosf(psi)*cosf(theta) + m_y*(sinf(phi)*sinf(theta)*cosf(psi) - sinf(psi)*cosf(phi)) + m_z*(sinf(phi)*sinf(psi) + sinf(theta)*cosf(phi)*cosf(psi)),
-  (m_y*cosf(phi) - m_z*sinf(phi))*cosf(theta), - m_x*cosf(theta) - m_y*sinf(phi)*sinf(theta) - m_z*sinf(theta)*cosf(phi), 0;
-
-  return R_theta_mag_jac;
-}
-
 Eigen::Matrix<float, 3,3> EstimatorContinuousDiscrete::del_R_Theta_T_g_del_Theta(const Eigen::Vector3f& Theta, const double& gravity)
 {
   float phi = Theta(0);
   float theta = Theta(1);
-  float psi = Theta(2);
 
   Eigen::Matrix<float, 3, 3> R_theta_T_g_jac;
 
@@ -549,21 +550,6 @@ Eigen::Matrix<float, 3,3> EstimatorContinuousDiscrete::del_R_Theta_v_del_Theta(c
                    0.0; 
 
   return R_theta_v_jac;
-}
-
-Eigen::Matrix<float, 3,4> EstimatorContinuousDiscrete::del_R_Theta_inc_y_mag_del_Theta(const Eigen::Vector3f& Theta, const double& inclination,  const double& declination)
-{
-  float phi = Theta(0);
-  float theta = Theta(1);
-  float psi = Theta(2);
-
-  Eigen::Matrix<float, 3, 4> R_theta_inc_mag_jac;
-
-  R_theta_inc_mag_jac << -(sinf(psi) * cosf(declination + phi) - sinf(theta) * sinf(declination + phi) * cosf(psi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * cosf(psi),(sinf(psi) * sinf(theta) * cosf(declination + phi) - sinf(declination + phi) * cosf(psi)) * sinf(inclination) -sinf(psi) * cosf(inclination) * cosf(theta), -(sinf(psi) * sinf(declination + phi) + sinf(theta) * cosf(psi) * cosf(declination + phi)) * cosf(inclination) -sinf(inclination) * cosf(psi) * cosf(theta),
-  (sinf(psi) * sinf(theta) * sinf(declination + phi) + cosf(psi) * cosf(declination + phi)) * sinf(inclination), -(sinf(inclination) * cosf(theta) * cosf(declination + phi) + sinf(theta) * cosf(inclination)) * sinf(psi), -(sinf(psi) * sinf(declination + phi)  + sinf(theta) * cosf(psi) * cosf(declination + phi)) * sinf(inclination) +cosf(inclination) * cosf(psi) * cosf(theta),(- sinf(psi) * sinf(theta) * cosf(declination + phi) + sinf(declination + phi) * cosf(psi)) * cosf(inclination) -sinf(inclination) * sinf(psi) * cosf(theta),
-  sinf(inclination) * sinf(declination + phi) * cosf(theta),sinf(inclination) * sinf(theta) * cosf(declination + phi) -cosf(inclination) * cosf(theta), 0,sinf(inclination) * sinf(theta) -cosf(inclination) * cosf (theta) * cosf(declination + phi);
-
-  return R_theta_inc_mag_jac;
 }
 
 Eigen::Matrix3f EstimatorContinuousDiscrete::del_R_Theta_T_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& mag)
@@ -603,8 +589,18 @@ Eigen::Vector3f EstimatorContinuousDiscrete::calculate_inertial_magnetic_field(c
 }
 
 
-void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input) // TODO: Put in GPS init?
+void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
 {
+  float inclination = params_.get_double("inclination");
+  float declination = params_.get_double("declination");
+
+  if ((0. <= inclination && inclination <= 90.) &&
+      (-90. <= declination && declination <= 90.)) {
+    inclination_ = inclination;
+    declination_ = declination;
+    mag_init_ = true;
+  }
+
   if (mag_init_ || !has_fix_ || !input.gps_new) {
     return;
   }
@@ -695,7 +691,6 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
 // ======== INITIALIZATION FUNCTIONS ========
 void EstimatorContinuousDiscrete::initialize_state_covariances() 
 {
-  // TODO: convert to parameter array.
   double pos_n_initial_cov = params_.get_double("pos_n_initial_cov");
   double pos_e_initial_cov = params_.get_double("pos_e_initial_cov");
   double pos_d_initial_cov = params_.get_double("pos_d_initial_cov");
@@ -709,7 +704,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   double bias_y_initial_cov = params_.get_double("bias_y_initial_cov");
   double bias_z_initial_cov = params_.get_double("bias_z_initial_cov");
   
-  P_ = Eigen::MatrixXf::Identity(12, 12); // TODO: make number of states a global variable so you only have to change it once.
+  P_ = Eigen::MatrixXf::Identity(num_states, num_states);
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
   P_(2, 2) = pos_d_initial_cov;
@@ -724,7 +719,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   P_(11, 11) = bias_z_initial_cov; 
 }
 
-void EstimatorContinuousDiscrete::initialize_process_noises() 
+void EstimatorContinuousDiscrete::initialize_process_noises()  // TODO: Use a parameter update callback to dynamically change this.
 {
   double gyro_process_noise = params_.get_double("gyro_process_noise");
   double accel_process_noise = params_.get_double("accel_process_noise");
@@ -737,11 +732,11 @@ void EstimatorContinuousDiscrete::initialize_process_noises()
   double velocity_vertical_process_noise = params_.get_double("vel_horizontal_process_noise");
   double bias_process_noise = params_.get_double("bias_process_noise");
   
-  Eigen::VectorXf imu_process_noises = Eigen::VectorXf::Zero(6);
-  imu_process_noises << pow(accel_process_noise,2), pow(accel_process_noise,2), pow(accel_process_noise,2),
+  Eigen::Vector<float, num_estimator_inputs> estimator_input_process_noises = Eigen::Vector<float, num_estimator_inputs>::Zero();
+  estimator_input_process_noises << pow(accel_process_noise,2), pow(accel_process_noise,2), pow(accel_process_noise,2),
                         pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2), pow(radians(gyro_process_noise), 2);
 
-  Q_g_ = Eigen::DiagonalMatrix<float,6>(imu_process_noises);
+  Q_inputs_ = Eigen::DiagonalMatrix<float,num_estimator_inputs>(estimator_input_process_noises);
 
   Q_(0,0) = position_process_noise;
   Q_(1,1) = position_process_noise;
@@ -757,8 +752,8 @@ void EstimatorContinuousDiscrete::initialize_process_noises()
   Q_(11,11) = bias_process_noise;
 }
 
-void EstimatorContinuousDiscrete::update_measurement_model_parameters()
-{
+void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO: Use a parameter update callback to dynamically change this.
+{ 
   // For readability, declare the parameters used in the function here
   double sigma_n_gps = params_.get_double("sigma_n_gps");
   double sigma_e_gps = params_.get_double("sigma_e_gps");
@@ -770,28 +765,29 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   double sigma_mag = params_.get_double("sigma_mag");
   double frequency = params_.get_double("estimator_update_frequency");
   double Ts = 1.0 / frequency;
-  float lpf_a = params_.get_double("lpf_a");
-  float lpf_a1 = params_.get_double("lpf_a1");
+  float gyro_cutoff_freq = params_.get_double("gyro_cutoff_freq");
+  float baro_cutoff_freq = params_.get_double("baro_cutoff_freq");
 
-  R_(0, 0) = powf(sigma_n_gps, 2);
-  R_(1, 1) = powf(sigma_e_gps, 2);
-  R_(2, 2) = powf(sigma_h_gps, 2);
-  R_(3, 3) = powf(sigma_vn_gps, 2);
-  R_(4, 4) = powf(sigma_ve_gps, 2);
-  R_(5, 5) = powf(sigma_vd_gps, 2);
+  R_gnss_(0, 0) = powf(sigma_n_gps, 2);
+  R_gnss_(1, 1) = powf(sigma_e_gps, 2);
+  R_gnss_(2, 2) = powf(sigma_h_gps, 2);
+  R_gnss_(3, 3) = powf(sigma_vn_gps, 2);
+  R_gnss_(4, 4) = powf(sigma_ve_gps, 2);
+  R_gnss_(5, 5) = powf(sigma_vd_gps, 2);
   
-  R_fast(0,0) = powf(sigma_static_press,2);
-  R_fast(1,1) = powf(sigma_mag,2);
-  R_fast(2,2) = powf(sigma_mag,2);
-  R_fast(3,3) = powf(sigma_mag,2);
+  R_baro_(0,0) = powf(sigma_static_press,2);
+
+  R_mag_(0,0) = powf(sigma_mag,2);
+  R_mag_(1,1) = powf(sigma_mag,2);
+  R_mag_(2,2) = powf(sigma_mag,2);
   
   // Calculate low pass filter alpha values.
-  alpha_ = exp(-lpf_a * Ts);
-  alpha1_ = exp(-lpf_a1 * Ts);
+  alpha_gyro_ = exp(-2.*M_PI*gyro_cutoff_freq * Ts);
+  alpha_baro_ = exp(-2.*M_PI*baro_cutoff_freq * Ts);
 }
 
 void EstimatorContinuousDiscrete::declare_parameters()
-{ // TODO: Add a param file to pull from.
+{
   
   // Sensor uncertainties
   params_.declare_double("sigma_n_gps", .01);
@@ -805,8 +801,8 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_accel", .025 * 9.81);
 
   // Low pass filter parameters
-  params_.declare_double("lpf_a", 50.0);
-  params_.declare_double("lpf_a1", 8.0);
+  params_.declare_double("gyro_cutoff_freq", 20.0);
+  params_.declare_double("baro_cutoff_freq", 1.25);
   
   // Proccess noises
   params_.declare_double("roll_process_noise", 1000*powf(0.0001,2));
@@ -836,12 +832,34 @@ void EstimatorContinuousDiscrete::declare_parameters()
   
   // Conversion flags
   params_.declare_bool("convert_to_gauss", true);
+  
+  // Magnetic Field Parameters -- Set to -1000.0 to make estimator
+  // find values using the WMM given GPS. If a reasonable number 
+  // is given for the parameter, it will be used. 
+  params_.declare_double("inclination", NOT_IN_USE);
+  params_.declare_double("declination", NOT_IN_USE);
 
   // Saturations limits
   params_.declare_double("max_estimated_phi", 85.0); // Deg
   params_.declare_double("max_estimated_theta", 80.0); // Deg
   params_.declare_double("gps_n_lim", 10000.);
   params_.declare_double("gps_e_lim", 10000.); 
+}
+
+bool EstimatorContinuousDiscrete::is_parameter_changed()
+{
+  if (parameter_changed) {
+    parameter_changed = false;
+    // TODO: Check if the parameter changed was relavent. Will require structural changes. Like putting names in a dictionary.
+    return true;
+  }
+  return false;
+}
+
+void EstimatorContinuousDiscrete::update_estimation_params()
+{
+  initialize_process_noises();
+  update_measurement_model_parameters();
 }
 
 void EstimatorContinuousDiscrete::bind_functions()
@@ -857,14 +875,17 @@ void EstimatorContinuousDiscrete::bind_functions()
   multirotor_jacobian_model = std::bind(&This::multirotor_jacobian, this, _1, _2);
   multirotor_input_jacobian_model = std::bind(&This::multirotor_input_jacobian, this, _1, _2);
 
-  multirotor_measurement_model = std::bind(&This::multirotor_measurement_prediction, this, _1, _2);
-  multirotor_measurement_jacobian_model = std::bind(&This::multirotor_measurement_jacobian, this, _1, _2);
-  multirotor_measurement_sensor_noise_model = std::bind(&This::multirotor_measurement_sensor_noise, this);
+  multirotor_gnss_measurement_model = std::bind(&This::multirotor_gnss_measurement_prediction, this, _1, _2);
+  multirotor_gnss_measurement_jacobian_model = std::bind(&This::multirotor_gnss_measurement_jacobian, this, _1, _2);
+  multirotor_gnss_measurement_sensor_noise_model = std::bind(&This::multirotor_gnss_measurement_sensor_noise, this);
 
-  multirotor_fast_measurement_model = std::bind(&This::multirotor_fast_measurement_prediction, this, _1, _2);
-  multirotor_fast_measurement_jacobian_model = std::bind(&This::multirotor_fast_measurement_jacobian, this, _1, _2);
-  multirotor_fast_measurement_sensor_noise_model = std::bind(&This::multirotor_fast_measurement_sensor_noise, this);
+  multirotor_mag_measurement_model = std::bind(&This::multirotor_mag_measurement_prediction, this, _1, _2);
+  multirotor_mag_measurement_jacobian_model = std::bind(&This::multirotor_mag_measurement_jacobian, this, _1, _2);
+  multirotor_mag_measurement_sensor_noise_model = std::bind(&This::multirotor_mag_measurement_sensor_noise, this);
 
+  multirotor_baro_measurement_model = std::bind(&This::multirotor_baro_measurement_prediction, this, _1, _2);
+  multirotor_baro_measurement_jacobian_model = std::bind(&This::multirotor_baro_measurement_jacobian, this, _1, _2);
+  multirotor_baro_measurement_sensor_noise_model = std::bind(&This::multirotor_baro_measurement_sensor_noise, this);
 }
 
 } // namespace roscopter

@@ -24,11 +24,16 @@
 #include <roscopter_msgs/msg/state.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
-#include <yaml-cpp/yaml.h>
+
+#include <cstdlib>
+#include <cstring>
+#include <filesystem>
+#include <fstream>
 
 #include "param_manager/param_manager.hpp"
 
 #define EARTH_RADIUS 6378145.0f
+#define NOT_IN_USE -1000000.f
 
 using std::placeholders::_1;
 using namespace std::chrono_literals;
@@ -97,11 +102,22 @@ protected:
     Eigen::Quaternionf quat;
   };
 
-  bool baro_init_; /**< Initial barometric pressure */
+  bool init_conds_saved_ = false;
+  std::filesystem::path hotstart_path_;
+
+  bool baro_init_ = false;
   bool new_baro_ = false;
+  
+  /**
+   * @brief Indicates if the magnetometer magnetic field parameters have been initialized.
+   */
+  bool mag_init_ = false;
+  bool new_mag_ = false;
 
   virtual void estimate(const Input & input,
                         Output & output) = 0;
+
+  bool parameter_changed = false;
 
   ParamManager params_;
   bool gps_init_ = false;
@@ -111,6 +127,9 @@ protected:
   float init_alt_ = 0.0;                  /**< Initial altitude in meters above MSL  */
   float init_static_;                     /**< Initial static pressure (mbar)  */
 private:
+  void hotstart();
+  void saveInitConditions();
+
   rclcpp::Publisher<roscopter_msgs::msg::State>::SharedPtr vehicle_state_pub_;
   rclcpp::Subscription<rosflight_msgs::msg::GNSS>::SharedPtr gnss_sub_;
   rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;
@@ -118,20 +137,11 @@ private:
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
   rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr magnetometer_sub_;
 
-  std::string param_filepath_ = "estimator_params.yaml";
-
   void update();
   void gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg);
   void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
   void baroAltCallback(const rosflight_msgs::msg::Barometer::SharedPtr msg);
   void update_barometer_calibration(const rosflight_msgs::msg::Barometer::SharedPtr msg);
-  /**
-   * @brief This saves parameters to the param file for later use.
-   *
-   * @param param_name The name of the parameter.
-   * @param param_val The value of the parameter.
-   */
-  // void saveParameter(std::string param_name, double param_val);
   void statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg);
   void magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg);
 
@@ -172,6 +182,7 @@ private:
    * @return Service result object that tells the requester the result of the param update.
    */
   rcl_interfaces::msg::SetParametersResult
+
   parametersCallback(const std::vector<rclcpp::Parameter> & parameters);
 
   Input input_;

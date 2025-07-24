@@ -7,6 +7,10 @@
 #include <yaml-cpp/yaml.h>
 #include "geomag.h"
 
+#include <cmath>
+#include <functional>
+#include <tuple>
+
 #include "estimator_ekf.hpp"
 #include "estimator_ros.hpp"
 
@@ -26,24 +30,28 @@ private:
   /**
    * @brief The low pass filter alpha value used on the gyro.
    */
-  float alpha_;
+  float alpha_gyro_;
+  
   /**
    * @brief The low pass filter alpha value used on the barometer.
    */
-  float alpha1_;
+  float alpha_baro_;
 
   /**
    * @brief The value of the low pass filtered gyroscope measurement.
    */
   float lpf_gyro_x_;
+
   /**
    * @brief The value of the low pass filtered gyroscope measurement.
    */
   float lpf_gyro_y_;
+
   /**
    * @brief The value of the low pass filtered gyroscope measurement.
    */
   float lpf_gyro_z_;
+
   /**
    * @brief The value of the low pass filtered static pressure sensor (barometer).
    */
@@ -57,6 +65,7 @@ private:
    * @param inputs The inputs to the estimator. Can be something like IMU measurements.
    */
   Eigen::VectorXf multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+
   /**
    * @brief This is a reference to the multirotor_dynamics function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
@@ -70,6 +79,7 @@ private:
    * @param inputs The inputs to the estimator, something like IMU measurements.
    */
   Eigen::MatrixXf multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+
   /**
    * @brief This is a reference to the multirotor_jacobian function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
@@ -83,6 +93,7 @@ private:
    * @param inputs Inputs to the estimator.
    */
   Eigen::MatrixXf multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+
   /**
    * @brief This is a reference to the multirotor_input_jacobian function. This incurs minimum time cost
    * when passing into a function.
@@ -96,12 +107,12 @@ private:
    * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
    * but is not contained in the state.
    */
-  Eigen::VectorXf multirotor_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf multirotor_gnss_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
   /**
    * @brief This is a reference to the multirotor_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-   MeasurementModelFuncRef multirotor_measurement_model;
+   MeasurementModelFuncRef multirotor_gnss_measurement_model;
   
   /**
    * @brief Calculates the measurement jacobian for the measurement model.
@@ -109,116 +120,245 @@ private:
    * @param state State of the system.
    * @param input Any necessary inputs not included in the state.
    */
-  Eigen::MatrixXf multirotor_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf multirotor_gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+
   /**
    * @brief This is a reference to the multirotor_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  JacobianFuncRef multirotor_measurement_jacobian_model;
-  
-  // TODO: Fill in DOXYGEN
-  Eigen::MatrixXf multirotor_measurement_sensor_noise();
-
-  Eigen::Matrix<float, 3,3> del_R_Theta_T_g_del_Theta(const Eigen::Vector3f& Theta, const double& gravity);
-
-  Eigen::Matrix<float, 3,3> del_R_Theta_v_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& vels);
-
-  double gravity_ = 9.81;
-  
-  SensorNoiseFuncRef multirotor_measurement_sensor_noise_model;
+  JacobianFuncRef multirotor_gnss_measurement_jacobian_model;
   
   /**
-   * @brief Calculates measurement prediction for the fast sensors.
+   * @brief This function returns the GNSS measurement noise.
+   */
+  Eigen::MatrixXf multirotor_gnss_measurement_sensor_noise();
+
+  /**
+   * @brief Calculates the partial of gravity in the body frame with respect to the Euler angles.
+   */
+  Eigen::Matrix<float, 3,3> del_R_Theta_T_g_del_Theta(const Eigen::Vector3f& Theta, const double& gravity);
+
+  /**
+   * @brief Calculates the partial the inertial velocities with respect to the Euler angles.
+   */
+  Eigen::Matrix<float, 3,3> del_R_Theta_v_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& vels);
+
+  /**
+   * @brief Acceleration due to gravity in m/s^2.
+   */
+  double gravity_ = 9.81;
+  
+  /**
+   * @brief Reference to the function that calculates the sensor noise of the GNSS.
+   */
+  SensorNoiseFuncRef multirotor_gnss_measurement_sensor_noise_model;
+  
+  /**
+   * @brief Calculates measurement prediction for the mag.
    *
    * @param state The state of the system.
    * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
    * but is not contained in the state.
    */
-  Eigen::VectorXf multirotor_fast_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf multirotor_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+
   /**
-   * @brief This is a reference to the multirotor_fast_measurement_prediction function. This incurs minimum time cost
+   * @brief This is a reference to the multirotor_mag_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-  MeasurementModelFuncRef multirotor_fast_measurement_model;
+  MeasurementModelFuncRef multirotor_mag_measurement_model;
   
   /**
-   * @brief Calculates the jacobian of the measurement model for the fast sensors.
+   * @brief Calculates the jacobian of the measurement model for the magnetometer.
    *
    * @param state State of the system.
    * @param input Any inputs not in the state needed for the system.
    */
-  Eigen::MatrixXf multirotor_fast_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf multirotor_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  
   /**
-   * @brief This is a reference to the multirotor_fast_measurement_jacobian function. This incurs minimum time cost
+   * @brief This is a reference to the multirotor_mag_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  JacobianFuncRef multirotor_fast_measurement_jacobian_model;
+  JacobianFuncRef multirotor_mag_measurement_jacobian_model;
   
-  // TODO: Fill in DOXYGEN
-  Eigen::MatrixXf multirotor_fast_measurement_sensor_noise();
+  /**
+   * @brief Calculates the sensor noise of the magnetometer.
+   */
+  Eigen::MatrixXf multirotor_mag_measurement_sensor_noise();
   
-  SensorNoiseFuncRef multirotor_fast_measurement_sensor_noise_model;
+  /**
+   * @brief Reference to the magnetometer sensor noise calculation.
+   */
+  SensorNoiseFuncRef multirotor_mag_measurement_sensor_noise_model;
+  
+  /**
+   * @brief Calculates measurement prediction for the baro.
+   *
+   * @param state The state of the system.
+   * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
+   * but is not contained in the state.
+   */
+  Eigen::VectorXf multirotor_baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_baro_measurement_prediction function. This incurs minimum time cost
+   * when passing into a function.
+   */
+  MeasurementModelFuncRef multirotor_baro_measurement_model;
+  
+  /**
+   * @brief Calculates the jacobian of the measurement model for the barometer.
+   *
+   * @param state State of the system.
+   * @param input Any inputs not in the state needed for the system.
+   */
+  Eigen::MatrixXf multirotor_baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  /**
+   * @brief This is a reference to the multirotor_baro_measurement_jacobian function. This incurs minimum time cost
+   * when passing into a function.
+   */
+  JacobianFuncRef multirotor_baro_measurement_jacobian_model;
+  
+  /**
+   * @brief Calculates the barometer sensor noise.
+   */
+  Eigen::MatrixXf multirotor_baro_measurement_sensor_noise();
+  
+  /**
+   * @brief Reference to the calculation of the barometer sensor noise.
+   */
+  SensorNoiseFuncRef multirotor_baro_measurement_sensor_noise_model;
+
+  /**
+   * @brief The number of states to estimate.
+   */
+  static constexpr int num_states = 12;
 
   /**
    * @brief The state of the system.
    */
-  Eigen::VectorXf xhat_; // 13
+  Eigen::Vector<float, num_states> xhat_;
   /**
    * @brief The covariance of the estimate.
    */
-  Eigen::MatrixXf P_;    // 13x13
+  Eigen::Matrix<float, num_states, num_states> P_;
 
   /**
    * @brief The process noise for state propagation.
    */
-  Eigen::MatrixXf Q_; // 13x13
+  Eigen::Matrix<float, num_states, num_states> Q_;
+  
   /**
-   * @brief The process noise from the inputs to the estimator.
+   * @brief There are 6 estimator inputs by default. accel_x, accel_y, accel_z, omega_x, omega_y and omega_z.
    */
-  Eigen::MatrixXf Q_g_; // 6x6
+  static constexpr int num_estimator_inputs = 6;
+
   /**
-   * @brief The sensor noises for the slower sensors.
+   * @brief The process noise from the inputs to the estimator, accelerations (3) and angular velocities (3).
+   * The first 3 rows are for the accels, and the second 3 for the angular velocities.
    */
-  Eigen::MatrixXf R_; // 5x5
+  Eigen::Matrix<float, num_estimator_inputs, num_estimator_inputs> Q_inputs_;
+
   /**
-   * @brief The sensor noises for the faster sensors.
+   * @brief There are 6 gnss measurements by default. Lat, lon, alt, v_n, v_e and v_d.
    */
-  Eigen::MatrixXf R_fast; // 4x4
+  static constexpr int num_gnss_measurements = 6;
+
+  /**
+   * @brief The sensor noises for the GNSS measurements. The first three rows are for the positional measurements.
+   * The last three rows are for the velocity measurements.
+   */
+  Eigen::Matrix<float, num_gnss_measurements, num_gnss_measurements> R_gnss_;
+  
+  /**
+   * @brief There are 3 mag measurements by default. m_x, m_y and m_z.
+   */
+  static constexpr int num_mag_measurements = 3;
+
+  /**
+   * @brief The sensor noises for the magnetometer.
+   */
+  Eigen::Matrix<float, num_mag_measurements, num_mag_measurements> R_mag_;
+  
+  /**
+   * @brief There is one barometer measurement by default. P (pressure).
+   */
+  static constexpr int num_baro_measurements = 1;
+  
+  /**
+   * @brief The sensor noises for the barometer.
+   */
+  Eigen::Matrix<float, num_baro_measurements, num_baro_measurements> R_baro_;
   
   /**
    * @brief The calculated inclination of the magnetic field at the current location.
    */
   double inclination_;
+
   /**
    * @brief The calculated declination of the magnetic field at the current location.
    */
   double declination_;
 
-  bool mag_init_;
+  /**
+   * @brief Flag to indicate if the state has been Initialized.
+   */
+  bool state_init_;
 
+  /**
+   * @brief Initializes the state based on the current input.
+   */
+  void init_state(const Input & input);
+
+  /**
+   * @brief Run the prediction step of the estimation algorithm.
+   */
   void prediction_step(const Input& input);
 
-  void fast_measurement_update_step(const Input& input);
+  /**
+   * @brief Run the magnetometer measurement update.
+   */
+  void mag_measurement_update_step(const Input& input);
 
+  /**
+   * @brief Run the barometer measurement update.
+   */
+  void baro_measurement_update_step(const Input& input);
+
+  /**
+   * @brief Run the GNSS measurement update.
+   */
   void gnss_measurement_update_step(const Input& input);
 
+  /**
+   * @brief Calculates the properties of teh magnetic field at this particular lat lon.
+   */
   void calc_mag_field_properties(const Input& input);
 
-  Eigen::Vector3f calculate_inertial_magnetic_field(const float& declination, const float& inclination);
-  Eigen::Matrix3f R(const Eigen::Vector3f& Theta);
-  Eigen::Matrix3f S(const Eigen::Vector3f& Theta);
-  Eigen::Matrix3f del_R_Theta_y_accel_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& accel);
-  Eigen::Matrix3f del_S_Theta_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& biases, const Eigen::Vector3f& gyro);
-  Eigen::Matrix3f del_R_Theta_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& inertial_mag);
-  Eigen::Matrix3f del_R_Theta_T_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& mag);
-  Eigen::Matrix<float, 3,4> del_R_Theta_inc_y_mag_del_Theta(const Eigen::Vector3f& Theta, const double& inclination,  const double& declination);
-
-  // TODO: not used
-  // ASK: What should we do long term?
   /**
-   * @brief The threshold where an gps update is worth updating.
+   * @brief Calculates the inertial magnetic field.
    */
-  float gate_threshold_ = 9.21; // chi2(q = .01, df = 2)
+  Eigen::Vector3f calculate_inertial_magnetic_field(const float& declination, const float& inclination);
+  
+  /**
+   * @brief Calculates the body to inertial rotation matrix.
+   */
+  Eigen::Matrix3f R(const Eigen::Vector3f& Theta);
+  
+  /**
+   * @brief Calculates the matrix that integrates gyro measurements into Euler angles.
+   */
+  Eigen::Matrix3f S(const Eigen::Vector3f& Theta);
+  
+  /**
+   * @brief Calculates the partial of the gyro integration matrix with respect to the Euler angles.
+   */
+  Eigen::Matrix3f del_S_Theta_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& biases, const Eigen::Vector3f& gyro);
+  
+  /**
+   * @brief Calculates the partial of body magnetic field measurements with respect to the Euler angles.
+   */
+  Eigen::Matrix3f del_R_Theta_T_y_mag_del_Theta(const Eigen::Vector3f& Theta, const Eigen::Vector3f& mag);
 
   /**
    * @brief This function binds references to the functions used in the ekf.
@@ -235,6 +375,16 @@ private:
    * @brief Initializes some variables that depend on ROS2 parameters
   */
   void update_measurement_model_parameters();
+  
+  /*
+   * @brief Indicates if a parameter in the estimator was changed.
+  */
+  bool is_parameter_changed();
+
+  /*
+   * @brief Updates the process noises and measurement noises.
+  */
+  void update_estimation_params();
 
   /**
    * @brief Initializes the process noise matrices with the ROS2 parameters
@@ -246,6 +396,9 @@ private:
    */
   void initialize_state_covariances();
 
+  /*
+   * @brief Checks if the estimate is outside of acceptable values and resets it.
+  */
   void check_estimate(const Input& input);
 }; 
 
