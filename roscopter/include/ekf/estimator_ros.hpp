@@ -79,9 +79,9 @@ protected:
     float pn;
     float pe;
     float pd;
-    float vn;
-    float ve;
-    float vd;
+    float vx;
+    float vy;
+    float vz;
     float phi;
     float theta;
     float psi;
@@ -91,8 +91,6 @@ protected:
     float p;
     float q;
     float r;
-    float Vg;
-    float inclination;
     bool quat_valid;
     Eigen::Quaternionf quat;
   };

@@ -138,8 +138,8 @@ double TrajectoryFollower::north_control(double pn_cmd, double pn_dot_cmd, doubl
   double g = params.get_double("gravity");
 
   // North control effort - Eq. 14.34. Note the negative velocity passed to the PID object
-  double pn_dot_tilde = pn_dot_cmd - xhat_.v_n;
-  double u_n_unsat = pn_ddot_cmd + g*C_d*xhat_.v_n + PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, -pn_dot_tilde);
+  double pn_dot_tilde = pn_dot_cmd - xhat_.v_x;
+  double u_n_unsat = pn_ddot_cmd + g*C_d*xhat_.v_x + PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, -pn_dot_tilde);
 
   return saturate(u_n_unsat, max_accel_xy_, -max_accel_xy_);
 }
@@ -150,8 +150,8 @@ double TrajectoryFollower::east_control(double pe_cmd, double pe_dot_cmd, double
   double g = params.get_double("gravity");
 
   // East control effort - Eq. 14.34. Note the negative velocity passed to the PID object
-  double pe_dot_tilde = pe_dot_cmd - xhat_.v_e;
-  double u_e_unsat = pe_ddot_cmd + g*C_d*xhat_.v_e + PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, -pe_dot_tilde);
+  double pe_dot_tilde = pe_dot_cmd - xhat_.v_y;
+  double u_e_unsat = pe_ddot_cmd + g*C_d*xhat_.v_y + PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, -pe_dot_tilde);
 
   return saturate(u_e_unsat, max_accel_xy_, -max_accel_xy_);
 }
@@ -170,8 +170,8 @@ double TrajectoryFollower::down_control(double pd_cmd, double pd_dot_cmd, double
   }
 
   // Down control effort - Eq. 14.34. Note the negative velocity passed to the PID object
-  double pd_dot_tilde = pd_dot_cmd - xhat_.v_d;
-  double u_d_unsat = pd_ddot_cmd + g*C_d*xhat_.v_d + PID_u_d_.compute_pid(pd_cmd, xhat_.position[2], dt_, -pd_dot_tilde);
+  double pd_dot_tilde = pd_dot_cmd - xhat_.v_z;
+  double u_d_unsat = pd_ddot_cmd + g*C_d*xhat_.v_z + PID_u_d_.compute_pid(pd_cmd, xhat_.position[2], dt_, -pd_dot_tilde);
 
   return saturate(u_d_unsat, min_accel_z, -max_accel_z_);
 }

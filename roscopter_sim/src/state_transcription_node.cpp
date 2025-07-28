@@ -65,8 +65,6 @@ private:
     q.y() = msg.pose.orientation.y;
     q.z() = msg.pose.orientation.z;
 
-    state.inclination = 0.0;
-
     // Equation B.1 in Small Unmanned Aircraft
     state.phi = atan2(2.0 * (q.w() * q.x() + q.y() * q.z()),
                      pow(q.w(), 2) + pow(q.z(), 2) - pow(q.x(), 2) - pow(q.y(), 2));
@@ -76,10 +74,9 @@ private:
 
     // Inertial linear velocities in body frame
     Eigen::Vector3f body_frame_velocity(msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z);
-    state.v_n = body_frame_velocity[0];
-    state.v_e = body_frame_velocity[1];
-    state.v_d = body_frame_velocity[2];
-    state.vg = body_frame_velocity.norm();
+    state.v_x = body_frame_velocity[0];
+    state.v_y = body_frame_velocity[1];
+    state.v_z = body_frame_velocity[2];
 
     // Angular velocities in body frame
     state.p = msg.twist.angular.x;

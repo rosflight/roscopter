@@ -102,11 +102,9 @@ void EstimatorROS::update()
   } else {
     output.pn = output.pe = output.pd = 0;
     output.phi = output.theta = output.psi = 0;
-    output.vn = output.ve = output.vd = 0;
+    output.vx = output.vy = output.vz = 0;
     output.p = output.q = output.r = 0;
-    output.Vg = 0;
     output.bx = output.by = output.bz = 0;
-    output.inclination = 0;
   }
 
   input_.gps_new = false;
@@ -118,9 +116,9 @@ void EstimatorROS::update()
   msg.position[0] = output.pn;
   msg.position[1] = output.pe;
   msg.position[2] = output.pd;
-  msg.v_n = output.vn;
-  msg.v_e = output.ve;
-  msg.v_d = output.vd;
+  msg.v_x = output.vx;
+  msg.v_y = output.vy;
+  msg.v_z = output.vz;
   msg.phi = output.phi;
   msg.theta = output.theta;
   msg.psi = output.psi;
@@ -130,7 +128,6 @@ void EstimatorROS::update()
   msg.bx = output.bx;
   msg.by = output.by;
   msg.bz = output.bz;
-  msg.inclination = output.inclination;
 
   // Fill in the quaternion
   msg.quat[0] = output.quat.w();

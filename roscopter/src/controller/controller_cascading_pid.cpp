@@ -368,7 +368,7 @@ void ControllerCascadingPID::nvel_evel_dvel_yawrate(roscopter_msgs::msg::Control
 
   // Rotate estimated velocities into inertial frame
   Eigen::Quaterniond q_body_to_inertial(xhat_.quat[0], xhat_.quat[1], xhat_.quat[2], xhat_.quat[3]);
-  Eigen::Vector3d v_body(xhat_.v_n, xhat_.v_e, xhat_.v_d);
+  Eigen::Vector3d v_body(xhat_.v_x, xhat_.v_y, xhat_.v_z);
   Eigen::Vector3d v_inertial = q_body_to_inertial * v_body;
 
   // Compute desired accelerations (in terms of g's) in the inertial frame

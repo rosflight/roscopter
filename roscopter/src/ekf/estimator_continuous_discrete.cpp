@@ -90,9 +90,9 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   output.pn = xhat_(0);
   output.pe = xhat_(1);
   output.pd = xhat_(2);
-  output.vn = xhat_(3);
-  output.ve = xhat_(4);
-  output.vd = xhat_(5);
+  output.vx = xhat_(3);
+  output.vy = xhat_(4);
+  output.vz = xhat_(5);
   output.p = lpf_gyro_x_ - xhat_(9);
   output.q = lpf_gyro_y_ - xhat_(10);
   output.r = lpf_gyro_z_ - xhat_(11);
