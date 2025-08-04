@@ -10,3 +10,4 @@ roscopter/logs/
 *.pyc
 .vscode/
 .idea/
+hotstart

@@ -42,7 +42,15 @@ EstimatorROS::EstimatorROS()
   std::filesystem::path params_dir = "params";
   std::filesystem::path hotstart_file = "hotstart";
 
-  hotstart_path_ = workspace_dir / params_dir / hotstart_file;
+  std::filesystem::path install_hotstart_dir = workspace_dir / params_dir / hotstart_file;
+ 
+  // Remove the install and share directories from the path so the hotstart file goes into
+  // the main directory so it is easily found.
+  for (auto dir : install_hotstart_dir) {
+    if (dir.string() == "install") continue;
+    if (dir.string() == "share") continue;
+    hotstart_path_ /= dir;
+  }
 
   if (params_.get_bool("hotstart_estimator")) {
     hotstart();

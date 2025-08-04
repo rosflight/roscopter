@@ -66,7 +66,7 @@ void EstimatorContinuousDiscrete::init_state(const Input & input)
 {
   if (mag_init_) {
     float heading = atan2f(input.mag_y, input.mag_x);
-    heading -= declination_;
+    heading -= radians(declination_);
     xhat_(8) = heading;
     state_init_ = true;
     return;
@@ -169,7 +169,7 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   }
   
   Eigen::Vector<float, num_mag_measurements> y_mag;
-  y_mag << mag_readings/mag_readings.norm(); // TODO: fix this normailization. This should be a filtered value or based on geomag.
+  y_mag << mag_readings/mag_readings.norm();
 
   Eigen::Vector<float, 2> mag_info;
   mag_info << radians(declination_), radians(inclination_);
@@ -614,6 +614,11 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
   // TODO: Change the gps day to pull out yday instead of the month and day
   float decimal_month = input.gps_month + input.gps_day/31.0;
   float decimal_year = input.gps_year + decimal_month/12.0;
+
+  RCLCPP_INFO_STREAM(this->get_logger(), "dec_year: " << decimal_year);
+  RCLCPP_INFO_STREAM(this->get_logger(), "lat: " << input.gps_lat);
+  RCLCPP_INFO_STREAM(this->get_logger(), "lon: " << input.gps_lon);
+  RCLCPP_INFO_STREAM(this->get_logger(), "alt: " << input.gps_alt);
   
   int mag_success = geomag_calc(input.gps_alt/1000.0,
                                 input.gps_lat,
@@ -623,8 +628,10 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
                                 &inclination_,
                                 &total_intensity,
                                 &grid_variation); 
+  RCLCPP_INFO_STREAM(this->get_logger(), "inclination_: " << inclination_);
+  RCLCPP_INFO_STREAM(this->get_logger(), "declination_: " << declination_);
 
-  if (mag_success == -1) {
+  if (mag_success == 1) {
     RCLCPP_ERROR(this->get_logger(), "Something went wrong while calculating inclination and declination.");
     RCLCPP_ERROR(this->get_logger(), "Inclination and Declination not set, estimation will likely be poor.");
   }
