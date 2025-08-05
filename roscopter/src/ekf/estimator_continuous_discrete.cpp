@@ -1,6 +1,7 @@
 #include "ekf/estimator_continuous_discrete.hpp"
 #include "ekf/estimator_ros.hpp"
 #include "ekf/geomag.h"
+#include <cmath>
 
 namespace roscopter
 {
@@ -171,13 +172,21 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   Eigen::Vector<float, num_mag_measurements> y_mag;
   y_mag << mag_readings/mag_readings.norm();
 
+  Eigen::Vector3f Theta = xhat_.block<3,1>(6,0); // Theta is the vector of the euler angles.
+  Theta(2) = 0.0;
+  y_mag = R(Theta)*y_mag;
+  
+  Eigen::Vector<float, 1> y_course;
+  y_course << -atan2f(y_mag(1), y_mag(0)) + radians(declination_);
+
   Eigen::Vector<float, 2> mag_info;
   mag_info << radians(declination_), radians(inclination_);
   
   // Use gammas to enforce consider states, or partial consider states. See Parial-Update Schmidt-Kalman Filter, Kevin Brink 2017.
   Eigen::Vector<float, num_states> gammas = Eigen::Vector<float, num_states>::Zero();
 
-  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_mag_measurement_model, y_mag, multirotor_mag_measurement_jacobian_model, multirotor_mag_measurement_sensor_noise_model, P_, gammas);
+  /*std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_mag_measurement_model, y_mag, multirotor_mag_measurement_jacobian_model, multirotor_mag_measurement_sensor_noise_model, P_, gammas);*/
+  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_tilt_mag_measurement_model, y_course, multirotor_tilt_mag_measurement_jacobian_model, multirotor_tilt_mag_measurement_sensor_noise_model, P_, gammas);
 
   new_mag_ = false;
 }
@@ -343,6 +352,35 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_sensor_n
   Eigen::Matrix<float, num_mag_measurements, num_mag_measurements> R;
 
   R = R_mag_;
+
+  return R;
+}
+
+
+Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  Eigen::Vector<float, 1> h = Eigen::Vector<float, 1>::Zero();
+
+  h(0) = state(8);
+
+  return h;
+}
+
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  Eigen::Matrix<float, 1, num_states> C = Eigen::Matrix<float, 1, num_states>::Zero();
+  
+  // Magnetometer update
+  C(0,8) = 1.0;
+
+  return C;
+}
+
+Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_sensor_noise()
+{
+  Eigen::Matrix<float, 1, 1> R;
+
+  R(0,0) = radians(8.0);
 
   return R;
 }
@@ -576,10 +614,10 @@ Eigen::Vector3f EstimatorContinuousDiscrete::calculate_inertial_magnetic_field(c
   Eigen::Vector3f mag_x = Eigen::Vector3f::UnitX();
 
   Eigen::Matrix3f mag_inclination_rotation;
-  mag_inclination_rotation = Eigen::AngleAxisf(inclination, Eigen::Vector3f::UnitY());
+  mag_inclination_rotation = Eigen::AngleAxisf(inclination, Eigen::Vector3f::UnitY()).toRotationMatrix();
   
   Eigen::Matrix3f mag_declination_rotation;
-  mag_declination_rotation = Eigen::AngleAxisf(declination, Eigen::Vector3f::UnitZ());
+  mag_declination_rotation = Eigen::AngleAxisf(declination, Eigen::Vector3f::UnitZ()).toRotationMatrix();
   
   // Find the magnetic field intenisty described in the inertial frame by rotating the frame.
   Eigen::Matrix3f mag_rotation = mag_declination_rotation*mag_inclination_rotation;
@@ -889,6 +927,10 @@ void EstimatorContinuousDiscrete::bind_functions()
   multirotor_mag_measurement_model = std::bind(&This::multirotor_mag_measurement_prediction, this, _1, _2);
   multirotor_mag_measurement_jacobian_model = std::bind(&This::multirotor_mag_measurement_jacobian, this, _1, _2);
   multirotor_mag_measurement_sensor_noise_model = std::bind(&This::multirotor_mag_measurement_sensor_noise, this);
+  
+  multirotor_tilt_mag_measurement_model = std::bind(&This::multirotor_tilt_mag_measurement_prediction, this, _1, _2);
+  multirotor_tilt_mag_measurement_jacobian_model = std::bind(&This::multirotor_tilt_mag_measurement_jacobian, this, _1, _2);
+  multirotor_tilt_mag_measurement_sensor_noise_model = std::bind(&This::multirotor_tilt_mag_measurement_sensor_noise, this);
 
   multirotor_baro_measurement_model = std::bind(&This::multirotor_baro_measurement_prediction, this, _1, _2);
   multirotor_baro_measurement_jacobian_model = std::bind(&This::multirotor_baro_measurement_jacobian, this, _1, _2);

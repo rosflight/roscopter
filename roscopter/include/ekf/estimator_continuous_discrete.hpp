@@ -161,12 +161,14 @@ private:
    * but is not contained in the state.
    */
   Eigen::VectorXf multirotor_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf multirotor_tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
 
   /**
    * @brief This is a reference to the multirotor_mag_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
   MeasurementModelFuncRef multirotor_mag_measurement_model;
+  MeasurementModelFuncRef multirotor_tilt_mag_measurement_model;
   
   /**
    * @brief Calculates the jacobian of the measurement model for the magnetometer.
@@ -175,22 +177,26 @@ private:
    * @param input Any inputs not in the state needed for the system.
    */
   Eigen::MatrixXf multirotor_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf multirotor_tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
   
   /**
    * @brief This is a reference to the multirotor_mag_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
   JacobianFuncRef multirotor_mag_measurement_jacobian_model;
+  JacobianFuncRef multirotor_tilt_mag_measurement_jacobian_model;
   
   /**
    * @brief Calculates the sensor noise of the magnetometer.
    */
   Eigen::MatrixXf multirotor_mag_measurement_sensor_noise();
+  Eigen::MatrixXf multirotor_tilt_mag_measurement_sensor_noise();
   
   /**
    * @brief Reference to the magnetometer sensor noise calculation.
    */
   SensorNoiseFuncRef multirotor_mag_measurement_sensor_noise_model;
+  SensorNoiseFuncRef multirotor_tilt_mag_measurement_sensor_noise_model;
   
   /**
    * @brief Calculates measurement prediction for the baro.
