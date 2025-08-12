@@ -66,8 +66,8 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
 void EstimatorContinuousDiscrete::init_state(const Input & input)
 {
   if (mag_init_) {
-    float heading = atan2f(input.mag_y, input.mag_x);
-    heading -= radians(declination_);
+    float heading = -atan2f(input.mag_y, input.mag_x);
+    heading += radians(declination_);
     xhat_(8) = heading;
     state_init_ = true;
     return;
@@ -156,6 +156,7 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
 
 void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input)
 {
+  RCLCPP_INFO(this->get_logger(), "MAG UPDATE");
   // Only update when have new mag and the magnetometer models have been found.
   if (!new_mag_ || !mag_init_) {
     return;
@@ -176,8 +177,10 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   Theta(2) = 0.0;
   y_mag = R(Theta)*y_mag;
   
-  Eigen::Vector<float, 1> y_course;
+  Eigen::Vector<float, 1> y_course; // TODO: CHANGE TO HEADING NOT COURSE
   y_course << -atan2f(y_mag(1), y_mag(0)) + radians(declination_);
+
+  y_course(0) = wrap_within_180(xhat_(8), y_course(0));
 
   Eigen::Vector<float, 2> mag_info;
   mag_info << radians(declination_), radians(inclination_);
@@ -193,6 +196,7 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
 
 void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& input) {
   
+  RCLCPP_INFO(this->get_logger(), "BARO UPDATE");
   // Only update when have new baro.
   if (!new_baro_) {
     return;
@@ -212,14 +216,11 @@ void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& inpu
 
 void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& input)
 {
+  RCLCPP_INFO(this->get_logger(), "GNSS UPDATE");
   Eigen::Vector<float, 1> _; // This is used when no inputs are needed.
 
   // Only update if new GPS information is available.
-  if (input.gps_new) {
-    //wrap course measurement
-    float gps_course = fmodf(input.gps_course, radians(360.0f));
-    gps_course = wrap_within_180(xhat_(3), gps_course);
-    
+  if (input.gps_new && gps_init_) {
     // Measurements for the positional states.
     Eigen::Vector<float, num_gnss_measurements> y_gps;
     y_gps << input.gps_n, input.gps_e, -input.gps_h, input.gps_vn, input.gps_ve, input.gps_vd;
@@ -716,6 +717,11 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
       initialize_state_covariances();
     }
     prob_index++;
+    if (prob_index == 6 || prob_index == 7 || prob_index == 8) {
+      if (state > M_PI || state < -M_PI) {
+        RCLCPP_WARN(this->get_logger(), "Attitude angles out of range!");
+      }
+    }
     if (problem) {
       RCLCPP_WARN(this->get_logger(), "Estimator reinitialized due to non-finite state %d",
                   prob_index);
@@ -835,13 +841,13 @@ void EstimatorContinuousDiscrete::declare_parameters()
 {
   
   // Sensor uncertainties
-  params_.declare_double("sigma_n_gps", .01);
-  params_.declare_double("sigma_e_gps", .01);
-  params_.declare_double("sigma_h_gps", .03);
-  params_.declare_double("sigma_vn_gps", .007);
-  params_.declare_double("sigma_ve_gps", .007);
-  params_.declare_double("sigma_vd_gps", .01);
-  params_.declare_double("sigma_static_press", 10.0);
+  params_.declare_double("sigma_n_gps", .5);
+  params_.declare_double("sigma_e_gps", .5);
+  params_.declare_double("sigma_h_gps", 1.0);
+  params_.declare_double("sigma_vn_gps", .07);
+  params_.declare_double("sigma_ve_gps", .07);
+  params_.declare_double("sigma_vd_gps", .1);
+  params_.declare_double("sigma_static_press", 0.5);
   params_.declare_double("sigma_mag", 0.04);
   params_.declare_double("sigma_accel", .025 * 9.81);
 

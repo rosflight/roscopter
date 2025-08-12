@@ -1,4 +1,5 @@
 #include <functional>
+#include <rclcpp/logging.hpp>
 #include <tuple>
 
 #include "ekf/estimator_ekf.hpp"
@@ -32,6 +33,11 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::kalman_update(Eigen::
   // This is numerically stable and results in P always being positive definite.
   P = temp * P * temp.transpose() + L * R * L.transpose();
   // Use Kalman gain to optimally adjust estimate.
+  
+  if (((L*(y-h)).array() > 10.0).all()) {
+    RCLCPP_WARN(this->get_logger(), "MEASUREMENT CORRECTION LARGE.");
+  }
+
   x = x + L * (y - h);
 
   std::tuple<Eigen::MatrixXf, Eigen::VectorXf> result(P, x);
