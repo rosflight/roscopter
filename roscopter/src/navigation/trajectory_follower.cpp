@@ -92,9 +92,26 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
     return output_cmd_;
   }
 
-  double u_n = north_control(input_cmd.position[0], input_cmd.velocity[0], input_cmd.acceleration[0]);
-  double u_e = east_control(input_cmd.position[1], input_cmd.velocity[1], input_cmd.acceleration[1]);
-  double u_d = down_control(input_cmd.position[2], input_cmd.velocity[2], input_cmd.acceleration[2]);
+  // Rotate the velocity from the body frame to the inertial frame
+  Eigen::Quaterniond q_body_to_inertial;
+  if (xhat_.quat_valid) {
+    q_body_to_inertial = Eigen::Quaterniond(xhat_.quat[0], xhat_.quat[1], xhat_.quat[2], xhat_.quat[3]);
+  } else {
+    double psi2 = xhat_.psi/2;
+    double theta2 = xhat_.theta/2;
+    double phi2 = xhat_.phi/2;
+    double qw = cosf(psi2)*cosf(theta2)*cosf(phi2) + sinf(psi2)*sinf(theta2)*sinf(phi2);
+    double qx = cosf(psi2)*cosf(theta2)*sinf(phi2) - sinf(psi2)*sinf(theta2)*cosf(phi2);
+    double qy = cosf(psi2)*sinf(theta2)*cosf(phi2) + sinf(psi2)*cosf(theta2)*sinf(phi2);
+    double qz = sinf(psi2)*cosf(theta2)*cosf(phi2) - cosf(psi2)*sinf(theta2)*sinf(phi2);
+    q_body_to_inertial = Eigen::Quaterniond(qw, qx, qy, qz);
+  }
+  Eigen::Vector3d body_vels(xhat_.v_n, xhat_.v_e, xhat_.v_d);
+  Eigen::Vector3d inertial_vels = q_body_to_inertial * body_vels;
+
+  double u_n = north_control(input_cmd.position[0], input_cmd.velocity[0], input_cmd.acceleration[0], inertial_vels[0]);
+  double u_e = east_control(input_cmd.position[1], input_cmd.velocity[1], input_cmd.acceleration[1], inertial_vels[1]);
+  double u_d = down_control(input_cmd.position[2], input_cmd.velocity[2], input_cmd.acceleration[2], inertial_vels[2]);
 
   // Compute command euler angles and thrust PID control outputs
   // Make sure to saturate the phi and theta commands 
@@ -136,31 +153,31 @@ double TrajectoryFollower::wrap_within_180(double datum, double angle_to_wrap)
   return angle_to_wrap;
 }
 
-double TrajectoryFollower::north_control(double pn_cmd, double pn_dot_cmd, double pn_ddot_cmd)
+double TrajectoryFollower::north_control(double pn_cmd, double pn_dot_cmd, double pn_ddot_cmd, double vn)
 {
   double C_d = params.get_double("C_d");
   double g = params.get_double("gravity");
 
   // North control effort - Eq. 14.34. Note the negative velocity passed to the PID object
-  double pn_dot_tilde = pn_dot_cmd - xhat_.v_n;
-  double u_n_unsat = pn_ddot_cmd + g*C_d*xhat_.v_n + PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, -pn_dot_tilde);
+  double pn_dot_tilde = pn_dot_cmd - vn;
+  double u_n_unsat = pn_ddot_cmd + g*C_d*vn + PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, -pn_dot_tilde);
 
   return saturate(u_n_unsat, max_accel_xy_, -max_accel_xy_);
 }
 
-double TrajectoryFollower::east_control(double pe_cmd, double pe_dot_cmd, double pe_ddot_cmd)
+double TrajectoryFollower::east_control(double pe_cmd, double pe_dot_cmd, double pe_ddot_cmd, double ve)
 {
   double C_d = params.get_double("C_d");
   double g = params.get_double("gravity");
 
   // East control effort - Eq. 14.34. Note the negative velocity passed to the PID object
-  double pe_dot_tilde = pe_dot_cmd - xhat_.v_e;
-  double u_e_unsat = pe_ddot_cmd + g*C_d*xhat_.v_e + PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, -pe_dot_tilde);
+  double pe_dot_tilde = pe_dot_cmd - ve;
+  double u_e_unsat = pe_ddot_cmd + g*C_d*ve + PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, -pe_dot_tilde);
 
   return saturate(u_e_unsat, max_accel_xy_, -max_accel_xy_);
 }
 
-double TrajectoryFollower::down_control(double pd_cmd, double pd_dot_cmd, double pd_ddot_cmd)
+double TrajectoryFollower::down_control(double pd_cmd, double pd_dot_cmd, double pd_ddot_cmd, double vd)
 {
   double C_d = params.get_double("C_d");
   double g = params.get_double("gravity");
@@ -174,8 +191,8 @@ double TrajectoryFollower::down_control(double pd_cmd, double pd_dot_cmd, double
   }
 
   // Down control effort - Eq. 14.34. Note the negative velocity passed to the PID object
-  double pd_dot_tilde = pd_dot_cmd - xhat_.v_d;
-  double u_d_unsat = pd_ddot_cmd + g*C_d*xhat_.v_d + PID_u_d_.compute_pid(pd_cmd, xhat_.position[2], dt_, -pd_dot_tilde);
+  double pd_dot_tilde = pd_dot_cmd - vd;
+  double u_d_unsat = pd_ddot_cmd + g*C_d*vd + PID_u_d_.compute_pid(pd_cmd, xhat_.position[2], dt_, -pd_dot_tilde);
 
   return saturate(u_d_unsat, min_accel_z, -max_accel_z_);
 }

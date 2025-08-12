@@ -1,9 +1,12 @@
 #ifndef TRAJECTORY_FOLLOWER_HPP
 #define TRAJECTORY_FOLLOWER_HPP
 
+#include <stdint.h>
+
+#include <Eigen/Geometry>
+
 #include "navigation/trajectory_follower_ros.hpp"
 #include "controller/simple_pid.hpp"
-#include <stdint.h>
 
 namespace roscopter
 {
@@ -27,9 +30,9 @@ private:
   // Functions
   void declare_params();
   double wrap_within_180(double datum, double angle_to_wrap);
-  double north_control(double pn_cmd, double pn_dot_cmd, double pn_ddot_cmd);
-  double east_control(double pe_cmd, double pe_dot_cmd, double pe_ddot_cmd);
-  double down_control(double pd_cmd, double pd_dot_cmd, double pd_ddot_cmd);
+  double north_control(double pn_cmd, double pn_dot_cmd, double pn_ddot_cmd, double vn);
+  double east_control(double pe_cmd, double pe_dot_cmd, double pe_ddot_cmd, double ve);
+  double down_control(double pd_cmd, double pd_dot_cmd, double pd_ddot_cmd, double vd);
 
   void update_gains() override;
   roscopter_msgs::msg::ControllerCommand manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt) override;
