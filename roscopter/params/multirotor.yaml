@@ -2,17 +2,17 @@
 /**:    # autopilot and trajectory controller share some of the same parameters
     ros__parameters:
         # Autopilot gains
-        roll_to_torque_kp: 6.0
+        roll_to_torque_kp: 7.0
         roll_to_torque_ki: 0.0
         roll_to_torque_kd: 1.0
 
-        pitch_to_torque_kp: 6.0
+        pitch_to_torque_kp: 7.0
         pitch_to_torque_ki: 0.0
         pitch_to_torque_kd: 1.0
 
-        yaw_to_torque_kp: 0.8
+        yaw_to_torque_kp: 2.0
         yaw_to_torque_ki: 0.002
-        yaw_to_torque_kd: 0.8
+        yaw_to_torque_kd: 1.0
 
         roll_rate_to_torque_kp: 0.5
         roll_rate_to_torque_ki: 0.0
@@ -85,9 +85,9 @@
         u_e_kp: 1.5
         u_e_ki: 0.01
         u_e_kd: 1.7
-        u_d_kp: 4.0
-        u_d_ki: 0.01
-        u_d_kd: 2.0
+        u_d_kp: 0.3
+        u_d_ki: 0.0
+        u_d_kd: 0.3
 
         # Miscellanous
         tau: 0.05

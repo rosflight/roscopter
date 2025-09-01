@@ -27,6 +27,7 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_path()
 {
   // Check the number of waypoints - do we have enough to do path management?
   if (waypoint_list_.size() < 1) {
+    // TODO: Does this branch break with the new trajectory follower?
     roscopter_msgs::msg::TrajectoryCommand output_cmd;
 
     double default_altitude = params.get_double("default_altitude");
@@ -54,22 +55,17 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_path()
 }
 
 roscopter_msgs::msg::TrajectoryCommand PathManager::manage_goto_wp(roscopter_msgs::msg::Waypoint &curr_wp) {
-  roscopter_msgs::msg::TrajectoryCommand output_cmd;
-  output_cmd.position = curr_wp.w;
-  output_cmd.psi_cmd = curr_wp.psi;
-
   double waypoint_tolerance = params.get_double("waypoint_tolerance");
   if (dist(xhat_.position, curr_wp.w) <= waypoint_tolerance) {
     // If we are close enough to the target wayoint, increment the index in the waypoint list
     increment_wp_index();
   }
 
+  roscopter_msgs::msg::TrajectoryCommand output_cmd = create_trajectory(curr_wp);
   return output_cmd;
 }
 
 roscopter_msgs::msg::TrajectoryCommand PathManager::manage_hold_wp(roscopter_msgs::msg::Waypoint &curr_wp) {
-  roscopter_msgs::msg::TrajectoryCommand output_cmd;
-
   double waypoint_tolerance = params.get_double("waypoint_tolerance");
   if (dist(xhat_.position, curr_wp.w) <= waypoint_tolerance && !curr_wp.hold_indefinitely) {
     // Start the hold timer, if applicable
@@ -80,10 +76,8 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_hold_wp(roscopter_msg
     }
   }
 
-  // Fill in the output command. Note that this is the same regardless of the conditions above.
-  output_cmd.position = curr_wp.w;
-  output_cmd.psi_cmd = curr_wp.psi;
-
+  // Fill in the output command. Note that this is the same regardless of the conditions below.
+  roscopter_msgs::msg::TrajectoryCommand output_cmd = create_trajectory(curr_wp);
   return output_cmd;
 }
 
@@ -100,6 +94,8 @@ void PathManager::increment_wp_index() {
   if ((current_wp_index_ + 1) % waypoint_list_.size() == 0) {
     if (!params.get_bool("hold_last")) {
       current_wp_index_ = 0;
+      t0_ = this->get_clock().now().nanoseconds();
+      curr_time_ = 0.0;
     }
   }
   else {
@@ -110,6 +106,25 @@ void PathManager::increment_wp_index() {
 void PathManager::clear_waypoints_internally() {
   waypoint_list_.clear();
   current_wp_index_ = 0;
+}
+
+roscopter_msgs::msg::TrajectoryCommand PathManager::create_trajectory(roscopter_msgs::msg::Waypoint &curr_wp, double t)
+{
+  // Assume that t = t_0 (i.e. fly straight at the waypoint, no matter where you are.)
+  roscopter_msgs::msg::TrajectoryCommand output_cmd;
+
+  Eigen::Vector3f curr_pos, wp_pos, vel_vect;
+  curr_pos << xhat_.position[0], xhat_.position[1], xhat_.position[2];
+  wp_pos << curr_wp.w[0], curr_wp.w[1], curr_wp.w[2];
+  vel_vect = curr_wp.speed * (wp_pos - curr_pos) / (wp_pos - curr_pos).norm();
+
+  output_cmd.position = curr_wp.w;
+  output_cmd.velocity = {vel_vect[0], vel_vect[1], vel_vect[2]};
+  output_cmd.acceleration = {0,0,0};
+  output_cmd.psi = curr_wp.psi;
+  output_cmd.psi_dot = 0.0;
+  output_cmd.psi_dot_dot = 0.0;
+  return output_cmd;
 }
 
 } // namespace roscopter

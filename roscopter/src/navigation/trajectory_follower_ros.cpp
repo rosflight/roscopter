@@ -55,7 +55,7 @@ void TrajectoryFollowerROS::state_callback(const roscopter_msgs::msg::State &msg
 {
   xhat_ = msg;
 
-  // If the controller has not received an input command yet, do not compute control commands or publish
+  // If the trajectory follower has not received an input command yet, do not compute control commands or publish
   if (!received_cmd_msg_) { return; }
 
   // Calculate dt and return if dt is invalid

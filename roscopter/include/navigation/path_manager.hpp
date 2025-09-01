@@ -23,6 +23,7 @@ private:
   void declare_params();
   roscopter_msgs::msg::TrajectoryCommand manage_goto_wp(roscopter_msgs::msg::Waypoint &curr_wp);
   roscopter_msgs::msg::TrajectoryCommand manage_hold_wp(roscopter_msgs::msg::Waypoint &curr_wp);
+  roscopter_msgs::msg::TrajectoryCommand create_trajectory(roscopter_msgs::msg::Waypoint &curr_wp);
   void hold_timer_callback();
   void increment_wp_index();
   void clear_waypoints_internally() override;
