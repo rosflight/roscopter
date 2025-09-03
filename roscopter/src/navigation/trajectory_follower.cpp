@@ -157,8 +157,7 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   // double throttle_cmd = thrust_cmd / (mass * g) * equilibrium_throttle;
   // output_cmd_.cmd4 = saturate(throttle_cmd, max_throttle, min_throttle);
   output_cmd_.cmd4 = saturate(thrust_cmd, max_throttle * mass * g / equilibrium_throttle, min_throttle * mass * g / equilibrium_throttle);
-
-  RCLCPP_INFO_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 500, "u_r:" << u_r.transpose() << "\nu:" << u.transpose() << "\nnu: " << nu.transpose());
+  // RCLCPP_INFO_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 500, "u_r:" << u_r.transpose() << "\nu:" << u.transpose() << "\nnu: " << nu.transpose());
 
   output_cmd_.cmd_valid = true;
 

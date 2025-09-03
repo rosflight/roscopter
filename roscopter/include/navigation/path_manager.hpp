@@ -23,15 +23,24 @@ private:
   void declare_params();
   roscopter_msgs::msg::TrajectoryCommand manage_goto_wp(roscopter_msgs::msg::Waypoint &curr_wp);
   roscopter_msgs::msg::TrajectoryCommand manage_hold_wp(roscopter_msgs::msg::Waypoint &curr_wp);
-  roscopter_msgs::msg::TrajectoryCommand create_trajectory(roscopter_msgs::msg::Waypoint &curr_wp);
+  roscopter_msgs::msg::TrajectoryCommand create_trajectory();
+  roscopter_msgs::msg::TrajectoryCommand create_default_output();
   void hold_timer_callback();
   void increment_wp_index();
   void clear_waypoints_internally() override;
+  void rk4_step();
+  Eigen::Vector2f F(Eigen::Vector2f sig);
 
   // Member variables
   rclcpp::TimerBase::SharedPtr hold_timer_;
+  roscopter_msgs::msg::TrajectoryCommand output_cmd_;
+  roscopter_msgs::msg::Waypoint prev_wp_;
+  bool temp_wp_set_ = false;
   bool timer_started_ = false;
   int current_wp_index_ = 0;
+  int previous_wp_index_ = 0;
+  bool waypoints_changed_ = true;
+  Eigen::Vector2f sigma_;
 };
 
 } // namespace roscopter

@@ -77,7 +77,6 @@ void PathManagerROS::set_timer()
 void PathManagerROS::run()
 {
   roscopter_msgs::msg::TrajectoryCommand output_cmd = manage_path();
-
   publish_command(output_cmd);
 }
 
