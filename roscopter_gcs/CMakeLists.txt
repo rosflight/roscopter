@@ -34,7 +34,7 @@ install(DIRECTORY launch config resource DESTINATION share/${PROJECT_NAME})
 # Publisher node executable
 add_executable(rviz_waypoint_publisher
                src/rviz_waypoint_publisher.cpp)
-ament_target_dependencies(rviz_waypoint_publisher roscopter_msgs visualization_msgs rclcpp tf2 tf2_ros geometry_msgs)
+ament_target_dependencies(rviz_waypoint_publisher roscopter_msgs visualization_msgs rclcpp tf2 tf2_ros geometry_msgs ament_index_cpp)
 install(TARGETS 
   rviz_waypoint_publisher
   DESTINATION lib/${PROJECT_NAME})
