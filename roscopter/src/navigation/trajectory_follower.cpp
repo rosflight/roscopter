@@ -232,14 +232,14 @@ Eigen::Vector4d TrajectoryFollower::compute_control_input(const double pn_cmd,
 double TrajectoryFollower::north_control(const double pn_cmd, const double vn)
 {
   // North control effort
-  double u_n_unsat = PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, -vn);
+  double u_n_unsat = PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, vn);
   return saturate(u_n_unsat, max_accel_xy_, -max_accel_xy_);
 }
 
 double TrajectoryFollower::east_control(const double pe_cmd, const double ve)
 {
   // East control effort
-  double u_e_unsat = PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, -ve);
+  double u_e_unsat = PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, ve);
   return saturate(u_e_unsat, max_accel_xy_, -max_accel_xy_);
 }
 
