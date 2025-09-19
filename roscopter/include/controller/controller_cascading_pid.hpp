@@ -1,6 +1,7 @@
 #ifndef CONTROLLER_CASCADING_PID_HPP
 #define CONTROLLER_CASCADING_PID_HPP
 
+#include <cfloat>
 #include <Eigen/Geometry>
 
 #include <controller/controller_state_machine.hpp>
@@ -28,24 +29,24 @@ private:
   bool params_initialized_;
 
   // PID controller from angle to torque
-  roscopter::SimplePID PID_roll_;
-  roscopter::SimplePID PID_pitch_;
-  roscopter::SimplePID PID_yaw_;
+  roscopter::SimplePID PID_roll_to_torque_;
+  roscopter::SimplePID PID_pitch_to_torque_;
+  roscopter::SimplePID PID_yaw_to_torque_;
 
   // PID controller from rates to torque
-  roscopter::SimplePID PID_roll_rate_;
-  roscopter::SimplePID PID_pitch_rate_;
-  roscopter::SimplePID PID_yaw_rate_;
+  roscopter::SimplePID PID_roll_rate_to_torque_;
+  roscopter::SimplePID PID_pitch_rate_to_torque_;
+  roscopter::SimplePID PID_yaw_rate_to_torque_;
 
   // PID controller from velocities to accelerations
-  roscopter::SimplePID PID_vel_n_;
-  roscopter::SimplePID PID_vel_e_;
-  roscopter::SimplePID PID_vel_d_;
+  roscopter::SimplePID PID_vel_n_to_accel_;
+  roscopter::SimplePID PID_vel_e_to_accel_;
+  roscopter::SimplePID PID_vel_d_to_accel_;
 
   // PID controller from positions to velocities
-  roscopter::SimplePID PID_n_;
-  roscopter::SimplePID PID_e_;
-  roscopter::SimplePID PID_d_;
+  roscopter::SimplePID PID_n_to_vel_;
+  roscopter::SimplePID PID_e_to_vel_;
+  roscopter::SimplePID PID_d_to_vel_;
 
   // PID controller from yaw to yaw rate
   roscopter::SimplePID PID_yaw_to_rate_;
@@ -54,7 +55,7 @@ private:
   rosflight_msgs::msg::Command compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt);
   void reset_integrators();
   void update_gains() override;
-  double calculate_max_xy_accel(double max_accel_z, double equilibrium_throttle);
+  // double calculate_max_xy_accel(double max_accel_z, double equilibrium_throttle);
 
   void declare_params();
 
@@ -67,6 +68,7 @@ private:
   void roll_pitch_yaw_throttle(roscopter_msgs::msg::ControllerCommand input_cmd);
   void pass_to_firmware_controller(roscopter_msgs::msg::ControllerCommand input_cmd);
   void roll_pitch_yaw_thrust_to_motor(roscopter_msgs::msg::ControllerCommand input_cmd);
+  void roll_pitch_yawrate_thrust_to_motor(roscopter_msgs::msg::ControllerCommand input_cmd);
   void rollrate_pitchrate_yawrate_thrust_to_motor(roscopter_msgs::msg::ControllerCommand input_cmd);
 };
 

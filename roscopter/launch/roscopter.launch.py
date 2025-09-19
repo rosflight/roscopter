@@ -38,6 +38,13 @@ def generate_launch_description():
         ),
         Node(
             package='roscopter',
+            executable='estimator',
+            name='estimator',
+            output='screen',
+            parameters=[estimator_param_file, {"hotstart_estimator": hotstart_estimator}],
+        ),
+        Node(
+            package='roscopter',
             executable='trajectory_follower',
             name='trajectory_follower',
             output='screen',
@@ -46,16 +53,10 @@ def generate_launch_description():
         ),
         Node(
             package='roscopter',
-            executable='estimator',
-            name='estimator',
-            output='screen',
-            parameters=[estimator_param_file, {"hotstart_estimator": hotstart_estimator}],
-        ),
-        Node(
-            package='roscopter',
             executable='path_manager',
             name='path_manager',
             output='screen',
+            parameters=[controller_param_file],
             remappings=[('estimated_state', state_remap)]
         ),
         Node(
@@ -63,13 +64,14 @@ def generate_launch_description():
             executable='path_planner',
             name='path_planner',
             output='screen',
+            parameters=[controller_param_file],
             remappings=[('estimated_state', state_remap)]
         ),
-        Node(
-            package='roscopter',
-            executable='ext_att_transcriber',
-            name='external_attitude_transcriber',
-            output='screen',
-            remappings=[('estimated_state', state_remap)]
-        ),
+        # Node(
+        #     package='roscopter',
+        #     executable='ext_att_transcriber',
+        #     name='external_attitude_transcriber',
+        #     output='screen',
+        #     remappings=[('estimated_state', state_remap)]
+        # ),
     ])

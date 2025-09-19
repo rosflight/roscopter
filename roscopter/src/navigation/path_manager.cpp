@@ -19,11 +19,11 @@ PathManager::PathManager()
 
 void PathManager::declare_params()
 {
-  params.declare_double("default_altitude", 10.0);
+  params.declare_double("default_altitude", 2.0);
   params.declare_double("waypoint_tolerance", 1.0);
   params.declare_bool("hold_last", false);
-  params.declare_double("max_velocity", 5.0);
-  params.declare_double("max_acceleration", 9.81); // meters per second
+  params.declare_double("max_velocity", 10.0); // meters per second
+  params.declare_double("max_acceleration", 5.0); // meters per second per second
   params.declare_bool("do_linear_interpolation", false);
 }
 

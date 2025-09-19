@@ -30,8 +30,8 @@ private:
   
   // Functions
   void declare_params();
-  Eigen::Vector4d invert_control_inputs(const Eigen::Vector4d u, const double mass, const double psi, const double psi_dot);
-  double compute_theta_dot(const Eigen::Vector3d z, const double mass, double thrust, const double psi, const double psi_dot, const Eigen::Vector4d u);
+  Eigen::Vector4d invert_control_inputs(const Eigen::Vector4d u, const double psi, const double psi_dot);
+  double compute_theta_dot(const Eigen::Vector3d z, double thrust, const double psi, const double psi_dot, const Eigen::Vector4d u);
   Eigen::Matrix3d R_psi(double psi);
   double wrap_within_180(double datum, double angle_to_wrap);
   Eigen::Vector4d compute_control_input(const double pn_cmd, const double pe_cmd, const double pd_cmd, const double psi_cmd,

@@ -346,7 +346,8 @@ void TuningSignalGenerator::declare_params()
   desc << "MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE = 7\n";
   desc << "MODE_PASS_THROUGH_TO_MIXER = 8\n";
   desc << "MODE_ROLL_PITCH_YAW_THRUST_TO_MIXER = 9\n";
-  desc << "MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MIXER = 10";
+  desc << "MODE_ROLL_PITCH_YAWRATE_THRUST_TO_MIXER = 10\n";
+  desc << "MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MIXER = 11";
   controller_mode_param_desc.description = desc.str();
   controller_mode_param_desc.integer_range = {rcl_interfaces::msg::IntegerRange().set__from_value(0).set__to_value(10)};
   this->declare_parameter("controller_mode", 0, controller_mode_param_desc);
