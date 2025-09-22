@@ -64,13 +64,13 @@ private:
    * @param state The state of the system. 
    * @param inputs The inputs to the estimator. Can be something like IMU measurements.
    */
-  Eigen::VectorXf multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  Eigen::VectorXf dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
 
   /**
-   * @brief This is a reference to the multirotor_dynamics function, this is created by the std::bind.
+   * @brief This is a reference to the dynamics function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
    */
-  DynamicModelFuncRef multirotor_dynamics_model;
+  DynamicModelFuncRef dynamics_model;
 
   /**
    * @brief Calculates the jacobian of the system dynamics given the current states and inputs.
@@ -78,13 +78,13 @@ private:
    * @param state The state of the system.
    * @param inputs The inputs to the estimator, something like IMU measurements.
    */
-  Eigen::MatrixXf multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  Eigen::MatrixXf jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
 
   /**
-   * @brief This is a reference to the multirotor_jacobian function, this is created by the std::bind.
+   * @brief This is a reference to the jacobian function, this is created by the std::bind.
    * This offers a minimum time penalty when passed into a function.
    */
-  JacobianFuncRef multirotor_jacobian_model;
+  JacobianFuncRef jacobian_model;
 
   /**
    * @brief Calculates the jacobian of the inputs to the estimator.
@@ -92,13 +92,13 @@ private:
    * @param state The state of the dynamic system.
    * @param inputs Inputs to the estimator.
    */
-  Eigen::MatrixXf multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
+  Eigen::MatrixXf input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs);
 
   /**
-   * @brief This is a reference to the multirotor_input_jacobian function. This incurs minimum time cost
+   * @brief This is a reference to the input_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  JacobianFuncRef multirotor_input_jacobian_model;
+  JacobianFuncRef input_jacobian_model;
 
   /**
    * @brief Calculates prediction of the measurements using a model of the sensors.
@@ -107,12 +107,12 @@ private:
    * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
    * but is not contained in the state.
    */
-  Eigen::VectorXf multirotor_gnss_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf gnss_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
   /**
-   * @brief This is a reference to the multirotor_measurement_prediction function. This incurs minimum time cost
+   * @brief This is a reference to the measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-   MeasurementModelFuncRef multirotor_gnss_measurement_model;
+   MeasurementModelFuncRef gnss_measurement_model;
   
   /**
    * @brief Calculates the measurement jacobian for the measurement model.
@@ -120,18 +120,18 @@ private:
    * @param state State of the system.
    * @param input Any necessary inputs not included in the state.
    */
-  Eigen::MatrixXf multirotor_gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
 
   /**
-   * @brief This is a reference to the multirotor_measurement_jacobian function. This incurs minimum time cost
+   * @brief This is a reference to the measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  JacobianFuncRef multirotor_gnss_measurement_jacobian_model;
+  JacobianFuncRef gnss_measurement_jacobian_model;
   
   /**
    * @brief This function returns the GNSS measurement noise.
    */
-  Eigen::MatrixXf multirotor_gnss_measurement_sensor_noise();
+  Eigen::MatrixXf gnss_measurement_sensor_noise();
 
   /**
    * @brief Calculates the partial of gravity in the body frame with respect to the Euler angles.
@@ -151,7 +151,7 @@ private:
   /**
    * @brief Reference to the function that calculates the sensor noise of the GNSS.
    */
-  SensorNoiseFuncRef multirotor_gnss_measurement_sensor_noise_model;
+  SensorNoiseFuncRef gnss_measurement_sensor_noise_model;
   
   /**
    * @brief Calculates measurement prediction for the mag.
@@ -160,15 +160,15 @@ private:
    * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
    * but is not contained in the state.
    */
-  Eigen::VectorXf multirotor_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
-  Eigen::VectorXf multirotor_tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
 
   /**
-   * @brief This is a reference to the multirotor_mag_measurement_prediction function. This incurs minimum time cost
+   * @brief This is a reference to the mag_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-  MeasurementModelFuncRef multirotor_mag_measurement_model;
-  MeasurementModelFuncRef multirotor_tilt_mag_measurement_model;
+  MeasurementModelFuncRef mag_measurement_model;
+  MeasurementModelFuncRef tilt_mag_measurement_model;
   
   /**
    * @brief Calculates the jacobian of the measurement model for the magnetometer.
@@ -176,27 +176,27 @@ private:
    * @param state State of the system.
    * @param input Any inputs not in the state needed for the system.
    */
-  Eigen::MatrixXf multirotor_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
-  Eigen::MatrixXf multirotor_tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
   
   /**
-   * @brief This is a reference to the multirotor_mag_measurement_jacobian function. This incurs minimum time cost
+   * @brief This is a reference to the mag_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  JacobianFuncRef multirotor_mag_measurement_jacobian_model;
-  JacobianFuncRef multirotor_tilt_mag_measurement_jacobian_model;
+  JacobianFuncRef mag_measurement_jacobian_model;
+  JacobianFuncRef tilt_mag_measurement_jacobian_model;
   
   /**
    * @brief Calculates the sensor noise of the magnetometer.
    */
-  Eigen::MatrixXf multirotor_mag_measurement_sensor_noise();
-  Eigen::MatrixXf multirotor_tilt_mag_measurement_sensor_noise();
+  Eigen::MatrixXf mag_measurement_sensor_noise();
+  Eigen::MatrixXf tilt_mag_measurement_sensor_noise();
   
   /**
    * @brief Reference to the magnetometer sensor noise calculation.
    */
-  SensorNoiseFuncRef multirotor_mag_measurement_sensor_noise_model;
-  SensorNoiseFuncRef multirotor_tilt_mag_measurement_sensor_noise_model;
+  SensorNoiseFuncRef mag_measurement_sensor_noise_model;
+  SensorNoiseFuncRef tilt_mag_measurement_sensor_noise_model;
   
   /**
    * @brief Calculates measurement prediction for the baro.
@@ -205,12 +205,12 @@ private:
    * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
    * but is not contained in the state.
    */
-  Eigen::VectorXf multirotor_baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::VectorXf baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
   /**
-   * @brief This is a reference to the multirotor_baro_measurement_prediction function. This incurs minimum time cost
+   * @brief This is a reference to the baro_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
    */
-  MeasurementModelFuncRef multirotor_baro_measurement_model;
+  MeasurementModelFuncRef baro_measurement_model;
   
   /**
    * @brief Calculates the jacobian of the measurement model for the barometer.
@@ -218,22 +218,22 @@ private:
    * @param state State of the system.
    * @param input Any inputs not in the state needed for the system.
    */
-  Eigen::MatrixXf multirotor_baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  Eigen::MatrixXf baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
   /**
-   * @brief This is a reference to the multirotor_baro_measurement_jacobian function. This incurs minimum time cost
+   * @brief This is a reference to the baro_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
    */
-  JacobianFuncRef multirotor_baro_measurement_jacobian_model;
+  JacobianFuncRef baro_measurement_jacobian_model;
   
   /**
    * @brief Calculates the barometer sensor noise.
    */
-  Eigen::MatrixXf multirotor_baro_measurement_sensor_noise();
+  Eigen::MatrixXf baro_measurement_sensor_noise();
   
   /**
    * @brief Reference to the calculation of the barometer sensor noise.
    */
-  SensorNoiseFuncRef multirotor_baro_measurement_sensor_noise_model;
+  SensorNoiseFuncRef baro_measurement_sensor_noise_model;
 
   /**
    * @brief The number of states to estimate.
@@ -268,7 +268,7 @@ private:
   /**
    * @brief There are 6 gnss measurements by default. Lat, lon, alt, v_n, v_e and v_d.
    */
-  static constexpr int num_gnss_measurements = 6;
+  static constexpr int num_gnss_measurements = 5;
 
   /**
    * @brief The sensor noises for the GNSS measurements. The first three rows are for the positional measurements.

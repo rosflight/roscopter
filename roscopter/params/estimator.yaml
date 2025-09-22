@@ -46,9 +46,9 @@
       pos_n_initial_cov: .0001
       pos_e_initial_cov: .0001
       pos_d_initial_cov: .0001
-      vn_initial_cov: .0001
-      ve_initial_cov: .0001
-      vd_initial_cov: .0001
+      vx_initial_cov: .0001
+      vy_initial_cov: .0001
+      vz_initial_cov: .0001
       phi_initial_cov: 0.005
       theta_initial_cov: 0.005
       psi_initial_cov: 1.0

@@ -133,17 +133,16 @@ EstimatorROS::parametersCallback(const std::vector<rclcpp::Parameter> & paramete
 void EstimatorROS::update()
 {
   Output output;
+  /*output.pn = output.pe = output.pd = 0.f;*/
+  /*output.phi = output.theta = output.psi = 0.f;*/
+  /*output.vn = output.ve = output.vd = 0.f;*/
+  /*output.p = output.q = output.r = 0.f;*/
+  /*output.Vg = 0.f;*/
+  /*output.bx = output.by = output.bz = 0.f;*/
+  /*output.inclination = 0.f;*/
 
   if (armed_first_time_) {
     estimate(input_, output);
-  } else {
-    output.pn = output.pe = output.pd = 0;
-    output.phi = output.theta = output.psi = 0;
-    output.vn = output.ve = output.vd = 0;
-    output.p = output.q = output.r = 0;
-    output.Vg = 0;
-    output.bx = output.by = output.bz = 0;
-    output.inclination = 0;
   }
   
   if (!init_conds_saved_ && baro_init_ && gps_init_ && !params_.get_bool("hotstart_estimator")) {
@@ -160,9 +159,9 @@ void EstimatorROS::update()
   msg.position[0] = output.pn;
   msg.position[1] = output.pe;
   msg.position[2] = output.pd;
-  msg.v_n = output.vn;
-  msg.v_e = output.ve;
-  msg.v_d = output.vd;
+  msg.v_n = output.vx;
+  msg.v_e = output.vy;
+  msg.v_d = output.vz;
   msg.phi = output.phi;
   msg.theta = output.theta;
   msg.psi = output.psi;
@@ -232,7 +231,7 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
     input_.gps_h = msg_height - init_alt_;
     input_.gps_new = true;
 
-    double Vg_when_course_valid = params_.get_double("gps_ground_speed_threshold");
+    double vg_when_course_valid = params_.get_double("gps_ground_speed_threshold");
 
     double ground_speed = sqrt(msg_vel_n * msg_vel_n + msg_vel_e * msg_vel_e);
     double course = atan2(msg_vel_e, msg_vel_n); 
@@ -242,7 +241,7 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
     input_.gps_ve = msg_vel_e;
     input_.gps_vd = msg_vel_d;
 
-    if (ground_speed > Vg_when_course_valid)
+    if (ground_speed > vg_when_course_valid)
       input_.gps_course = course;
   }
 }

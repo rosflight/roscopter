@@ -77,6 +77,11 @@ void EstimatorContinuousDiscrete::init_state(const Input & input)
 // ======== MAIN ESTIMATION LOOP ========
 void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 {
+  // Low pass filter gyros to estimate angular rates ASK: Should we lpf this?
+  lpf_gyro_x_ = alpha_gyro_ * lpf_gyro_x_ + (1 - alpha_gyro_) * input.gyro_x;
+  lpf_gyro_y_ = alpha_gyro_ * lpf_gyro_y_ + (1 - alpha_gyro_) * input.gyro_y;
+  lpf_gyro_z_ = alpha_gyro_ * lpf_gyro_z_ + (1 - alpha_gyro_) * input.gyro_z;
+
   if (!state_init_) {
     calc_mag_field_properties(input); // Finds inclination_ and declination_.
     init_state(input);
@@ -96,11 +101,6 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
 
   check_estimate(input);
   
-  // Low pass filter gyros to estimate angular rates ASK: Should we lpf this?
-  lpf_gyro_x_ = alpha_gyro_ * lpf_gyro_x_ + (1 - alpha_gyro_) * input.gyro_x;
-  lpf_gyro_y_ = alpha_gyro_ * lpf_gyro_y_ + (1 - alpha_gyro_) * input.gyro_y;
-  lpf_gyro_z_ = alpha_gyro_ * lpf_gyro_z_ + (1 - alpha_gyro_) * input.gyro_z;
-  
   Eigen::Vector3f mag;
   mag << input.mag_x, input.mag_y, input.mag_z;
   mag /= mag.norm();
@@ -109,9 +109,9 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   output.pn = xhat_(0);
   output.pe = xhat_(1);
   output.pd = xhat_(2);
-  output.vn = xhat_(3);
-  output.ve = xhat_(4);
-  output.vd = xhat_(5);
+  output.vx = xhat_(3);
+  output.vy = xhat_(4);
+  output.vz = xhat_(5);
   output.p = lpf_gyro_x_ - xhat_(9);
   output.q = lpf_gyro_y_ - xhat_(10);
   output.r = lpf_gyro_z_ - xhat_(11);
@@ -144,8 +144,8 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
   imu_measurements << input.accel_x, input.accel_y, input.accel_z,
                       input.gyro_x, input.gyro_y, input.gyro_z;
 
-  std::tie(P_, xhat_) = propagate_model(xhat_, multirotor_dynamics_model, multirotor_jacobian_model,
-                                        imu_measurements, multirotor_input_jacobian_model, P_, Q_,
+  std::tie(P_, xhat_) = propagate_model(xhat_, dynamics_model, jacobian_model,
+                                        imu_measurements, input_jacobian_model, P_, Q_,
                                         Q_inputs_, Ts);
 
   // Wrap RPY estimates.
@@ -188,8 +188,8 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   // Use gammas to enforce consider states, or partial consider states. See Parial-Update Schmidt-Kalman Filter, Kevin Brink 2017.
   Eigen::Vector<float, num_states> gammas = Eigen::Vector<float, num_states>::Zero();
 
-  /*std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_mag_measurement_model, y_mag, multirotor_mag_measurement_jacobian_model, multirotor_mag_measurement_sensor_noise_model, P_, gammas);*/
-  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, multirotor_tilt_mag_measurement_model, y_course, multirotor_tilt_mag_measurement_jacobian_model, multirotor_tilt_mag_measurement_sensor_noise_model, P_, gammas);
+  /*std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, mag_measurement_model, y_mag, mag_measurement_jacobian_model, mag_measurement_sensor_noise_model, P_, gammas);*/
+  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, tilt_mag_measurement_model, y_course, tilt_mag_measurement_jacobian_model, tilt_mag_measurement_sensor_noise_model, P_, gammas);
 
   new_mag_ = false;
 }
@@ -209,8 +209,8 @@ void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& inpu
 
   Eigen::Vector<float, 1> _;
 
-  std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_baro_measurement_model, y_baro,
-                                             multirotor_baro_measurement_jacobian_model, multirotor_baro_measurement_sensor_noise_model, P_);
+  std::tie(P_, xhat_) = measurement_update(xhat_, _, baro_measurement_model, y_baro,
+                                             baro_measurement_jacobian_model, baro_measurement_sensor_noise_model, P_);
   new_baro_ = false;
 }
 
@@ -223,16 +223,16 @@ void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& inpu
   if (input.gps_new && gps_init_) {
     // Measurements for the positional states.
     Eigen::Vector<float, num_gnss_measurements> y_gps;
-    y_gps << input.gps_n, input.gps_e, -input.gps_h, input.gps_vn, input.gps_ve, input.gps_vd;
+    y_gps << input.gps_n, input.gps_e, input.gps_vn, input.gps_ve, input.gps_vd;
   
-    std::tie(P_, xhat_) = measurement_update(xhat_, _, multirotor_gnss_measurement_model, y_gps,
-                                             multirotor_gnss_measurement_jacobian_model, multirotor_gnss_measurement_sensor_noise_model, P_);
+    std::tie(P_, xhat_) = measurement_update(xhat_, _, gnss_measurement_model, y_gps,
+                                             gnss_measurement_jacobian_model, gnss_measurement_sensor_noise_model, P_);
   }
 }
 
 // ======== PREDICITON STEP EQUATIONS ========
 // These are passed by reference to the predition step.
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
+Eigen::VectorXf EstimatorContinuousDiscrete::dynamics(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
 {
 
   double gravity = params_.get_double("gravity");
@@ -256,7 +256,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_dynamics(const Eigen::Ve
   return f;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
+Eigen::MatrixXf EstimatorContinuousDiscrete::jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
 {
   Eigen::Vector3f accel = inputs.block<3,1>(0,0);
   Eigen::Vector3f gyro = inputs.block<3,1>(3,0);
@@ -288,7 +288,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_jacobian(const Eigen::Ve
 return A;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
+Eigen::MatrixXf EstimatorContinuousDiscrete::input_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& inputs)
 {
   // This uses both the accel and gyro. The associated jacobians have been combined.
   Eigen::Matrix<float, num_states, 6> G = Eigen::Matrix<float, num_states, num_estimator_inputs>::Zero();
@@ -306,7 +306,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_input_jacobian(const Eig
 
 // ======== MAG MEAUREMENT STEP EQUATIONS========
 // These are passed by reference to the mag measurement update step.
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::VectorXf EstimatorContinuousDiscrete::mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   float declination = input(0);
 
@@ -328,7 +328,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_mag_measurement_predicti
   return h;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::MatrixXf EstimatorContinuousDiscrete::mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   Eigen::Vector3f Theta = state.block<3,1>(6,0);
 
@@ -348,7 +348,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_jacobian
   return C;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_sensor_noise()
+Eigen::MatrixXf EstimatorContinuousDiscrete::mag_measurement_sensor_noise()
 {
   Eigen::Matrix<float, num_mag_measurements, num_mag_measurements> R;
 
@@ -358,7 +358,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_mag_measurement_sensor_n
 }
 
 
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::VectorXf EstimatorContinuousDiscrete::tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   Eigen::Vector<float, 1> h = Eigen::Vector<float, 1>::Zero();
 
@@ -367,7 +367,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_pre
   return h;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::MatrixXf EstimatorContinuousDiscrete::tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   Eigen::Matrix<float, 1, num_states> C = Eigen::Matrix<float, 1, num_states>::Zero();
   
@@ -377,7 +377,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_jac
   return C;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_sensor_noise()
+Eigen::MatrixXf EstimatorContinuousDiscrete::tilt_mag_measurement_sensor_noise()
 {
   Eigen::Matrix<float, 1, 1> R;
 
@@ -388,7 +388,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_tilt_mag_measurement_sen
 
 // ======== BARO MEAUREMENT STEP EQUATIONS========
 // These are passed by reference to the baro measurement update step.
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::VectorXf EstimatorContinuousDiscrete::baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   float rho = params_.get_double("rho");
   float gravity = params_.get_double("gravity");
@@ -401,7 +401,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_baro_measurement_predict
   return h;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::MatrixXf EstimatorContinuousDiscrete::baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   float rho = params_.get_double("rho");
   float gravity = params_.get_double("gravity");
@@ -414,7 +414,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_jacobia
   return C;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_sensor_noise()
+Eigen::MatrixXf EstimatorContinuousDiscrete::baro_measurement_sensor_noise()
 {
   Eigen::Matrix<float, num_baro_measurements, num_baro_measurements> R;
 
@@ -425,7 +425,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_baro_measurement_sensor_
 
 // ======== GNSS MEAUREMENT STEP EQUATIONS========
 // These are passed by reference to the GNSS measurement update step.
-Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::VectorXf EstimatorContinuousDiscrete::gnss_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   Eigen::Vector<float, num_gnss_measurements> h = Eigen::Vector<float, num_gnss_measurements>::Zero();
 
@@ -435,10 +435,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_predict
   // East position
   h(1) = state(1);
   
-  // Down position
-  h(2) = state(2);
-
-  // Rotate body vels into the intertial frame.
+  // Express body vels in the intertial frame.
   
   Eigen::Vector3f inertial_vels;
   
@@ -448,20 +445,20 @@ Eigen::VectorXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_predict
   inertial_vels = R(Theta) * vels;
   
   // Vel north
-  h(3) = inertial_vels(0);
+  h(2) = inertial_vels(0);
 
   // Vel east
-  h(4) = inertial_vels(1);
+  h(3) = inertial_vels(1);
   
   // Vel down
-  h(5) = inertial_vels(2);
+  h(4) = inertial_vels(2);
   
   // To add a new measurement, simply use the state and any input you need as another entry to h. Be sure to update the measurement jacobian C.
    
   return h;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+Eigen::MatrixXf EstimatorContinuousDiscrete::gnss_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
   Eigen::Matrix<float, num_gnss_measurements, num_states> C = Eigen::Matrix<float, num_gnss_measurements, num_states>::Zero();
   Eigen::Vector3f vels = state.block<3,1>(3,0);
@@ -472,22 +469,19 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_jacobia
 
   // GPS east
   C(1,1) = 1;
-  
-  // GPS down
-  C(2,2) = 1;
 
   // GPS velocities effect on velocity
-  C.block<3,3>(3,3) = R(Theta);
+  C.block<3,3>(2,3) = R(Theta);
   
   // GPS velocities effect on Theta
-  C.block<3,3>(3,6) = del_R_Theta_v_del_Theta(Theta, vels);
+  C.block<3,3>(2,6) = del_R_Theta_v_del_Theta(Theta, vels);
 
   // To add a new measurement use the inputs and the state to add another row to the matrix C. Be sure to update the measurment prediction vector h.
 
   return C;
 }
 
-Eigen::MatrixXf EstimatorContinuousDiscrete::multirotor_gnss_measurement_sensor_noise()
+Eigen::MatrixXf EstimatorContinuousDiscrete::gnss_measurement_sensor_noise()
 {
   Eigen::Matrix<float, num_gnss_measurements, num_gnss_measurements> R;
 
@@ -719,7 +713,17 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
     prob_index++;
     if (prob_index == 6 || prob_index == 7 || prob_index == 8) {
       if (state > M_PI || state < -M_PI) {
-        RCLCPP_WARN(this->get_logger(), "Attitude angles out of range!");
+      switch (prob_index) {
+        case 6:
+          RCLCPP_WARN(this->get_logger(), "Roll is out of range!");
+          break;
+        case 7:
+          RCLCPP_WARN(this->get_logger(), "Pitch is out of range!");
+          break;
+        case 8:
+          RCLCPP_WARN(this->get_logger(), "Yaw is out of range!");
+          break;
+        }
       }
     }
     if (problem) {
@@ -745,9 +749,9 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   double pos_n_initial_cov = params_.get_double("pos_n_initial_cov");
   double pos_e_initial_cov = params_.get_double("pos_e_initial_cov");
   double pos_d_initial_cov = params_.get_double("pos_d_initial_cov");
-  double vn_initial_cov = params_.get_double("vn_initial_cov");
-  double ve_initial_cov = params_.get_double("ve_initial_cov");
-  double vd_initial_cov = params_.get_double("vd_initial_cov");
+  double vx_initial_cov = params_.get_double("vx_initial_cov");
+  double vy_initial_cov = params_.get_double("vy_initial_cov");
+  double vz_initial_cov = params_.get_double("vz_initial_cov");
   double phi_initial_cov = params_.get_double("phi_initial_cov");
   double theta_initial_cov = params_.get_double("theta_initial_cov");
   double psi_initial_cov = params_.get_double("psi_initial_cov");
@@ -759,9 +763,9 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   P_(0, 0) = pos_n_initial_cov;
   P_(1, 1) = pos_e_initial_cov;
   P_(2, 2) = pos_d_initial_cov;
-  P_(3, 3) = vn_initial_cov;
-  P_(4, 4) = ve_initial_cov;
-  P_(5, 5) = vd_initial_cov;
+  P_(3, 3) = vx_initial_cov;
+  P_(4, 4) = vy_initial_cov;
+  P_(5, 5) = vz_initial_cov;
   P_(6, 6) = phi_initial_cov; 
   P_(7, 7) = theta_initial_cov; 
   P_(8, 8) = psi_initial_cov; 
@@ -871,9 +875,9 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("pos_n_initial_cov", .0001);
   params_.declare_double("pos_e_initial_cov", .0001);
   params_.declare_double("pos_d_initial_cov", .0001);
-  params_.declare_double("vn_initial_cov", .0001);
-  params_.declare_double("ve_initial_cov", .0001);
-  params_.declare_double("vd_initial_cov", .0001);
+  params_.declare_double("vx_initial_cov", .0001);
+  params_.declare_double("vy_initial_cov", .0001);
+  params_.declare_double("vz_initial_cov", .0001);
   params_.declare_double("phi_initial_cov", 0.005);
   params_.declare_double("theta_initial_cov", 0.005);
   params_.declare_double("psi_initial_cov", 1.0);
@@ -922,25 +926,25 @@ void EstimatorContinuousDiscrete::bind_functions()
   // This creates references to the functions that are necessary estimate. This means we can pass them to the EKF class's functions.
   // std::bind creates a forwarding reference to a function. So when we pass the binding object to another method, that method can call the
   // original function.
-  multirotor_dynamics_model = std::bind(&This::multirotor_dynamics, this, _1, _2);
-  multirotor_jacobian_model = std::bind(&This::multirotor_jacobian, this, _1, _2);
-  multirotor_input_jacobian_model = std::bind(&This::multirotor_input_jacobian, this, _1, _2);
+  dynamics_model = std::bind(&This::dynamics, this, _1, _2);
+  jacobian_model = std::bind(&This::jacobian, this, _1, _2);
+  input_jacobian_model = std::bind(&This::input_jacobian, this, _1, _2);
 
-  multirotor_gnss_measurement_model = std::bind(&This::multirotor_gnss_measurement_prediction, this, _1, _2);
-  multirotor_gnss_measurement_jacobian_model = std::bind(&This::multirotor_gnss_measurement_jacobian, this, _1, _2);
-  multirotor_gnss_measurement_sensor_noise_model = std::bind(&This::multirotor_gnss_measurement_sensor_noise, this);
+  gnss_measurement_model = std::bind(&This::gnss_measurement_prediction, this, _1, _2);
+  gnss_measurement_jacobian_model = std::bind(&This::gnss_measurement_jacobian, this, _1, _2);
+  gnss_measurement_sensor_noise_model = std::bind(&This::gnss_measurement_sensor_noise, this);
 
-  multirotor_mag_measurement_model = std::bind(&This::multirotor_mag_measurement_prediction, this, _1, _2);
-  multirotor_mag_measurement_jacobian_model = std::bind(&This::multirotor_mag_measurement_jacobian, this, _1, _2);
-  multirotor_mag_measurement_sensor_noise_model = std::bind(&This::multirotor_mag_measurement_sensor_noise, this);
+  mag_measurement_model = std::bind(&This::mag_measurement_prediction, this, _1, _2);
+  mag_measurement_jacobian_model = std::bind(&This::mag_measurement_jacobian, this, _1, _2);
+  mag_measurement_sensor_noise_model = std::bind(&This::mag_measurement_sensor_noise, this);
   
-  multirotor_tilt_mag_measurement_model = std::bind(&This::multirotor_tilt_mag_measurement_prediction, this, _1, _2);
-  multirotor_tilt_mag_measurement_jacobian_model = std::bind(&This::multirotor_tilt_mag_measurement_jacobian, this, _1, _2);
-  multirotor_tilt_mag_measurement_sensor_noise_model = std::bind(&This::multirotor_tilt_mag_measurement_sensor_noise, this);
+  tilt_mag_measurement_model = std::bind(&This::tilt_mag_measurement_prediction, this, _1, _2);
+  tilt_mag_measurement_jacobian_model = std::bind(&This::tilt_mag_measurement_jacobian, this, _1, _2);
+  tilt_mag_measurement_sensor_noise_model = std::bind(&This::tilt_mag_measurement_sensor_noise, this);
 
-  multirotor_baro_measurement_model = std::bind(&This::multirotor_baro_measurement_prediction, this, _1, _2);
-  multirotor_baro_measurement_jacobian_model = std::bind(&This::multirotor_baro_measurement_jacobian, this, _1, _2);
-  multirotor_baro_measurement_sensor_noise_model = std::bind(&This::multirotor_baro_measurement_sensor_noise, this);
+  baro_measurement_model = std::bind(&This::baro_measurement_prediction, this, _1, _2);
+  baro_measurement_jacobian_model = std::bind(&This::baro_measurement_jacobian, this, _1, _2);
+  baro_measurement_sensor_noise_model = std::bind(&This::baro_measurement_sensor_noise, this);
 }
 
 } // namespace roscopter
