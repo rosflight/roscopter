@@ -114,7 +114,7 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   Eigen::Vector4d u = u_tilde + u_r;
 
   // Pass control through f^{-1} to get the angle commands
-  Eigen::Vector4d nu = invert_control_inputs(u, input_cmd.psi, input_cmd.psi_dot);
+  Eigen::Vector4d nu = invert_control_inputs(u);
 
   // Unpack commands
   double thrust_cmd = nu[0];
@@ -133,31 +133,31 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   return output_cmd_;
 }
 
-Eigen::Vector4d TrajectoryFollower::invert_control_inputs(const Eigen::Vector4d u, const double psi, const double psi_dot)
+Eigen::Vector4d TrajectoryFollower::invert_control_inputs(const Eigen::Vector4d u)
 {
   // Invert to find thrust
   double mass = params.get_double("mass");
   double thrust_cmd = mass * u.segment(0, 3).norm();
 
   // Invert to find theta and phi
-  Eigen::Vector3d z = -1 * R_psi(psi) * u.segment(0, 3) * mass / thrust_cmd;
+  Eigen::Vector3d z = -1 * R_psi(xhat_.psi) * u.segment(0, 3) * mass / thrust_cmd;
   double phi = asin(-1 * z[1]);
   double theta = atan2(z[0], z[2]);
 
   // Solve for theta_dot and compute r
-  double theta_dot = compute_theta_dot(z, thrust_cmd, psi, psi_dot, u);
-  double r = psi_dot * cos(theta) * cos(phi) - theta_dot * sin(phi);
+  double theta_dot = compute_theta_dot(z, thrust_cmd, u);
+  double r = u[3] * cos(theta) * cos(phi) - theta_dot * sin(phi);
 
   // Return the new command vector
   Eigen::Vector4d nu(thrust_cmd, phi, theta, r);
   return nu;
 }
 
-double TrajectoryFollower::compute_theta_dot(const Eigen::Vector3d z, double thrust, const double psi, const double psi_dot, const Eigen::Vector4d u)
+double TrajectoryFollower::compute_theta_dot(const Eigen::Vector3d z, double thrust, const Eigen::Vector4d u)
 {
   // This assumes that the accelerations are not a function of time... For small dt this is reasonably accurate.
   double mass = params.get_double("mass");
-  double z1_dot = -mass / thrust * (-u[0]*sin(psi)*psi_dot + u[1]*cos(psi)*psi_dot);
+  double z1_dot = -mass / thrust * (-u[0]*sin(xhat_.psi)*u[3] + u[1]*cos(xhat_.psi)*u[3]);
   double z3_dot = 0.0;
   double theta_dot = 1 / (1 + pow(z[0] / z[2], 2)) * (z[2] * z1_dot - z[0]*z3_dot) / pow(z[2], 2);
   return theta_dot;
@@ -194,9 +194,9 @@ Eigen::Vector4d TrajectoryFollower::compute_control_input(const double pn_cmd,
   double u_n = north_control(pn_cmd, vn);
   double u_e = east_control(pe_cmd, ve);
   double u_d = down_control(pd_cmd, vd);
-  double psi = psi_control(psi_cmd);
+  double r = psi_control(psi_cmd);
 
-  return Eigen::Vector4d(u_n, u_e, u_d, psi);
+  return Eigen::Vector4d(u_n, u_e, u_d, r);
 }
 
 double TrajectoryFollower::north_control(const double pn_cmd, const double vn)
@@ -228,7 +228,8 @@ double TrajectoryFollower::down_control(const double pd_cmd, const double vd)
 double TrajectoryFollower::psi_control(const double psi_cmd)
 {
   // Psi control effort
-  return PID_yaw_to_rate_.compute_pid(psi_cmd, xhat_.psi, dt_);
+  double psi_cmd_wrapped = wrap_within_180(xhat_.psi, psi_cmd);
+  return PID_yaw_to_rate_.compute_pid(psi_cmd_wrapped, xhat_.psi, dt_);
 }
 
 void TrajectoryFollower::clear_integrators()

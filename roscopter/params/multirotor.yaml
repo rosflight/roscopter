@@ -6,7 +6,7 @@
     tau: 0.05 # Dirty derivative parameter (for PID loops)
     equilibrium_throttle: 0.65
 
-/autopilot:
+/controller:
   ros__parameters:
     # Autopilot gains
     roll_to_torque_kp: 7.0
@@ -101,9 +101,9 @@
     u_e_ki: 0.01
     u_e_kd: 1.0
 
-    u_d_kp: 2.0
+    u_d_kp: 4.0
     u_d_ki: 0.01
-    u_d_kd: 4.0
+    u_d_kd: 2.0
 
     yaw_to_rate_kp: 4.0
     yaw_to_rate_ki: 0.0

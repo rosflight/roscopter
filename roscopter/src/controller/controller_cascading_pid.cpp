@@ -547,7 +547,6 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
     double gravity = params.get_double("gravity");
     min_f = -mass * gravity / equilibrium_throttle * max_f; // Negative since NED
     max_f = -mass * gravity / equilibrium_throttle * min_f;
-
     input_cmd.cmd4 *= -1; // Thrust in the NED frame is negative
   }
   else if (input_cmd.mode == roscopter_msgs::msg::ControllerCommand::MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE) {
