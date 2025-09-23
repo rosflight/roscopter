@@ -7,7 +7,13 @@ using std::placeholders::_2;
 namespace roscopter
 {
 
-TrajectoryFollowerROS::TrajectoryFollowerROS() : Node("trajectory_follower"), params(this), received_cmd_msg_(false)
+TrajectoryFollowerROS::TrajectoryFollowerROS()
+  : Node("trajectory_follower")
+  , params(this)
+  , xhat_(roscopter_msgs::msg::State())
+  , firmware_status_(rosflight_msgs::msg::Status())
+  , received_cmd_msg_(false)
+  , input_cmd_(roscopter_msgs::msg::TrajectoryCommand())
 {
   // Instantiate publishers and subscribers
   state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&TrajectoryFollowerROS::state_callback, this, _1));

@@ -7,7 +7,13 @@ using std::placeholders::_2;
 namespace roscopter
 {
 
-PathManagerROS::PathManagerROS() : Node("path_manager"), params(this), params_initialized_(false)
+PathManagerROS::PathManagerROS()
+  : Node("path_manager")
+  , params{this}
+  , xhat_{roscopter_msgs::msg::State()}
+  , waypoint_list_{}
+  , timer_period_(0)
+  , params_initialized_{false}
 {
   rclcpp::QoS qos_transient_local_10_(10);
   qos_transient_local_10_.transient_local();
