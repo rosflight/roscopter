@@ -3,7 +3,11 @@
 namespace roscopter
 {
   
-TrajectoryFollower::TrajectoryFollower() : TrajectoryFollowerROS(), params_initialized_(false)
+TrajectoryFollower::TrajectoryFollower()
+  : TrajectoryFollowerROS()
+  , output_cmd_{roscopter_msgs::msg::ControllerCommand()}
+  , dt_{0.0}
+  , params_initialized_{false}
 {
   declare_params();
   params.set_parameters();
@@ -174,9 +178,9 @@ double TrajectoryFollower::wrap_within_180(double datum, double angle_to_wrap)
 {
   while (fabs(datum - angle_to_wrap) > M_PI) {
     if (datum - angle_to_wrap > M_PI) {
-      angle_to_wrap -= 2*M_PI;
-    } else {
       angle_to_wrap += 2*M_PI;
+    } else {
+      angle_to_wrap -= 2*M_PI;
     }
   }
   return angle_to_wrap;

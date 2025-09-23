@@ -11,8 +11,11 @@ double dist(std::array<float, 3> array1, std::array<float, 3> array2)
 
 PathManager::PathManager() 
   : PathManagerROS()
-  , initial_leg_time_(0.0)
+  , output_cmd_{roscopter_msgs::msg::TrajectoryCommand()}
+  , prev_wp_{roscopter_msgs::msg::Waypoint()}
   , T_(0.0)
+  , sigma_{Eigen::Vector2f::Zero()}
+  , initial_leg_time_(0.0)
 {
   declare_params();
 }
@@ -130,6 +133,7 @@ void PathManager::initialize_path()
 void PathManager::clear_waypoints_internally() {
   waypoint_list_.clear();
   current_wp_index_ = 0;
+  previous_wp_index_ = 0;
   path_initialized_ = false;
 }
 
