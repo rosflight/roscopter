@@ -31,7 +31,7 @@ def generate_launch_description():
         Node(
             package='roscopter',
             executable='controller',
-            name='autopilot',
+            name='controller',
             output='screen',
             parameters=[controller_param_file],
             remappings=[('estimated_state', state_remap)]

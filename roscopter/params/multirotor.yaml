@@ -1,4 +1,3 @@
-# TODO: Clean up this file (split by node)
 /**:    # autopilot and trajectory controller share some of the same parameters
   ros__parameters:
     gravity: 9.81
