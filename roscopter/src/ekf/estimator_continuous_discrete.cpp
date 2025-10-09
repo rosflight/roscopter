@@ -156,7 +156,6 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
 
 void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input)
 {
-  RCLCPP_INFO(this->get_logger(), "MAG UPDATE");
   // Only update when have new mag and the magnetometer models have been found.
   if (!new_mag_ || !mag_init_) {
     return;
@@ -216,7 +215,6 @@ void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& inpu
 
 void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& input)
 {
-  RCLCPP_INFO(this->get_logger(), "GNSS UPDATE");
   Eigen::Vector<float, 1> _; // This is used when no inputs are needed.
 
   // Only update if new GPS information is available.
