@@ -195,7 +195,7 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
 
 void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& input) {
   
-  RCLCPP_INFO(this->get_logger(), "BARO UPDATE");
+  RCLCPP_DEBUG(this->get_logger(), "BARO UPDATE");
   // Only update when have new baro.
   if (!new_baro_) {
     return;
