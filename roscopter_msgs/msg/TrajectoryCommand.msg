@@ -6,4 +6,6 @@ float32[3] position
 float32[3] velocity
 float32[3] acceleration
 
-float32 psi_cmd
+float32 psi
+float32 psi_dot
+float32 psi_dot_dot

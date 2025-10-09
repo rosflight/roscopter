@@ -10,6 +10,7 @@
 #include "roscopter_msgs/msg/controller_command.hpp"
 #include "roscopter_msgs/msg/trajectory_command.hpp"
 #include "roscopter_msgs/msg/state.hpp"
+#include "rosflight_msgs/msg/status.hpp"
 
 using std::placeholders::_1;
 
@@ -26,8 +27,9 @@ public:
   static double saturate(double x, double max, double min);
 
 protected:
-  ParamManager params;  
+  ParamManager params;
   roscopter_msgs::msg::State xhat_;     /** Current estimated state of MAV */
+  rosflight_msgs::msg::Status firmware_status_;
 
 private:
   bool received_cmd_msg_;
@@ -35,6 +37,7 @@ private:
   // Publishers and Subscribers
   rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr state_sub_;
   rclcpp::Subscription<roscopter_msgs::msg::TrajectoryCommand>::SharedPtr trajectory_sub_;
+  rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr firmware_status_sub_;
   rclcpp::Publisher<roscopter_msgs::msg::ControllerCommand>::SharedPtr cmd_pub_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_integrators_srvs_;
 
@@ -45,6 +48,7 @@ private:
   double compute_dt(double now);
   void state_callback(const roscopter_msgs::msg::State &msg);
   void cmd_callback(const roscopter_msgs::msg::TrajectoryCommand &msg);
+  void status_callback(const rosflight_msgs::msg::Status &msg);
   void publish_command(roscopter_msgs::msg::ControllerCommand &command);
   bool clear_integrators_callback(const std_srvs::srv::Trigger::Request::SharedPtr req, const std_srvs::srv::Trigger::Response::SharedPtr res);
 

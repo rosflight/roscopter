@@ -45,8 +45,7 @@ private:
   {
     roscopter_msgs::msg::State state;
 
-    // TODO: Should this use the timestamp of the incoming estimate?
-    state.header.stamp = this->get_clock()->now();
+    state.header.stamp = msg.header.stamp;
     state.header.frame_id = 1; // Denotes global frame.
 
     state.initial_lat = 0.0;
@@ -85,8 +84,6 @@ private:
     state.p = msg.twist.angular.x;
     state.q = msg.twist.angular.y;
     state.r = msg.twist.angular.z;
-
-    // TODO: Add the true biases to the state publisher or to a standalone_sensor publisher
 
     state.quat_valid = true;
 

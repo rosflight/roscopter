@@ -38,6 +38,7 @@ private:
   int state_;
   double takeoff_n_pos_;
   double takeoff_e_pos_;
+  double takeoff_yaw_;
   double start_position_hold_time_;
   bool do_land_;
 

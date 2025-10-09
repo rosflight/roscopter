@@ -326,7 +326,7 @@ PathPlanner::parametersCallback(const std::vector<rclcpp::Parameter> & parameter
 
 void PathPlanner::declare_parameters()
 {
-  params_.declare_int("num_waypoints_to_publish_at_start", 3);
+  params_.declare_int("num_waypoints_to_publish_at_start", 5);
 }
 
 } // namespace roscopter

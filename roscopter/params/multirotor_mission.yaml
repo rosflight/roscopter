@@ -3,7 +3,7 @@ wp:
   type: 1
   w: [0.0, 0.0, -10.0]
   speed: 4.0
-  psi: 0.0
+  psi: 2.16
   use_lla: false
   hold_seconds: 0.0
   hold_indefinitely: false
@@ -11,7 +11,7 @@ wp:
   type: 1
   w: [20.0, 0.0, -10.0]
   speed: 4.0
-  psi: 0.0
+  psi: 2.16
   use_lla: false
   hold_seconds: 0.0
   hold_indefinitely: false
@@ -19,7 +19,7 @@ wp:
   type: 0
   w: [20.0, -20.0, -20.0]
   speed: 4.0
-  psi: 0.0
+  psi: 1.5
   use_lla: false
   hold_seconds: 5.0
   hold_indefinitely: false
@@ -27,7 +27,7 @@ wp:
   type: 1
   w: [0.0, -20.0, -20.0]
   speed: 4.0
-  psi: 0.0
+  psi: 2.16
   use_lla: false
   hold_seconds: 0.0
   hold_indefinitely: false
@@ -35,7 +35,7 @@ wp:
   type: 0
   w: [0.0, 0.0, -40.0]
   speed: 4.0
-  psi: 0.0
+  psi: 2.16
   use_lla: false
   hold_seconds: 10.0
   hold_indefinitely: false

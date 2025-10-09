@@ -15,7 +15,6 @@ void ControllerStateMachine::declare_params()
 {
   params.declare_double("takeoff_d_pos", -10.0);
   params.declare_double("takeoff_height_threshold", 1.0);
-  params.declare_double("takeoff_yaw", 0.0);
   params.declare_double("takeoff_d_vel", -0.5);
   params.declare_double("takeoff_landing_pos_hold_time", 3.0);
 }
@@ -101,6 +100,7 @@ void ControllerStateMachine::manage_disarm(bool armed, bool cmd_valid)
     state_ = TAKEOFF;
     takeoff_n_pos_ = xhat_.position[0];
     takeoff_e_pos_ = xhat_.position[1];
+    takeoff_yaw_ = xhat_.psi;
   }
   else {
     RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), !state_transition_, 
@@ -115,7 +115,6 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_takeoff(double dt)
 {
   double takeoff_d_pos = params.get_double("takeoff_d_pos");
   double takeoff_height_threshold = params.get_double("takeoff_height_threshold");
-  double takeoff_yaw = params.get_double("takeoff_yaw");
   double takeoff_d_vel = params.get_double("takeoff_d_vel");
 
   rosflight_msgs::msg::Command output_cmd;
@@ -127,7 +126,7 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_takeoff(double dt)
   input_cmd.cmd1 = takeoff_n_pos_;
   input_cmd.cmd2 = takeoff_e_pos_;
   input_cmd.cmd3 = takeoff_d_vel;
-  input_cmd.cmd4 = takeoff_yaw;
+  input_cmd.cmd4 = takeoff_yaw_;
 
   // Compute command
   output_cmd = compute_offboard_control(input_cmd, dt);
@@ -149,7 +148,6 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_takeoff(double dt)
 rosflight_msgs::msg::Command ControllerStateMachine::manage_position_hold(double dt)
 {
   double takeoff_d_pos = params.get_double("takeoff_d_pos");
-  double takeoff_yaw = params.get_double("takeoff_yaw");
   double takeoff_landing_pos_hold_time = params.get_double("takeoff_landing_pos_hold_time");
 
   rosflight_msgs::msg::Command output_cmd;
@@ -162,7 +160,7 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_position_hold(double
   input_cmd.cmd1 = takeoff_n_pos_;
   input_cmd.cmd2 = takeoff_e_pos_;
   input_cmd.cmd3 = takeoff_d_pos;
-  input_cmd.cmd4 = takeoff_yaw;
+  input_cmd.cmd4 = takeoff_yaw_;
 
   // Compute command
   output_cmd = compute_offboard_control(input_cmd, dt);

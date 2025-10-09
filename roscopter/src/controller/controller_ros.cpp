@@ -107,6 +107,12 @@ double ControllerROS::saturate(double x, double max, double min)
   return x;
 }
 
+double ControllerROS::wrap_within_180(double fixed, double angle_to_wrap)
+{
+  // wrapped_heading - number_of_times_to_wrap * 2pi
+  return angle_to_wrap - floor((angle_to_wrap - fixed) / (2 * M_PI) + 0.5) * 2 * M_PI;
+}
+
 }  // namespace controller
 
 

@@ -24,6 +24,7 @@ public:
   ControllerROS();
 
   static double saturate(double x, double max, double min);
+  static double wrap_within_180(double fixed, double angle_to_wrap);
 
 protected:
   ParamManager params;  
