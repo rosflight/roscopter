@@ -215,23 +215,6 @@ void ControllerCascadingPID::update_gains() {
   PID_d_to_vel_.set_gains(P, I, D, tau);
 }
 
-// double ControllerCascadingPID::calculate_max_xy_accel(double max_accel_z, double equilibrium_throttle) {
-//   // Compute the maximum acceleration in the xy plane based on the maximum z accel
-//   double max_accel_xy = sin(acos(equilibrium_throttle)) 
-//     * max_accel_z; // This assumes that the minimum vehicle-1 frame z acceleration is 1g
-//
-//   // Also compute the max acceleration that doesn't exceed the max roll and pitch values
-//   double max_accel_due_to_roll = sin(params.get_double("max_roll_deg") * TO_RADIANS) * max_accel_z;
-//   double max_accel_due_to_pitch = sin(params.get_double("max_pitch_deg") * TO_RADIANS) * max_accel_z;
-//
-//   // Take the minimum of the computed maximum accelerations
-//   max_accel_xy = std::min(max_accel_xy, max_accel_due_to_roll);
-//   max_accel_xy = std::min(max_accel_xy, max_accel_due_to_pitch);
-//
-//   RCLCPP_INFO_STREAM(this->get_logger(), "Max accel in xy: " << max_accel_xy << " Max accel in z: " << max_accel_z);
-//
-//   return max_accel_xy;
-// }
 
 rosflight_msgs::msg::Command ControllerCascadingPID::compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt)
 {
