@@ -176,14 +176,8 @@ Eigen::Matrix3d TrajectoryFollower::R_psi(double psi)
 
 double TrajectoryFollower::wrap_within_180(double datum, double angle_to_wrap)
 {
-  while (fabs(datum - angle_to_wrap) > M_PI) {
-    if (datum - angle_to_wrap > M_PI) {
-      angle_to_wrap += 2*M_PI;
-    } else {
-      angle_to_wrap -= 2*M_PI;
-    }
-  }
-  return angle_to_wrap;
+  // wrapped_heading - number_of_times_to_wrap * 2pi
+  return angle_to_wrap - floor((angle_to_wrap - datum) / (2 * M_PI) + 0.5) * 2 * M_PI;
 }
 
 Eigen::Vector4d TrajectoryFollower::compute_control_input(const double pn_cmd,

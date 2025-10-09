@@ -362,12 +362,7 @@ void ControllerCascadingPID::npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerC
   double psi = input_cmd.cmd4;
 
   // First, determine the shortest direction to the commanded psi (wrap to within 180)
-  while (fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi)) {
-    psi += 2*M_PI;
-  }
-  while (fabs(psi - 2*M_PI -xhat_.psi) < fabs(psi - xhat_.psi)) {
-    psi -= 2*M_PI;
-  }
+  psi = wrap_within_180(xhat_.psi, psi);
 
   // Save the calculated velocities to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
@@ -477,12 +472,7 @@ void ControllerCascadingPID::npos_epos_dvel_yaw(roscopter_msgs::msg::ControllerC
   double pedot_c = PID_e_to_vel_.compute_pid(pe, xhat_.position[1], dt_);
 
   // First, determine the shortest direction to the commanded psi (wrap within 180)
-  while (fabs(psi + 2*M_PI - xhat_.psi) < fabs(psi - xhat_.psi)) {
-    psi += 2*M_PI;
-  }
-  while (fabs(psi - 2*M_PI -xhat_.psi) < fabs(psi - xhat_.psi)) {
-    psi -= 2*M_PI;
-  }
+  psi = wrap_within_180(xhat_.psi, psi);
 
   // Save the calculated velocities to the command and change to the appropriate mode
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
