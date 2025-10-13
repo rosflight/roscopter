@@ -30,6 +30,7 @@ private:
   roscopter_msgs::msg::TrajectoryCommand linear_interpolation();
   void hold_timer_callback();
   void increment_wp_index();
+  roscopter_msgs::msg::Waypoint compute_previous_waypoint();
   void clear_waypoints_internally() override;
   void rk4_step();
   Eigen::Vector2f F(Eigen::Vector2f sig);

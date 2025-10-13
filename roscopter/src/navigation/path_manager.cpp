@@ -107,7 +107,6 @@ void PathManager::increment_wp_index() {
     current_wp_index_++;
     initialize_path();
   }
-
 }
 
 void PathManager::initialize_path()
@@ -118,7 +117,9 @@ void PathManager::initialize_path()
 
   // Find T_, which is the time it takes to travese waypoints.
   roscopter_msgs::msg::Waypoint curr_wp = waypoint_list_[current_wp_index_];
-  double norm = dist(curr_wp.w, prev_wp_.w);
+  roscopter_msgs::msg::Waypoint previous_wp = compute_previous_waypoint();
+
+  double norm = dist(curr_wp.w, previous_wp.w);
   double max_vel = params.get_double("max_velocity");
   double max_accel = params.get_double("max_acceleration");
 
@@ -128,6 +129,24 @@ void PathManager::initialize_path()
   double T_acc_limited = sqrt(sigma_double_prime((3-sqrt(3))/6) * norm / max_accel);
 
   T_ = std::max(T_vel_limited, T_acc_limited);
+}
+
+roscopter_msgs::msg::Waypoint PathManager::compute_previous_waypoint() {
+  if (previous_wp_index_ != current_wp_index_) {
+    return waypoint_list_[previous_wp_index_];
+  }
+
+  if (temp_wp_set_) {
+    return prev_wp_;
+  }
+
+  roscopter_msgs::msg::Waypoint previous_wp;
+  previous_wp.w = xhat_.position;
+  previous_wp.speed = 0.0;
+  previous_wp.psi = xhat_.psi;
+  temp_wp_set_ = true;
+
+  return previous_wp;
 }
 
 void PathManager::clear_waypoints_internally() {
@@ -151,18 +170,7 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::create_trajectory()
   }
 
   // Compute the control according to Algorithm 15 in Ch. 14 of Beard, McLain textbook
-  prev_wp_ = roscopter_msgs::msg::Waypoint();
-  roscopter_msgs::msg::Waypoint curr_wp = waypoint_list_[current_wp_index_];
-  if (previous_wp_index_ == current_wp_index_) {
-    if (!temp_wp_set_) {
-      prev_wp_.w = xhat_.position;
-      prev_wp_.speed = 0.0;
-      prev_wp_.psi = xhat_.psi;
-      temp_wp_set_ = true;
-    }
-  } else {
-    prev_wp_ = waypoint_list_[previous_wp_index_];
-  }
+  prev_wp_ = compute_previous_waypoint();
 
 
   if (params.get_bool("do_linear_interpolation")) {
