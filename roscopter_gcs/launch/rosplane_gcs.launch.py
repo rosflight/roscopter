@@ -29,7 +29,7 @@ def generate_launch_description():
         ),
         Node(
             package='roscopter_gcs',
-            executable='rviz_waypoint_publisher',
-            remappings=[('estimated_state', 'state')]
+            executable='rviz_waypoint_publisher'
+            # remappings=[('estimated_state', 'state')]
         )
     ])

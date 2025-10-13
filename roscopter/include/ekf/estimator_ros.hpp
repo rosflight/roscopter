@@ -81,25 +81,25 @@ protected:
 
   struct Output
   {
-    float pn;
-    float pe;
-    float pd;
-    float vn;
-    float ve;
-    float vd;
-    float phi;
-    float theta;
-    float psi;
-    float bx;
-    float by;
-    float bz;
-    float p;
-    float q;
-    float r;
-    float Vg;
-    float inclination;
-    bool quat_valid;
-    Eigen::Quaternionf quat;
+    float pn = 0.0f;
+    float pe = 0.0f;
+    float pd = 0.0f;
+    float vx = 0.0f;
+    float vy = 0.0f;
+    float vz = 0.0f;
+    float phi = 0.0f;
+    float theta = 0.0f;
+    float psi = 0.0f;
+    float bx = 0.0f;
+    float by = 0.0f;
+    float bz = 0.0f;
+    float p = 0.0f;
+    float q = 0.0f;
+    float r = 0.0f;
+    float vg = 0.0f; 
+    float inclination = 0.0f; 
+    bool quat_valid = true;
+    Eigen::Quaternionf quat = Eigen::Quaternionf(1.0f, 0.0f, 0.0f, 0.0f);
   };
 
   bool init_conds_saved_ = false;
