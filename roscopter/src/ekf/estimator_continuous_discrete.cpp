@@ -176,10 +176,10 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   Theta(2) = 0.0;
   y_mag = R(Theta)*y_mag;
   
-  Eigen::Vector<float, 1> y_course; // TODO: CHANGE TO HEADING NOT COURSE
-  y_course << -atan2f(y_mag(1), y_mag(0)) + radians(declination_);
+  Eigen::Vector<float, 1> y_heading;
+  y_heading << -atan2f(y_mag(1), y_mag(0)) + radians(declination_);
 
-  y_course(0) = wrap_within_180(xhat_(8), y_course(0));
+  y_heading(0) = wrap_within_180(xhat_(8), y_heading(0));
 
   Eigen::Vector<float, 2> mag_info;
   mag_info << radians(declination_), radians(inclination_);
@@ -188,14 +188,13 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   Eigen::Vector<float, num_states> gammas = Eigen::Vector<float, num_states>::Zero();
 
   /*std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, mag_measurement_model, y_mag, mag_measurement_jacobian_model, mag_measurement_sensor_noise_model, P_, gammas);*/
-  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, tilt_mag_measurement_model, y_course, tilt_mag_measurement_jacobian_model, tilt_mag_measurement_sensor_noise_model, P_, gammas);
+  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, tilt_mag_measurement_model, y_heading, tilt_mag_measurement_jacobian_model, tilt_mag_measurement_sensor_noise_model, P_, gammas);
 
   new_mag_ = false;
 }
 
 void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& input) {
   
-  RCLCPP_DEBUG(this->get_logger(), "BARO UPDATE");
   // Only update when have new baro.
   if (!new_baro_) {
     return;
@@ -646,11 +645,6 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
   float decimal_month = input.gps_month + input.gps_day/31.0;
   float decimal_year = input.gps_year + decimal_month/12.0;
 
-  RCLCPP_INFO_STREAM(this->get_logger(), "dec_year: " << decimal_year);
-  RCLCPP_INFO_STREAM(this->get_logger(), "lat: " << input.gps_lat);
-  RCLCPP_INFO_STREAM(this->get_logger(), "lon: " << input.gps_lon);
-  RCLCPP_INFO_STREAM(this->get_logger(), "alt: " << input.gps_alt);
-  
   int mag_success = geomag_calc(input.gps_alt/1000.0,
                                 input.gps_lat,
                                 input.gps_lon,
@@ -659,8 +653,6 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
                                 &inclination_,
                                 &total_intensity,
                                 &grid_variation); 
-  RCLCPP_INFO_STREAM(this->get_logger(), "inclination_: " << inclination_);
-  RCLCPP_INFO_STREAM(this->get_logger(), "declination_: " << declination_);
 
   if (mag_success == 1) {
     RCLCPP_ERROR(this->get_logger(), "Something went wrong while calculating inclination and declination.");
