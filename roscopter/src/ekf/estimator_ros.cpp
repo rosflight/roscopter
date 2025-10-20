@@ -57,6 +57,7 @@ EstimatorROS::EstimatorROS()
   }
 
   set_timer();
+  set_sensor_monitoring();
 }
 
 void EstimatorROS::declare_parameters()
@@ -68,6 +69,10 @@ void EstimatorROS::declare_parameters()
   params_.declare_double("baro_measurement_gate", 1.35);  // TODO: this is a magic number. What is it determined from?
   params_.declare_double("airspeed_measurement_gate", 5.0);  // TODO: this is a magic number. What is it determined from?
   params_.declare_int("baro_calibration_count", 100);  // TODO: this is a magic number. What is it determined from?
+  params_.declare_int("max_imu_sensor_silence_duration_ms", 3); // ~333 Hz, allowing for a margin against the actual 400 Hz
+  params_.declare_int("max_mag_sensor_silence_duration_ms", 20); // ~50 Hz, allowing for a margin against the actual 100 Hz
+  params_.declare_int("max_baro_sensor_silence_duration_ms", 20); // ~50 Hz, allowing for a margin against the actual 100 Hz
+  params_.declare_int("max_gnss_sensor_silence_duration_ms", 200); // ~5 Hz, allowing for a margin against the actual 10 Hz
   params_.declare_int("min_gnss_fix_type", 3);
   params_.declare_double("baro_calibration_val", 0.0);
   params_.declare_bool("hotstart_estimator", false);
@@ -182,6 +187,9 @@ void EstimatorROS::update()
 
 void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
 {
+  std::chrono::milliseconds zero_millis(0);
+  time_since_last_sensor_update_["GNSS"].second = zero_millis;
+
   int min_fix_type = params_.get_int("min_gnss_fix_type");
 
   // Convert msg to standard DDS and m/s.
@@ -252,6 +260,9 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
 
 void EstimatorROS::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
+  std::chrono::milliseconds zero_millis(0);
+  time_since_last_sensor_update_["IMU"].second = zero_millis;
+
   input_.accel_x = msg->linear_acceleration.x;
   input_.accel_y = msg->linear_acceleration.y;
   input_.accel_z = msg->linear_acceleration.z;
@@ -263,6 +274,9 @@ void EstimatorROS::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 
 void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedPtr msg)
 {
+  std::chrono::milliseconds zero_millis(0);
+  time_since_last_sensor_update_["Barometer"].second = zero_millis;
+
   // For readability, declare the parameters here
   double gravity = params_.get_double("gravity");
   double gate_gain_constant = params_.get_double("baro_measurement_gate");
@@ -326,6 +340,9 @@ void EstimatorROS::update_barometer_calibration(const rosflight_msgs::msg::Barom
 
 void EstimatorROS::magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg)
 {
+  std::chrono::milliseconds zero_millis(0);
+  time_since_last_sensor_update_["Magnetometer"].second = zero_millis;
+
   new_mag_ = true;
 
   input_.mag_x = msg->magnetic_field.x;
@@ -336,6 +353,43 @@ void EstimatorROS::magnetometerCallback(const sensor_msgs::msg::MagneticField::S
 void EstimatorROS::statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg)
 {
   if (!armed_first_time_ && msg->armed) armed_first_time_ = true;
+}
+
+void EstimatorROS::set_sensor_monitoring()
+{
+  std::chrono::milliseconds expected_imu_update_period(params_.get_int("max_imu_sensor_silence_duration_ms"));
+  std::chrono::milliseconds expected_mag_update_period(params_.get_int("max_mag_sensor_silence_duration_ms"));
+  std::chrono::milliseconds expected_baro_update_period(params_.get_int("max_baro_sensor_silence_duration_ms"));
+  std::chrono::milliseconds expected_gnss_update_period(params_.get_int("max_gnss_sensor_silence_duration_ms"));
+  
+  std::chrono::milliseconds zero_millis(0);
+
+  time_since_last_sensor_update_["IMU"] = {expected_imu_update_period, zero_millis};
+  time_since_last_sensor_update_["Magnetometer"] = {expected_mag_update_period, zero_millis};
+  time_since_last_sensor_update_["Barometer"] = {expected_baro_update_period, zero_millis};
+  time_since_last_sensor_update_["GNSS"] = {expected_gnss_update_period, zero_millis};
+}
+
+void EstimatorROS::check_sensors()
+{
+  double freq = params_.get_double("estimator_update_frequency");
+  std::chrono::milliseconds update_period_millis = std::chrono::milliseconds(static_cast<long long>(1.0 / freq * 1'000));
+
+  for (std::pair<std::string, std::pair<std::chrono::milliseconds,std::chrono::milliseconds>> time_since_sensor
+       : time_since_last_sensor_update_) {
+    std::string sensor_name = time_since_sensor.first;
+    std::chrono::milliseconds expected_update_period = time_since_sensor.second.first;
+
+    time_since_last_sensor_update_[sensor_name].second += std::chrono::milliseconds(update_period_millis);
+    std::chrono::milliseconds actual_update_period = time_since_sensor.second.second;
+    
+    if (actual_update_period > expected_update_period) {
+      RCLCPP_WARN_STREAM(this->get_logger(), sensor_name << " sensor not received for "
+                         << actual_update_period.count() << " ms. Expected at "
+                         << expected_update_period.count() << " ms.");
+    }
+  }
+  
 }
 
 } // namespace roscopter

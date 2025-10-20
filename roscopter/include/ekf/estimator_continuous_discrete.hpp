@@ -8,8 +8,6 @@
 #include "geomag.h"
 
 #include <cmath>
-#include <functional>
-#include <tuple>
 
 #include "estimator_ekf.hpp"
 #include "estimator_ros.hpp"
