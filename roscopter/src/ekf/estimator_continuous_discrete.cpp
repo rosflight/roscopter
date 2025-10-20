@@ -387,26 +387,24 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::tilt_mag_measurement_sensor_noise()
 // These are passed by reference to the baro measurement update step.
 Eigen::VectorXf EstimatorContinuousDiscrete::baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  float rho = params_.get_double("rho");
   float gravity = params_.get_double("gravity");
 
   Eigen::Vector<float, num_baro_measurements> h = Eigen::Vector<float, num_baro_measurements>::Zero();
 
   // Predicted static pressure measurement
-  h(0) = -rho*gravity*state(2);
+  h(0) = -rho_*gravity*state(2);
 
   return h;
 }
 
 Eigen::MatrixXf EstimatorContinuousDiscrete::baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  float rho = params_.get_double("rho");
   float gravity = params_.get_double("gravity");
 
   Eigen::Matrix<float, num_baro_measurements, num_states> C = Eigen::Matrix<float, num_baro_measurements, num_states>::Zero();
 
   // Static pressure
-  C(0,2) = -rho*gravity;
+  C(0,2) = -rho_*gravity;
 
   return C;
 }
@@ -700,20 +698,19 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
       }
       initialize_state_covariances();
     }
-    prob_index++;
     if (prob_index == 6 || prob_index == 7 || prob_index == 8) {
       if (state > M_PI || state < -M_PI) {
-      switch (prob_index) {
-        case 6:
-          RCLCPP_WARN(this->get_logger(), "Roll is out of range!");
-          break;
-        case 7:
-          RCLCPP_WARN(this->get_logger(), "Pitch is out of range!");
-          break;
-        case 8:
-          RCLCPP_WARN(this->get_logger(), "Yaw is out of range!");
-          break;
-        }
+        switch (prob_index) {
+          case 6:
+            RCLCPP_WARN_STREAM(this->get_logger(), "Roll is out of range! Roll: " << xhat_(6));
+            break;
+          case 7:
+            RCLCPP_WARN_STREAM(this->get_logger(), "Pitch is out of range! Pitch: " << xhat_(7));
+            break;
+          case 8:
+            RCLCPP_WARN_STREAM(this->get_logger(), "Yaw is out of range! Yaw: " << xhat_(8));
+            break;
+          }
       }
     }
     if (problem) {
@@ -721,6 +718,7 @@ void EstimatorContinuousDiscrete::check_estimate(const Input& input)
                   prob_index);
       problem = false;
     }
+    prob_index++;
   }
 
   if (xhat_(0) > gps_n_lim || xhat_(0) < -gps_n_lim) {
@@ -815,10 +813,9 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO:
 
   R_gnss_(0, 0) = powf(sigma_n_gps, 2);
   R_gnss_(1, 1) = powf(sigma_e_gps, 2);
-  R_gnss_(2, 2) = powf(sigma_h_gps, 2);
-  R_gnss_(3, 3) = powf(sigma_vn_gps, 2);
-  R_gnss_(4, 4) = powf(sigma_ve_gps, 2);
-  R_gnss_(5, 5) = powf(sigma_vd_gps, 2);
+  R_gnss_(2, 2) = powf(sigma_vn_gps, 2);
+  R_gnss_(3, 3) = powf(sigma_ve_gps, 2);
+  R_gnss_(4, 4) = powf(sigma_vd_gps, 2);
   
   R_baro_(0,0) = powf(sigma_static_press,2);
 
@@ -868,9 +865,9 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("vx_initial_cov", .0001);
   params_.declare_double("vy_initial_cov", .0001);
   params_.declare_double("vz_initial_cov", .0001);
-  params_.declare_double("phi_initial_cov", 0.005);
-  params_.declare_double("theta_initial_cov", 0.005);
-  params_.declare_double("psi_initial_cov", 1.0);
+  params_.declare_double("phi_initial_cov", 5*0.017*5*0.017);
+  params_.declare_double("theta_initial_cov", 5*0.017*5*0.017);
+  params_.declare_double("psi_initial_cov", 5*0.017*5*0.017);
   params_.declare_double("bias_x_initial_cov", 0.0001);
   params_.declare_double("bias_y_initial_cov", 0.0001);
   params_.declare_double("bias_z_initial_cov", 0.0001);

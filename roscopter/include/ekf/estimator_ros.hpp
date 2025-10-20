@@ -67,7 +67,7 @@ protected:
     float gps_n;
     float gps_e;
     float gps_h;
-    float gps_Vg;
+    float gps_vg;
     float gps_vn;
     float gps_ve;
     float gps_vd;
@@ -97,7 +97,6 @@ protected:
     float q = 0.0f;
     float r = 0.0f;
     float vg = 0.0f; 
-    float inclination = 0.0f; 
     bool quat_valid = true;
     Eigen::Quaternionf quat = Eigen::Quaternionf(1.0f, 0.0f, 0.0f, 0.0f);
   };
@@ -107,6 +106,8 @@ protected:
 
   bool baro_init_ = false;
   bool new_baro_ = false;
+  
+  float rho_;
   
   /**
    * @brief Indicates if the magnetometer magnetic field parameters have been initialized.

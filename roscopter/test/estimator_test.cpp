@@ -32,7 +32,7 @@ TEST(estimator_test, mem_test)
   estimator.input.mag_x = 0.489764;
   estimator.input.mag_y = 0.128677;
   estimator.input.mag_z = 0.922567;
-  estimator.input.gps_Vg = 0;
+  estimator.input.gps_vg = 0;
   estimator.input.gps_vn = 0;
   estimator.input.gps_ve = 0;
   estimator.input.gps_vd = 0;

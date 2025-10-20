@@ -62,7 +62,7 @@ EstimatorROS::EstimatorROS()
 void EstimatorROS::declare_parameters()
 {
   params_.declare_double("estimator_update_frequency", 390.0);
-  params_.declare_double("rho", 1.225);
+  params_.declare_double("rho", NOT_IN_USE);
   params_.declare_double("gravity", 9.81);
   params_.declare_double("gps_ground_speed_threshold", 0.3);  // TODO: this is a magic number. What is it determined from?
   params_.declare_double("baro_measurement_gate", 1.35);  // TODO: this is a magic number. What is it determined from?
@@ -81,6 +81,7 @@ void EstimatorROS::hotstart()
   in >> init_lon_;
   in >> init_alt_;
   in >> init_static_;
+  in >> rho_;
 }
 
 void EstimatorROS::saveInitConditions()
@@ -90,7 +91,8 @@ void EstimatorROS::saveInitConditions()
   out << init_lat_ << " ";
   out << init_lon_ << " ";
   out << init_alt_ << " ";
-  out << init_static_;
+  out << init_static_ << " ";
+  out << rho_;
 }
 
 void EstimatorROS::set_timer() {
@@ -133,13 +135,6 @@ EstimatorROS::parametersCallback(const std::vector<rclcpp::Parameter> & paramete
 void EstimatorROS::update()
 {
   Output output;
-  /*output.pn = output.pe = output.pd = 0.f;*/
-  /*output.phi = output.theta = output.psi = 0.f;*/
-  /*output.vn = output.ve = output.vd = 0.f;*/
-  /*output.p = output.q = output.r = 0.f;*/
-  /*output.Vg = 0.f;*/
-  /*output.bx = output.by = output.bz = 0.f;*/
-  /*output.inclination = 0.f;*/
 
   if (armed_first_time_) {
     estimate(input_, output);
@@ -159,7 +154,7 @@ void EstimatorROS::update()
   msg.position[0] = output.pn;
   msg.position[1] = output.pe;
   msg.position[2] = output.pd;
-  msg.v_n = output.vx;
+  msg.v_n = output.vx; // TODO: Change message definition to v_x/y/z
   msg.v_e = output.vy;
   msg.v_d = output.vz;
   msg.phi = output.phi;
@@ -171,7 +166,6 @@ void EstimatorROS::update()
   msg.bx = output.bx;
   msg.by = output.by;
   msg.bz = output.bz;
-  msg.inclination = output.inclination;
   msg.initial_alt = init_alt_;
   msg.initial_lat = init_lat_;
   msg.initial_lon = init_lon_;
@@ -212,6 +206,16 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
       init_alt_ = msg_height;
       init_lat_ = msg_lat;
       init_lon_ = msg_lon;
+
+      // Calculate the air density using the standard atmospheric model.
+      double pressure_at_alt = 101325.0f * (float) pow((1 - 2.25694e-5 * init_alt_), 5.2553);
+      rho_ = 1.225 * pow(pressure_at_alt / 101325.0, 0.809736894596450);
+      
+      // If the parameter is in use override the pressure at altitude calculation.
+      float rho = params_.get_double("rho");
+      if (rho > 0) {
+        rho_ = rho;
+      }
     }
   } else {
     input_.gps_lat = msg_lat;
@@ -236,7 +240,7 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
     double ground_speed = sqrt(msg_vel_n * msg_vel_n + msg_vel_e * msg_vel_e);
     double course = atan2(msg_vel_e, msg_vel_n); 
 
-    input_.gps_Vg = ground_speed;
+    input_.gps_vg = ground_speed;
     input_.gps_vn = msg_vel_n;
     input_.gps_ve = msg_vel_e;
     input_.gps_vd = msg_vel_d;
@@ -260,7 +264,6 @@ void EstimatorROS::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedPtr msg)
 {
   // For readability, declare the parameters here
-  double rho = params_.get_double("rho");
   double gravity = params_.get_double("gravity");
   double gate_gain_constant = params_.get_double("baro_measurement_gate");
 
@@ -273,7 +276,7 @@ void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedP
     float static_pres_old = input_.static_pres;
     input_.static_pres = -msg->pressure + init_static_;
 
-    float gate_gain = gate_gain_constant * rho * gravity;
+    float gate_gain = gate_gain_constant * rho_ * gravity;
     if (input_.static_pres < static_pres_old - gate_gain) {
       input_.static_pres = static_pres_old - gate_gain;
     } else if (input_.static_pres > static_pres_old + gate_gain) {
