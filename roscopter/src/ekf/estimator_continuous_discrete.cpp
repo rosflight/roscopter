@@ -99,6 +99,7 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   baro_measurement_update_step(input);
   gnss_measurement_update_step(input);
 
+  check_sensors();
   check_estimate(input);
   
   Eigen::Vector3f mag;
@@ -762,7 +763,7 @@ void EstimatorContinuousDiscrete::initialize_state_covariances()
   P_(11, 11) = bias_z_initial_cov; 
 }
 
-void EstimatorContinuousDiscrete::initialize_process_noises()  // TODO: Use a parameter update callback to dynamically change this.
+void EstimatorContinuousDiscrete::initialize_process_noises()
 {
   double gyro_process_noise = params_.get_double("gyro_process_noise");
   double accel_process_noise = params_.get_double("accel_process_noise");
@@ -795,7 +796,7 @@ void EstimatorContinuousDiscrete::initialize_process_noises()  // TODO: Use a pa
   Q_(11,11) = bias_process_noise;
 }
 
-void EstimatorContinuousDiscrete::update_measurement_model_parameters() // TODO: Use a parameter update callback to dynamically change this.
+void EstimatorContinuousDiscrete::update_measurement_model_parameters()
 { 
   // For readability, declare the parameters used in the function here
   double sigma_n_gps = params_.get_double("sigma_n_gps");
