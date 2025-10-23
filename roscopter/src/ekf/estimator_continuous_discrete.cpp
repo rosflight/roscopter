@@ -178,7 +178,7 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
   y_mag = R(Theta)*y_mag;
   
   Eigen::Vector<float, 1> y_heading;
-  y_heading << -atan2f(y_mag(1), y_mag(0)) + radians(declination_);
+  y_heading << -atan2f(y_mag(1), y_mag(0)) - radians(declination_);
 
   y_heading(0) = wrap_within_180(xhat_(8), y_heading(0));
 
