@@ -67,7 +67,7 @@ void EstimatorContinuousDiscrete::init_state(const Input & input)
 {
   if (mag_init_) {
     float heading = -atan2f(input.mag_y, input.mag_x);
-    heading += radians(declination_);
+    heading -= radians(declination_);
     xhat_(8) = heading;
     state_init_ = true;
     return;
