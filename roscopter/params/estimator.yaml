@@ -23,7 +23,8 @@
       sigma_ve_gps: .007
       sigma_vd_gps: .01
       sigma_static_press: 10.0
-      sigma_mag: 0.04
+      sigma_mag: 0.004
+      sigma_tilt_mag: 0.0035
       sigma_accel: .25
 
       # Low pass filter parameters
