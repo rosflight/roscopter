@@ -32,6 +32,7 @@ private:
   double compute_theta_dot(const Eigen::Vector3d z, double thrust, const Eigen::Vector4d u);
   Eigen::Matrix3d R_psi(double psi);
   double wrap_within_180(double datum, double angle_to_wrap);
+  void saturate_commmand_vector(Eigen::Vector4d& u);
   Eigen::Vector4d compute_control_input(const double pn_cmd, const double pe_cmd, const double pd_cmd, const double psi_cmd,
                                         const double vn, const double ve, const double vd);
   double north_control(const double pn_cmd, const double vn);
