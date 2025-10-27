@@ -40,6 +40,7 @@ void TrajectoryFollower::declare_params()
   params.declare_double("yaw_to_rate_kd", 0.2);
 
   params.declare_double("down_command_window", 3.0);
+  params.declare_double("max_commanded_down_accel_in_gs", -0.4);
 }
 
 void TrajectoryFollower::update_gains()
@@ -117,6 +118,8 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   u_r << input_cmd.acceleration[0], input_cmd.acceleration[1], input_cmd.acceleration[2] - g, input_cmd.psi_dot;
   Eigen::Vector4d u = u_tilde + u_r;
 
+  saturate_commmand_vector(u);
+
   // Pass control through f^{-1} to get the angle commands
   Eigen::Vector4d nu = invert_control_inputs(u);
 
@@ -137,6 +140,15 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   return output_cmd_;
 }
 
+void TrajectoryFollower::saturate_commmand_vector(Eigen::Vector4d& u)
+{
+  // Saturating the down command prevents commanding extreme pitch/roll angles
+  // that would otherwise occur when u[2] approaches 0.
+  double g = params.get_double("gravity");
+  double max_commanded_down_accel_in_gs = params.get_double("max_commanded_down_accel_in_gs"); // TODO: Always needs to be a negative number to avoid issues with pitch/roll
+  u[2] = saturate(u[2], max_commanded_down_accel_in_gs * g, std::numeric_limits<double>::lowest());
+}
+
 Eigen::Vector4d TrajectoryFollower::invert_control_inputs(const Eigen::Vector4d u)
 {
   // Invert to find thrust
@@ -146,7 +158,7 @@ Eigen::Vector4d TrajectoryFollower::invert_control_inputs(const Eigen::Vector4d 
   // Invert to find theta and phi
   Eigen::Vector3d z = -1 * R_psi(xhat_.psi) * u.segment(0, 3) * mass / thrust_cmd;
   double phi = asin(-1 * z[1]);
-  double theta = atan2(z[0], z[2]);
+  double theta = atan(z[0] / z[2]); // NOT atan2. We only want commanded pitch between +- M_PI_2
 
   // Solve for theta_dot and compute r
   double theta_dot = compute_theta_dot(z, thrust_cmd, u);
