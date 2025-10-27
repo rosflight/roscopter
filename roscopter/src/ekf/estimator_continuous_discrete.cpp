@@ -50,9 +50,6 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
   // Indicates whether the state has been initalized.
   state_init_ = false;
 
-  // Initialize the baro low pass filter.
-  lpf_static_ = 0.0;
-
   // Declare and set parameters with the ROS2 system
   declare_parameters();
   params_.set_parameters();
@@ -201,10 +198,8 @@ void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& inpu
     return;
   }
 
-  lpf_static_ = alpha_baro_ * lpf_static_ + (1 - alpha_baro_) * input.static_pres;
-
   Eigen::Vector<float, num_baro_measurements> y_baro;
-  y_baro << lpf_static_;
+  y_baro << input.static_pres;
 
   Eigen::Vector<float, 1> _;
 
