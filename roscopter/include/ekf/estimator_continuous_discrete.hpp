@@ -50,11 +50,6 @@ private:
   float lpf_gyro_z_;
 
   /**
-   * @brief The value of the low pass filtered static pressure sensor (barometer).
-   */
-  float lpf_static_;
-  
-  /**
    * @brief This function calculates the derivatives of the state. This is dictated by the dynamics of
    * the system.
    *
