@@ -1,56 +1,15 @@
-#include <ament_index_cpp/get_package_share_directory.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
-#include <rclcpp/logging.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_ros/transform_broadcaster.h>
 #include <visualization_msgs/msg/marker.hpp>
 
+#include "rviz_waypoint_publisher.hpp"
 #include "roscopter_msgs/msg/state.hpp"
 #include "roscopter_msgs/msg/waypoint.hpp"
 
-#define SCALE 1.5
-#define TEXT_SCALE 5.0
-#define PATH_PUBLISH_MOD 1
-#define MAX_PATH_HISTORY 10000
-using std::placeholders::_1;
-
 namespace roscopter_gcs
 {
-
-class RvizWaypointPublisher : public rclcpp::Node
-{
-public:
-  RvizWaypointPublisher();
-  ~RvizWaypointPublisher();
-
-private:
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rviz_wp_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rviz_mesh_pub_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr rviz_aircraft_path_pub_;
-  rclcpp::Subscription<roscopter_msgs::msg::Waypoint>::SharedPtr waypoint_sub_;
-  rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr vehicle_state_sub_;
-
-  std::unique_ptr<tf2_ros::TransformBroadcaster> aircraft_tf2_broadcaster_;
-
-  void new_wp_callback(const roscopter_msgs::msg::Waypoint & wp);
-  void state_update_callback(const roscopter_msgs::msg::State & state);
-  void update_list();
-  void update_mesh();
-  void update_aircraft_history();
-
-  roscopter_msgs::msg::State vehicle_state_;
-
-  // Persistent rviz markers
-  visualization_msgs::msg::Marker line_list_;
-  std::vector<geometry_msgs::msg::Point> line_points_;
-  visualization_msgs::msg::Marker aircraft_;
-  visualization_msgs::msg::Marker aircraft_history_;
-  std::vector<geometry_msgs::msg::Point> aircraft_history_points_;
-
-  int num_wps_;
-  int i_;
-};
 
 RvizWaypointPublisher::RvizWaypointPublisher()
     : Node("rviz_waypoint_publisher")
@@ -104,26 +63,12 @@ void RvizWaypointPublisher::new_wp_callback(const roscopter_msgs::msg::Waypoint 
 {
   visualization_msgs::msg::Marker new_marker;
 
-  // if (wp.clear_wp_list) {
-  //   rclcpp::Time now = this->get_clock()->now();
-  //   // Publish one for each ns
-  //   new_marker.header.stamp = now;
-  //   new_marker.header.frame_id = "NED";
-  //   new_marker.ns = "wp";
-  //   new_marker.id = 0;
-  //   new_marker.action = visualization_msgs::msg::Marker::DELETEALL;
-  //   rviz_wp_pub_->publish(new_marker);
-  //   new_marker.ns = "text";
-  //   rviz_wp_pub_->publish(new_marker);
-  //   new_marker.ns = "wp_path";
-  //   rviz_wp_pub_->publish(new_marker);
-
-  //   // Clear line list
-  //   line_points_.clear();
-
-  //   num_wps_ = 0;
-  //   return;
-  // }
+  if (wp.clear_wp_list) {
+    publish_markers_to_clear_waypoints();
+    line_points_.clear();
+    num_wps_ = 0;
+    return;
+  }
 
   // Create marker
   rclcpp::Time now = this->get_clock()->now();
@@ -175,6 +120,22 @@ void RvizWaypointPublisher::new_wp_callback(const roscopter_msgs::msg::Waypoint 
   rviz_wp_pub_->publish(new_text);
 
   ++num_wps_;
+}
+
+void RvizWaypointPublisher::publish_markers_to_clear_waypoints()
+{
+  visualization_msgs::msg::Marker new_marker;
+  new_marker.header.stamp = this->get_clock()->now();
+  new_marker.header.frame_id = "NED";
+  new_marker.id = 0;
+  new_marker.action = visualization_msgs::msg::Marker::DELETEALL;
+
+  new_marker.ns = "wp";
+  rviz_wp_pub_->publish(new_marker);
+  new_marker.ns = "text";
+  rviz_wp_pub_->publish(new_marker);
+  new_marker.ns = "wp_path";
+  rviz_wp_pub_->publish(new_marker);
 }
 
 void RvizWaypointPublisher::update_list()
@@ -233,10 +194,10 @@ void RvizWaypointPublisher::update_mesh()
 
   tf2::Quaternion q;
   q.setRPY(vehicle_state_.phi, vehicle_state_.theta, vehicle_state_.psi);
-  t.transform.rotation.x = q.x(); //0.0; //vehicle_state_.quat[0];
-  t.transform.rotation.y = q.y(); //0.0; //vehicle_state_.quat[1];
-  t.transform.rotation.z = q.z(); //0.0; //vehicle_state_.quat[2];
-  t.transform.rotation.w = q.w(); //1.0; //vehicle_state_.quat[3];
+  t.transform.rotation.x = q.x();
+  t.transform.rotation.y = q.y();
+  t.transform.rotation.z = q.z();
+  t.transform.rotation.w = q.w();
 
   // Update aircraft history
   if (i_ % PATH_PUBLISH_MOD == 0) {
@@ -260,7 +221,8 @@ void RvizWaypointPublisher::state_update_callback(const roscopter_msgs::msg::Sta
   update_mesh();
 }
 
-} // namespace roscopter_gcs
+
+}
 
 int main(int argc, char ** argv)
 {
