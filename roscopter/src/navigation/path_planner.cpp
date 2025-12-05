@@ -1,4 +1,5 @@
 #include "navigation/path_planner.hpp"
+#include <chrono>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
@@ -51,9 +52,9 @@ PathPlanner::PathPlanner()
 
   // Initialize by publishing a clear path command.
   // This makes sure rviz or other vizualization tools don't show stale waypoints if ROScopter is restarted.
-  // clear_path();
+  clear_path();
 
-  // Publishes the initial waypoints
+  // Publish the initial waypoints
   publish_initial_waypoints();
 }
 
@@ -172,31 +173,13 @@ bool PathPlanner::clear_path_callback(const std_srvs::srv::Trigger::Request::Sha
 
 bool PathPlanner::clear_path()
 {
-  // Send a clear path service request to the path_manager
-  auto req = std::make_shared<std_srvs::srv::Trigger::Request>();
-
-  if (!clear_wp_client_->wait_for_service(1s)) {
-    RCLCPP_WARN_STREAM(this->get_logger(), "Service not available");
-    return false;
-  }
-
-  auto result_future = clear_wp_client_->async_send_request(req);
-  std::future_status status = result_future.wait_for(10s);    // Guarantees graceful finish
-
-  if (status == std::future_status::ready) {
-    if (result_future.get()->success == false) {
-        RCLCPP_INFO_STREAM(this->get_logger(), "Unable to clear wayoints from the path_manager. Not clearing waypoints from the path_planner.");
-        return false;
-    }
-
-  } else { 
-    RCLCPP_INFO_STREAM(this->get_logger(), "Failed to call /path_manager/clear_waypoints service. Is path_manager running?");
-    return false;
-  }
-
-  // Otherwise, clear the internal waypoint list and reset the number of published waypoints
   wps_.clear();
   num_waypoints_published_ = 0;
+
+  roscopter_msgs::msg::Waypoint clearWp;
+  clearWp.clear_wp_list = true;
+  waypoint_publisher_->publish(clearWp);
+
   return true;
 }
 

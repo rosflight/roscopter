@@ -18,3 +18,4 @@ bool hold_indefinitely
 
 # Other flags
 bool use_lla
+bool clear_wp_list

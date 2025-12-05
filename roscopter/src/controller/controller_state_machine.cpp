@@ -66,6 +66,7 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_state(roscopter_msgs
       output_command = manage_position_hold(dt);
       break;
 
+      // TODO: Currently nothing is available to have the vehicle land. It never will reach this state.
     case LANDING:
       RCLCPP_INFO_STREAM_EXPRESSION(this->get_logger(), state_transition_, "LANDING mode");
       state_transition_ = false;

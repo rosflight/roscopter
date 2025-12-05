@@ -109,35 +109,12 @@ double PathManagerROS::compute_dt(double now)
 
 void PathManagerROS::single_waypoint_callback(const roscopter_msgs::msg::Waypoint &msg)
 {
+  if (msg.clear_wp_list) {
+    clear_waypoints_internally();
+    return;
+  }
   waypoint_list_.push_back(msg);
 }
-
-// bool PathManagerROS::set_waypoint_list(const roscopter_msgs::srv::AddWaypointList::Request::SharedPtr &req,
-//                                        const roscopter_msgs::srv::AddWaypointList::Response::SharedPtr &res)
-// {
-//   if (req->clear_previous) {
-//     waypoint_list_.clear();
-//   }
-
-//   // Add the waypoints to the list of waypoints
-//   for (auto wp : req->wp_list) {
-//     waypoint_list_.push_back(wp);
-//   }
-
-//   if (waypoint_list_.size() == 1) {
-//     // If there is only one waypoint in the list, add the current state as a waypoint
-//     roscopter_msgs::msg::Waypoint self_wp;
-//     self_wp.w = xhat_.position;
-//     self_wp.speed = xhat_.vg;
-//     self_wp.psi = xhat_.psi;
-
-//     waypoint_list_.insert(waypoint_list_.begin(), self_wp);
-//   }
-
-//   res->success = true;
-
-//   return true;
-// }
 
 bool PathManagerROS::clear_waypoints(const std_srvs::srv::Trigger::Request::SharedPtr &req,
                                      const std_srvs::srv::Trigger::Response::SharedPtr &res)

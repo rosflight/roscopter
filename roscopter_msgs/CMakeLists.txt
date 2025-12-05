@@ -36,7 +36,6 @@ set(msg_files
 
 set(srv_files
   "srv/AddWaypoint.srv"
-  "srv/AddWaypointList.srv"
   "srv/RemoveWaypoint.srv"
   "srv/SetWaypointsFromFile.srv"
   "srv/ListWaypoints.srv"
