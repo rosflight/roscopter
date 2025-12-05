@@ -1,9 +1,9 @@
-#include <cmath>
-#include <chrono>
+#ifndef PATH_PLANNER_HPP
+#define PATH_PLANNER_HPP
 
-#include <rclcpp/executors.hpp>
-#include <rclcpp/service.hpp>
-#include <rosflight_msgs/srv/param_file.hpp>
+#include <cmath>
+
+#include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <yaml-cpp/yaml.h>
 
@@ -179,3 +179,5 @@ private:
   std::vector<roscopter_msgs::msg::Waypoint> wps_;
 };
 } // namespace roscopter
+
+#endif

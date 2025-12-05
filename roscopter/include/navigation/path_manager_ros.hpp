@@ -6,8 +6,6 @@
 #include "roscopter_msgs/msg/waypoint.hpp"
 #include "roscopter_msgs/msg/trajectory_command.hpp"
 #include "roscopter_msgs/msg/state.hpp"
-#include "roscopter_msgs/srv/add_waypoint_list.hpp"
-#include "roscopter_msgs/srv/add_waypoint.hpp"
 
 #include "std_srvs/srv/trigger.hpp"
 
@@ -41,8 +39,6 @@ private:
   rclcpp::Publisher<roscopter_msgs::msg::TrajectoryCommand>::SharedPtr cmd_pub_;
 
   // Service servers
-  // rclcpp::Service<roscopter_msgs::srv::AddWaypoint>::SharedPtr single_waypoint_srv_;
-  // rclcpp::Service<roscopter_msgs::srv::AddWaypointList>::SharedPtr waypoint_list_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_waypoints_srv_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr print_waypoint_service_;
 
