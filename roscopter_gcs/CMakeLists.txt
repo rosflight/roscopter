@@ -31,7 +31,7 @@ ament_export_dependencies(rclcpp visualization_msgs)
 
 install(DIRECTORY launch config resource DESTINATION share/${PROJECT_NAME})
 
-# Publisher node executable
+# Waypoint publisher node executable
 add_executable(rviz_waypoint_publisher
                src/rviz_waypoint_publisher.cpp)
 target_include_directories(rviz_waypoint_publisher
@@ -48,6 +48,25 @@ ament_target_dependencies(rviz_waypoint_publisher
 )
 install(TARGETS
   rviz_waypoint_publisher
+  DESTINATION lib/${PROJECT_NAME})
+
+# Aircraft publisher node executable
+add_executable(rviz_aircraft_publisher
+               src/rviz_aircraft_publisher.cpp)
+target_include_directories(rviz_aircraft_publisher
+  PRIVATE
+    include)
+ament_target_dependencies(rviz_aircraft_publisher
+  roscopter_msgs
+  visualization_msgs
+  rclcpp
+  tf2
+  tf2_ros
+  geometry_msgs
+  ament_index_cpp
+)
+install(TARGETS
+  rviz_aircraft_publisher
   DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
