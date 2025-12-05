@@ -3,10 +3,10 @@
 
 #include <vector>
 
+#include <geometry_msgs/msg/point.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 
-#include "roscopter_msgs/msg/state.hpp"
 #include "roscopter_msgs/msg/waypoint.hpp"
 
 namespace roscopter_gcs

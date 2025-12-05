@@ -65,7 +65,6 @@ private:
   void declare_parameters();
 
   void state_update_callback(const roscopter_msgs::msg::State & state);
-  void update_list();
   void update_mesh();
   void update_aircraft_history();
 
@@ -79,6 +78,6 @@ private:
   int i_;
 };
 
-}
+} // roscopter_gcs
 
 #endif

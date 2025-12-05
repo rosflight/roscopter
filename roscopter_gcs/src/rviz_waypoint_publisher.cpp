@@ -132,7 +132,7 @@ visualization_msgs::msg::Marker RvizWaypointPublisher::create_new_waypoint_text_
   return new_text;
 }
 
-}
+} // roscopter_gcs
 
 int main(int argc, char ** argv)
 {

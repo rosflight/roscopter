@@ -168,10 +168,12 @@ void RvizAircraftPublisher::update_mesh()
     update_aircraft_history();
 
     rviz_aircraft_path_pub_->publish(aircraft_history_);
+    i_ = 0;
   }
 
   aircraft_tf2_broadcaster_->sendTransform(t);
   rviz_mesh_pub_->publish(aircraft_);
+  ++i_;
 }
 
 void RvizAircraftPublisher::state_update_callback(const roscopter_msgs::msg::State& msg)
@@ -180,7 +182,7 @@ void RvizAircraftPublisher::state_update_callback(const roscopter_msgs::msg::Sta
   update_mesh();
 }
 
-} // namespace rosflight_sim
+} // namespace roscopter_gcs
 
 int main(int argc, char ** argv)
 {

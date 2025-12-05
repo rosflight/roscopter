@@ -1,9 +1,9 @@
+#include <rclcpp/executors.hpp>
+
 #include "navigation/path_planner.hpp"
-#include <chrono>
 
 using std::placeholders::_1;
 using std::placeholders::_2;
-using namespace std::chrono_literals;
 
 namespace roscopter
 {
@@ -51,7 +51,7 @@ PathPlanner::PathPlanner()
   num_waypoints_published_ = 0;
 
   // Initialize by publishing a clear path command.
-  // This makes sure rviz or other vizualization tools don't show stale waypoints if ROScopter is restarted.
+  // This makes sure rviz or other visualization tools don't show stale waypoints if ROScopter is restarted.
   clear_path();
 
   // Publish the initial waypoints
@@ -176,9 +176,9 @@ bool PathPlanner::clear_path()
   wps_.clear();
   num_waypoints_published_ = 0;
 
-  roscopter_msgs::msg::Waypoint clearWp;
-  clearWp.clear_wp_list = true;
-  waypoint_publisher_->publish(clearWp);
+  roscopter_msgs::msg::Waypoint clear_wp;
+  clear_wp.clear_wp_list = true;
+  waypoint_publisher_->publish(clear_wp);
 
   return true;
 }
