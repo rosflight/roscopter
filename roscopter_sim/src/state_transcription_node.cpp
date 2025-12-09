@@ -18,7 +18,7 @@ public:
     sim_state_sub_ = this->create_subscription<rosflight_msgs::msg::SimState>(
       "sim/truth_state", 10, std::bind(&SimStateTranscription::publish_truth, this, std::placeholders::_1));
     wind_truth_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
-      "sim/wind_truth", 10, std::bind(&SimStateTranscription::wind_callback, this, std::placeholders::_1));
+      "sim/truth_wind", 10, std::bind(&SimStateTranscription::wind_callback, this, std::placeholders::_1));
 
     roscopter_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("sim/roscopter/state", 10);
   }
