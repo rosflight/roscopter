@@ -4,7 +4,7 @@ namespace roscopter
 {
 
 // =========== UTILITY FUNCTIONS ===========
-double dist(std::array<float, 3> array1, std::array<float, 3> array2)
+double dist(const std::array<float, 3>& array1, const std::array<float, 3>& array2)
 {
   return sqrt(pow(array1[0] - array2[0], 2) + pow(array1[1] - array2[1], 2) + pow(array1[2] - array2[2], 2));
 }
@@ -60,7 +60,8 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_path()
 
 roscopter_msgs::msg::TrajectoryCommand PathManager::manage_goto_wp(roscopter_msgs::msg::Waypoint &curr_wp) {
   double waypoint_tolerance = params.get_double("waypoint_tolerance");
-  if (dist(xhat_.position, curr_wp.w) <= waypoint_tolerance) {
+  const std::array<float,3> position_array{xhat_.p_n,xhat_.p_e,xhat_.p_d};
+  if (dist(position_array, curr_wp.w) <= waypoint_tolerance) {
     // If we are close enough to the target wayoint, increment the index in the waypoint list
     increment_wp_index();
   }
@@ -71,7 +72,8 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_goto_wp(roscopter_msg
 
 roscopter_msgs::msg::TrajectoryCommand PathManager::manage_hold_wp(roscopter_msgs::msg::Waypoint &curr_wp) {
   double waypoint_tolerance = params.get_double("waypoint_tolerance");
-  if (dist(xhat_.position, curr_wp.w) <= waypoint_tolerance && !curr_wp.hold_indefinitely) {
+  const std::array<float,3> position_array{xhat_.p_n,xhat_.p_e,xhat_.p_d};
+  if (dist(position_array, curr_wp.w) <= waypoint_tolerance && !curr_wp.hold_indefinitely) {
     // Start the hold timer, if applicable
     std::chrono::microseconds timer_period_ = std::chrono::microseconds(static_cast<long long>(curr_wp.hold_seconds * 1'000'000));
     if (!timer_started_) {
@@ -141,7 +143,9 @@ roscopter_msgs::msg::Waypoint PathManager::compute_previous_waypoint() {
   }
 
   roscopter_msgs::msg::Waypoint previous_wp;
-  previous_wp.w = xhat_.position;
+  previous_wp.w[0] = xhat_.p_n;
+  previous_wp.w[1] = xhat_.p_e;
+  previous_wp.w[2] = xhat_.p_d;
   previous_wp.speed = 0.0;
   previous_wp.psi = xhat_.psi;
   temp_wp_set_ = true;

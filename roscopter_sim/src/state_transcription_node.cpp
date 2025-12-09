@@ -53,9 +53,9 @@ private:
     state.initial_alt = 0.0;
 
     // Inertial NED frame
-    state.position[0] = msg.pose.position.x;
-    state.position[1] = msg.pose.position.y;
-    state.position[2] = msg.pose.position.z;
+    state.p_n = msg.pose.position.x;
+    state.p_e = msg.pose.position.y;
+    state.p_d = msg.pose.position.z;
 
     // Quaternion is from body to inertial
     Eigen::Quaternionf q;
@@ -63,8 +63,6 @@ private:
     q.x() = msg.pose.orientation.x;
     q.y() = msg.pose.orientation.y;
     q.z() = msg.pose.orientation.z;
-
-    state.inclination = 0.0;
 
     // Equation B.1 in Small Unmanned Aircraft
     state.phi = atan2(2.0 * (q.w() * q.x() + q.y() * q.z()),
@@ -75,22 +73,19 @@ private:
 
     // Inertial linear velocities in body frame
     Eigen::Vector3f body_frame_velocity(msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z);
-    state.v_n = body_frame_velocity[0];
-    state.v_e = body_frame_velocity[1];
-    state.v_d = body_frame_velocity[2];
-    state.vg = body_frame_velocity.norm();
+    state.v_x = body_frame_velocity[0];
+    state.v_y = body_frame_velocity[1];
+    state.v_z = body_frame_velocity[2];
 
     // Angular velocities in body frame
     state.p = msg.twist.angular.x;
     state.q = msg.twist.angular.y;
     state.r = msg.twist.angular.z;
 
-    state.quat_valid = true;
-
-    state.quat[0] = msg.pose.orientation.w;
-    state.quat[1] = msg.pose.orientation.x;
-    state.quat[2] = msg.pose.orientation.y;
-    state.quat[3] = msg.pose.orientation.z;
+    state.quat.w = msg.pose.orientation.w;
+    state.quat.x = msg.pose.orientation.x;
+    state.quat.y = msg.pose.orientation.y;
+    state.quat.z = msg.pose.orientation.z;
 
     roscopter_state_pub_->publish(state);
   }

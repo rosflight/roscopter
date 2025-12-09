@@ -2,28 +2,26 @@
 
 std_msgs/Header header
 
-float32[3] position	    # north, east, down (m)
-float32 v_n             # Inertial north velocity (expressed in body frame) (m/s)
-float32 v_e             # Inertial east velocity  (expressed in body frame) (m/s)
-float32 v_d             # Inertial down velocity  (expressed in body frame) (m/s)
-float32 vg              # Groundspeed (m/s)
+float32 p_n             # north (m)
+float32 p_e             # east (m)
+float32 p_d             # down (m)
+float32 v_x             # Inertial north velocity (expressed in body frame) (m/s)
+float32 v_y             # Inertial east velocity  (expressed in body frame) (m/s)
+float32 v_z             # Inertial down velocity  (expressed in body frame) (m/s)
 
 float32 p               # Body frame rollrate (rad/s)
 float32 q               # Body frame pitchrate (rad/s)
 float32 r               # Body frame yawrate (rad/s)
-float32 phi		        # Roll angle (rad)
+float32 phi		          # Roll angle (rad)
 float32 theta           # Pitch angle (rad)
-float32 psi		        # Yaw angle (rad)
+float32 psi		          # Yaw angle (rad)
 
-float32 bx              # Gyro bias x
-float32 by              # Gyro bias y
-float32 bz              # Gyro bias z
+float32 b_x             # Gyro bias x
+float32 b_y             # Gyro bias y
+float32 b_z             # Gyro bias z
 
-float32 inclination		# Inclination of magnetic field
+geometry_msgs/Quaternion quat		# Quaternion (wxyz, NED)
 
-float32[4] quat		# Quaternion (wxyz, NED)
-bool quat_valid		# Quaternion valid
-
-float32 initial_lat 	# Initial/origin latitude (lat. deg)
-float32 initial_lon 	# Initial/origin longitude (lon. deg) 
-float32 initial_alt 	# Initial/origin altitude (m) 
+float64 initial_lat 	  # Initial/origin latitude (lat. deg)
+float64 initial_lon 	  # Initial/origin longitude (lon. deg) 
+float64 initial_alt 	  # Initial/origin altitude (m) 

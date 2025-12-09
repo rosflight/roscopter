@@ -149,21 +149,21 @@ void RvizAircraftPublisher::update_mesh()
   t.header.stamp = now;
   t.header.frame_id = "NED";
   t.child_frame_id = "aircraft_body";
-  t.transform.translation.x = vehicle_state_.position[0];
-  t.transform.translation.y = vehicle_state_.position[1];
-  t.transform.translation.z = vehicle_state_.position[2];
+  t.transform.translation.x = vehicle_state_.p_n;
+  t.transform.translation.y = vehicle_state_.p_e;
+  t.transform.translation.z = vehicle_state_.p_d;
 
-  t.transform.rotation.w = vehicle_state_.quat[0];
-  t.transform.rotation.x = vehicle_state_.quat[1];
-  t.transform.rotation.y = vehicle_state_.quat[2];
-  t.transform.rotation.z = vehicle_state_.quat[3];
+  t.transform.rotation.w = vehicle_state_.quat.w;
+  t.transform.rotation.x = vehicle_state_.quat.x;
+  t.transform.rotation.y = vehicle_state_.quat.y;
+  t.transform.rotation.z = vehicle_state_.quat.z;
 
   // Update aircraft history
   if (i_ % this->get_parameter("path_publish_modulo").as_int() == 0) {
     geometry_msgs::msg::Point new_p;
-    new_p.x = vehicle_state_.position[0];
-    new_p.y = vehicle_state_.position[1];
-    new_p.z = vehicle_state_.position[2];
+    new_p.x = vehicle_state_.p_n;
+    new_p.y = vehicle_state_.p_e;
+    new_p.z = vehicle_state_.p_d;
     aircraft_history_points_.push_back(new_p);
     update_aircraft_history();
 
