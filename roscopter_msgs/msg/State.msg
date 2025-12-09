@@ -16,9 +16,9 @@ float32 phi		          # Roll angle (rad)
 float32 theta           # Pitch angle (rad)
 float32 psi		          # Yaw angle (rad)
 
-float32 b_x             # Gyro bias x
-float32 b_y             # Gyro bias y
-float32 b_z             # Gyro bias z
+float32 b_x             # Gyro bias x (rad/s)
+float32 b_y             # Gyro bias y (rad/s)
+float32 b_z             # Gyro bias z (rad/s)
 
 geometry_msgs/Quaternion quat		# Quaternion (wxyz, NED)
 
