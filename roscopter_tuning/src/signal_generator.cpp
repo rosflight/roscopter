@@ -338,7 +338,7 @@ void TuningSignalGenerator::declare_params()
   desc << "Output mode on the /high_level_command topic. From the roscopter_msgs/msg/ControllerOutput message definition: \n";
   desc << "MODE_NPOS_EPOS_DPOS_YAW = 0\n";
   desc << "MODE_NVEL_EVEL_DPOS_YAWRATE = 1\n";
-  desc << "MODE_NACC_EACC_DACC_YAWRATE = 2\n";
+  desc << "MODE_FACC_RACC_DACC_YAWRATE = 2\n";
   desc << "MODE_NVEL_EVEL_DVEL_YAWRATE = 3\n";
   desc << "MODE_NPOS_EPOS_DVEL_YAW = 4\n";
   desc << "MODE_ROLL_PITCH_YAW_THROTTLE = 5\n";

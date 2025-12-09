@@ -62,7 +62,7 @@ private:
   // Control helper functions
   void npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerCommand input_cmd);
   void nvel_evel_dvel_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd);
-  void nacc_eacc_dacc_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd);
+  void facc_racc_dacc_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd);
   void npos_epos_dvel_yaw(roscopter_msgs::msg::ControllerCommand input_cmd);
   void nvel_evel_dpos_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd);
   void roll_pitch_yaw_throttle(roscopter_msgs::msg::ControllerCommand input_cmd);

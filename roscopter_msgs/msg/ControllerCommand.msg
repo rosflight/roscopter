@@ -4,7 +4,7 @@
 #                          mid level: n_pos,     e_pos,      d_vel,    yaw
 #                                 or: n_vel,     e_vel,      d_pos,    yaw_rate
 #                                 or: n_vel,     e_vel,      d_vel,    yaw_rate
-#                          low level: n_acc,     e_acc,      d_acc,    yaw_acc
+#                          low level: f_acc,     r_acc,      d_acc,    yaw_acc
 #                                 or: roll,      pitch,      yaw,      throttle
 # passthrough to firmware controller: roll,      pitch,      yaw_rate, throttle
 #                                 or: roll_rate, pitch_rate, yaw_rate, throttle
@@ -15,7 +15,7 @@
 # Input control types - Uses ROSflight controller
 uint8 MODE_NPOS_EPOS_DPOS_YAW = 0
 uint8 MODE_NVEL_EVEL_DPOS_YAWRATE = 1
-uint8 MODE_NACC_EACC_DACC_YAWRATE = 2
+uint8 MODE_FACC_RACC_DACC_YAWRATE = 2 # Vehicle 1 frame (which we call front-right-down)
 uint8 MODE_NVEL_EVEL_DVEL_YAWRATE = 3
 uint8 MODE_NPOS_EPOS_DVEL_YAW = 4
 uint8 MODE_ROLL_PITCH_YAW_THROTTLE = 5
