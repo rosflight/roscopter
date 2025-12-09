@@ -232,8 +232,8 @@ rosflight_msgs::msg::Command ControllerCascadingPID::compute_offboard_control(ro
       nvel_evel_dpos_yawrate(input_cmd);
       break;
 
-    case roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE:
-      nacc_eacc_dacc_yawrate(input_cmd);
+    case roscopter_msgs::msg::ControllerCommand::MODE_FACC_RACC_DACC_YAWRATE:
+      facc_racc_dacc_yawrate(input_cmd);
       break;
 
     case roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE:
@@ -354,7 +354,7 @@ void ControllerCascadingPID::npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerC
   input_cmd.cmd1 = PID_n_to_vel_.compute_pid(pn, xhat_.position[0], dt_);
   input_cmd.cmd2 = PID_e_to_vel_.compute_pid(pe, xhat_.position[1], dt_);
   input_cmd.cmd3 = PID_d_to_vel_.compute_pid(pd, xhat_.position[2], dt_);
-  input_cmd.cmd4 = PID_yaw_to_rate_.compute_pid(psi, xhat_.psi, dt_);         // r in vehicle-1 frame
+  input_cmd.cmd4 = PID_yaw_to_rate_.compute_pid(psi, xhat_.psi, dt_);
 
   nvel_evel_dvel_yawrate(input_cmd);
 }
@@ -386,16 +386,16 @@ void ControllerCascadingPID::nvel_evel_dvel_yawrate(roscopter_msgs::msg::Control
   double a_d_vehicle1 = a_d;
 
   // Save the calculated accels to the command and change to the appropriate mode
-  input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NACC_EACC_DACC_YAWRATE;
+  input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_FACC_RACC_DACC_YAWRATE;
   input_cmd.cmd1 = a_n_vehicle1;
   input_cmd.cmd2 = a_e_vehicle1;
   input_cmd.cmd3 = a_d_vehicle1;
   input_cmd.cmd4 = r;
 
-  nacc_eacc_dacc_yawrate(input_cmd);
+  facc_racc_dacc_yawrate(input_cmd);
 }
 
-void ControllerCascadingPID::nacc_eacc_dacc_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd)
+void ControllerCascadingPID::facc_racc_dacc_yawrate(roscopter_msgs::msg::ControllerCommand input_cmd)
 {
   double equilibrium_throttle = params.get_double("equilibrium_throttle");
   double max_roll_deg = params.get_double("max_roll_deg");
