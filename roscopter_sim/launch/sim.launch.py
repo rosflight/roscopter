@@ -22,9 +22,14 @@ def generate_launch_description():
     return LaunchDescription([
         base_launch_include,
         Node(
+            package='roscopter_gcs',
+            executable='rviz_waypoint_publisher',
+            output='screen',
+        ),
+        Node(
             package='roscopter_sim',
             executable='sim_state_transcriber',
             output='screen',
             name='roscopter_truth'
-        )
+        ),
     ])
