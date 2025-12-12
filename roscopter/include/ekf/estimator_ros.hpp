@@ -57,9 +57,11 @@ protected:
     float accel_x;
     float accel_y;
     float accel_z;
+    bool baro_new;
     float static_pres;
     float diff_pres;
     bool gps_new;
+    int gps_yday;
     int gps_year;
     int gps_month;
     int gps_day;
@@ -76,6 +78,7 @@ protected:
     float gps_course;
     bool status_armed;
     bool armed_init;
+    bool mag_new;
     float mag_x;
     float mag_y;
     float mag_z;
@@ -107,7 +110,6 @@ protected:
   std::filesystem::path hotstart_path_;
 
   bool baro_init_ = false;
-  bool new_baro_ = false;
   
   float rho_;
   
@@ -115,7 +117,6 @@ protected:
    * @brief Indicates if the magnetometer magnetic field parameters have been initialized.
    */
   bool mag_init_ = false;
-  bool new_mag_ = false;
 
   virtual void estimate(const Input & input,
                         Output & output) = 0;

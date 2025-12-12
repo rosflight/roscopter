@@ -1,5 +1,4 @@
 #include "ekf/estimator_ros.hpp"
-#include <chrono>
 #include <fstream>
 
 namespace roscopter
@@ -89,7 +88,7 @@ void EstimatorROS::hotstart()
 
 void EstimatorROS::saveInitConditions()
 {
-  std::ofstream out(hotstart_path_.string()); // NOTE: Saves to the install directory.
+  std::ofstream out(hotstart_path_.string());
 
   out << init_lat_ << " ";
   out << init_lon_ << " ";
@@ -102,7 +101,8 @@ void EstimatorROS::set_timer() {
   double frequency = params_.get_double("estimator_update_frequency");
 
   update_period_ = std::chrono::microseconds(static_cast<long long>(1.0 / frequency * 1'000'000));
-  update_timer_ = this->create_wall_timer(update_period_, std::bind(&EstimatorROS::update, this));
+  update_timer_ = rclcpp::create_timer(this, this->get_clock(), update_period_,
+                                   std::bind(&EstimatorROS::update, this));
 }
 
 rcl_interfaces::msg::SetParametersResult 
@@ -149,6 +149,8 @@ void EstimatorROS::update()
   }
 
   input_.gps_new = false;
+  input_.mag_new = false;
+  input_.baro_new = false;
   
   // Create estimated state message and publish it.
   roscopter_msgs::msg::State msg = roscopter_msgs::msg::State();
@@ -190,8 +192,8 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
   int min_fix_type = params_.get_int("min_gnss_fix_type");
 
   // Convert msg to standard DDS and m/s.
-  float msg_lat = msg->lat;
-  float msg_lon = msg->lon;
+  double msg_lat = msg->lat;
+  double msg_lon = msg->lon;
   float msg_height = msg->alt;
   
   float msg_vel_n = msg->vel_n;
@@ -230,6 +232,7 @@ void EstimatorROS::gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg)
     // Convert UTC time into broken down format
     std::time_t time = msg->header.stamp.sec;
     const std::tm *broken_down_time = std::localtime(&time);
+    input_.gps_yday = broken_down_time->tm_yday;
     input_.gps_year = broken_down_time->tm_year + 1900;
     input_.gps_month = broken_down_time->tm_mon;
     input_.gps_day = broken_down_time->tm_mday;
@@ -276,7 +279,7 @@ void EstimatorROS::baroAltCallback(const rosflight_msgs::msg::Barometer::SharedP
   double gravity = params_.get_double("gravity");
   double gate_gain_constant = params_.get_double("baro_measurement_gate");
 
-  new_baro_ = true;
+  input_.baro_new = true;
 
   if (armed_first_time_ && !baro_init_) {
     update_barometer_calibration(msg);
@@ -337,7 +340,7 @@ void EstimatorROS::magnetometerCallback(const sensor_msgs::msg::MagneticField::S
 {
   time_since_last_sensor_update_["mag"] = this->get_clock()->now();
 
-  new_mag_ = true;
+  input_.mag_new = true;
 
   input_.mag_x = msg->magnetic_field.x;
   input_.mag_y = msg->magnetic_field.y;
