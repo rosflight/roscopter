@@ -99,8 +99,8 @@ void ControllerStateMachine::manage_disarm(bool armed, bool cmd_valid)
   if (armed && cmd_valid) {
     // Change the state appropriately and set the takeoff positions
     state_ = TAKEOFF;
-    takeoff_n_pos_ = xhat_.position[0];
-    takeoff_e_pos_ = xhat_.position[1];
+    takeoff_n_pos_ = xhat_.p_n;
+    takeoff_e_pos_ = xhat_.p_e;
     takeoff_yaw_ = xhat_.psi;
   }
   else {
@@ -133,7 +133,7 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_takeoff(double dt)
   output_cmd = compute_offboard_control(input_cmd, dt);
 
   // Check to see if the vehicle has attained the takeoff height (within the threshold)
-  if (abs(xhat_.position[2] - takeoff_d_pos) <= takeoff_height_threshold) {
+  if (abs(xhat_.p_d - takeoff_d_pos) <= takeoff_height_threshold) {
     takeoff_complete = true;
   }
 

@@ -368,8 +368,8 @@ void ControllerCascadingPID::nvel_evel_dvel_yawrate(roscopter_msgs::msg::Control
   double r = input_cmd.cmd4;
 
   // Rotate estimated velocities into inertial frame
-  Eigen::Quaterniond q_body_to_inertial(xhat_.quat[0], xhat_.quat[1], xhat_.quat[2], xhat_.quat[3]);
-  Eigen::Vector3d v_body(xhat_.v_n, xhat_.v_e, xhat_.v_d);
+  Eigen::Quaterniond q_body_to_inertial(xhat_.quat.w, xhat_.quat.x, xhat_.quat.y, xhat_.quat.z);
+  Eigen::Vector3d v_body(xhat_.v_x, xhat_.v_y, xhat_.v_z);
   Eigen::Vector3d v_inertial = q_body_to_inertial * v_body;
 
   // Compute desired accelerations (in terms of g's) in the inertial frame
@@ -451,8 +451,8 @@ void ControllerCascadingPID::npos_epos_dvel_yaw(roscopter_msgs::msg::ControllerC
 
   // Figure out desired velocities (in inertial frame)
   // By running the position controllers
-  double pndot_c = PID_n_to_vel_.compute_pid(pn, xhat_.position[0], dt_);
-  double pedot_c = PID_e_to_vel_.compute_pid(pe, xhat_.position[1], dt_);
+  double pndot_c = PID_n_to_vel_.compute_pid(pn, xhat_.p_n, dt_);
+  double pedot_c = PID_e_to_vel_.compute_pid(pe, xhat_.p_e, dt_);
 
   // First, determine the shortest direction to the commanded psi (wrap within 180)
   psi = wrap_within_180(xhat_.psi, psi);
@@ -481,7 +481,7 @@ void ControllerCascadingPID::nvel_evel_dpos_yawrate(roscopter_msgs::msg::Control
 
   input_cmd.cmd1 = vel_n;
   input_cmd.cmd2 = vel_e;
-  input_cmd.cmd3 = PID_d_to_vel_.compute_pid(pd, xhat_.position[2], dt_);
+  input_cmd.cmd3 = PID_d_to_vel_.compute_pid(pd, xhat_.p_d, dt_);
   input_cmd.cmd4 = r;
 
   nvel_evel_dvel_yawrate(input_cmd);
@@ -553,7 +553,7 @@ void ControllerCascadingPID::pass_to_firmware_controller(roscopter_msgs::msg::Co
   output_cmd_.fy = 0.0;
 
   // Check to see if we are above the minimum attitude altitude
-  if (abs(xhat_.position[2]) < min_altitude_for_attitude_ctrl)
+  if (abs(xhat_.p_d) < min_altitude_for_attitude_ctrl)
   {
     output_cmd_.qx = 0.;
     output_cmd_.qy = 0.;

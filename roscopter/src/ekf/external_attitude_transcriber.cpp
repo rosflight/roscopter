@@ -27,19 +27,16 @@ private:
     rosflight_msgs::msg::Attitude out_msg;
     out_msg.header.stamp = this->get_clock()->now();
 
-    // Only publish external attitude information if the quaternion is valid
-    if (msg.quat_valid) {
-        out_msg.attitude.x = msg.quat[1];
-        out_msg.attitude.y = msg.quat[2];
-        out_msg.attitude.z = msg.quat[3];
-        out_msg.attitude.w = msg.quat[0];
+    out_msg.attitude.x = msg.quat.x;
+    out_msg.attitude.y = msg.quat.y;
+    out_msg.attitude.z = msg.quat.z;
+    out_msg.attitude.w = msg.quat.w;
 
-        out_msg.angular_velocity.x = msg.p;
-        out_msg.angular_velocity.y = msg.q;
-        out_msg.angular_velocity.z = msg.r;
+    out_msg.angular_velocity.x = msg.p;
+    out_msg.angular_velocity.y = msg.q;
+    out_msg.angular_velocity.z = msg.r;
 
-        ext_att_pub_->publish(out_msg);
-    }
+    ext_att_pub_->publish(out_msg);
   }
 
 };

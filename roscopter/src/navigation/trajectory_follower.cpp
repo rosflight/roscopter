@@ -88,19 +88,8 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
 
   // Rotate the velocity from the body frame to the inertial frame
   Eigen::Quaterniond q_body_to_inertial;
-  if (xhat_.quat_valid) {
-    q_body_to_inertial = Eigen::Quaterniond(xhat_.quat[0], xhat_.quat[1], xhat_.quat[2], xhat_.quat[3]);
-  } else {
-    double psi2 = xhat_.psi/2;
-    double theta2 = xhat_.theta/2;
-    double phi2 = xhat_.phi/2;
-    double qw = cosf(psi2)*cosf(theta2)*cosf(phi2) + sinf(psi2)*sinf(theta2)*sinf(phi2);
-    double qx = cosf(psi2)*cosf(theta2)*sinf(phi2) - sinf(psi2)*sinf(theta2)*cosf(phi2);
-    double qy = cosf(psi2)*sinf(theta2)*cosf(phi2) + sinf(psi2)*cosf(theta2)*sinf(phi2);
-    double qz = sinf(psi2)*cosf(theta2)*cosf(phi2) - cosf(psi2)*sinf(theta2)*sinf(phi2);
-    q_body_to_inertial = Eigen::Quaterniond(qw, qx, qy, qz);
-  }
-  Eigen::Vector3d body_vels(xhat_.v_n, xhat_.v_e, xhat_.v_d);
+  q_body_to_inertial = Eigen::Quaterniond(xhat_.quat.w, xhat_.quat.x, xhat_.quat.y, xhat_.quat.z);
+  Eigen::Vector3d body_vels(xhat_.v_x, xhat_.v_y, xhat_.v_z);
   Eigen::Vector3d inertial_vels = q_body_to_inertial * body_vels;
 
   // Compute control from controller
@@ -212,13 +201,13 @@ Eigen::Vector4d TrajectoryFollower::compute_control_input(const double pn_cmd,
 double TrajectoryFollower::north_control(const double pn_cmd, const double vn)
 {
   // North control effort
-  return PID_u_n_.compute_pid(pn_cmd, xhat_.position[0], dt_, vn);
+  return PID_u_n_.compute_pid(pn_cmd, xhat_.p_n, dt_, vn);
 }
 
 double TrajectoryFollower::east_control(const double pe_cmd, const double ve)
 {
   // East control effort
-  return PID_u_e_.compute_pid(pe_cmd, xhat_.position[1], dt_, ve);
+  return PID_u_e_.compute_pid(pe_cmd, xhat_.p_e, dt_, ve);
 }
 
 double TrajectoryFollower::down_control(const double pd_cmd, const double vd)
@@ -227,12 +216,12 @@ double TrajectoryFollower::down_control(const double pd_cmd, const double vd)
   // This helps to ensure that the copter maintains a controllable down velocity when descending
   double max_d_cmd = params.get_double("down_command_window");
   double actual_down_cmd = pd_cmd;
-  if ((pd_cmd - xhat_.position[2]) > max_d_cmd) {
-    actual_down_cmd = max_d_cmd + xhat_.position[2];
+  if ((pd_cmd - xhat_.p_d) > max_d_cmd) {
+    actual_down_cmd = max_d_cmd + xhat_.p_d;
   }
 
   // Down control effort
-  return PID_u_d_.compute_pid(actual_down_cmd, xhat_.position[2], dt_, vd);
+  return PID_u_d_.compute_pid(actual_down_cmd, xhat_.p_d, dt_, vd);
 }
 
 double TrajectoryFollower::psi_control(const double psi_cmd)
