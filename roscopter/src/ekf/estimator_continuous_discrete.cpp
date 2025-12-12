@@ -63,7 +63,7 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
 // ======== INIT STATE ========
 void EstimatorContinuousDiscrete::init_state(const Input & input)
 {
-  if (mag_init_) {
+  if (mag_init_ && input.mag_new) {
     float heading = -atan2f(input.mag_y, input.mag_x);
     heading -= radians(declination_);
     xhat_(8) = heading;
@@ -130,7 +130,6 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   double qy = cosf(psi2)*sinf(theta2)*cosf(phi2) + sinf(psi2)*cosf(theta2)*sinf(phi2);
   double qz = sinf(psi2)*cosf(theta2)*cosf(phi2) - cosf(psi2)*sinf(theta2)*sinf(phi2);
   output.quat = Eigen::Quaternionf(qw, qx, qy, qz);
-  output.quat_valid = true;
 }
 
 // ======== ESTIMATION LOOP STEPS ========
@@ -156,7 +155,7 @@ void EstimatorContinuousDiscrete::prediction_step(const Input& input)
 void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input)
 {
   // Only update when have new mag and the magnetometer models have been found.
-  if (!new_mag_ || !mag_init_) {
+  if (!input.mag_new || !mag_init_) {
     return;
   }
 
@@ -182,19 +181,14 @@ void EstimatorContinuousDiscrete::mag_measurement_update_step(const Input& input
 
   Eigen::Vector<float, 2 + num_mag_measurements> mag_info;
   mag_info << radians(declination_), radians(inclination_), y_mag;
-  
-  // Use gammas to enforce consider states, or partial consider states. See Parial-Update Schmidt-Kalman Filter, Kevin Brink 2017.
-  Eigen::Vector<float, num_states> gammas = Eigen::Vector<float, num_states>::Zero();
 
-  std::tie(P_, xhat_) = partial_measurement_update(xhat_, mag_info, tilt_mag_measurement_model, y_heading, tilt_mag_measurement_jacobian_model, tilt_mag_measurement_sensor_noise_model, P_, gammas);
-
-  new_mag_ = false;
+  std::tie(P_, xhat_) = measurement_update(xhat_, mag_info, tilt_mag_measurement_model, y_heading, tilt_mag_measurement_jacobian_model, tilt_mag_measurement_sensor_noise_model, P_);
 }
 
 void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& input) {
   
   // Only update when have new baro.
-  if (!new_baro_) {
+  if (!input.baro_new) {
     return;
   }
 
@@ -205,7 +199,6 @@ void EstimatorContinuousDiscrete::baro_measurement_update_step(const Input& inpu
 
   std::tie(P_, xhat_) = measurement_update(xhat_, _, baro_measurement_model, y_baro,
                                              baro_measurement_jacobian_model, baro_measurement_sensor_noise_model, P_);
-  new_baro_ = false;
 }
 
 void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& input)
@@ -303,7 +296,7 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::input_jacobian(const Eigen::VectorX
 
 Eigen::VectorXf EstimatorContinuousDiscrete::tilt_mag_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  Eigen::Vector<float, 1> h = Eigen::Vector<float, num_tilt_mag_measurements>::Zero();
+  Eigen::Vector<float, num_tilt_mag_measurements> h = Eigen::Vector<float, num_tilt_mag_measurements>::Zero();
 
   h(0) = state(8);
 
@@ -312,7 +305,7 @@ Eigen::VectorXf EstimatorContinuousDiscrete::tilt_mag_measurement_prediction(con
 
 Eigen::MatrixXf EstimatorContinuousDiscrete::tilt_mag_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
 {
-  Eigen::Matrix<float, 1, num_states> C = Eigen::Matrix<float, num_tilt_mag_measurements, num_states>::Zero();
+  Eigen::Matrix<float, num_tilt_mag_measurements, num_states> C = Eigen::Matrix<float, num_tilt_mag_measurements, num_states>::Zero();
   
   // Magnetometer update
   C(0,8) = 1.0;
@@ -328,7 +321,9 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::tilt_mag_measurement_sensor_noise(c
 
   Eigen::Matrix<float, num_tilt_mag_measurements, num_mag_measurements> G_mag = del_tilt_mag_del_mag(input, state);
 
-  R = G_mag*R_mag_*G_mag.transpose() + G_state*P_*G_state.transpose() + R_tilt_;
+  Eigen::Matrix<float, num_tilt_mag_measurements, num_states> C = tilt_mag_measurement_jacobian(input, state);
+
+  R = G_mag*R_mag_*G_mag.transpose() + G_state*P_*G_state.transpose() - 2*G_state*P_*C.transpose() + R_tilt_;
 
   return R;
 }
@@ -612,14 +607,10 @@ void EstimatorContinuousDiscrete::calc_mag_field_properties(const Input& input)
   double total_intensity; // nanoTesla (unused)
   double grid_variation; // Only useful for arctic or antarctic navigation (unused).
   
-  // Take the current year and then add a decimal for the current day. USE GPS TIME.
-  // This is a rough interpolation for speed. This will be accurate +- 1 day which is a time decimal change of ~0.0027
-  // therefore this method isn't completely accurate. Other sources of error will be much larger.
-  // TODO: Change the gps day to pull out yday instead of the month and day
-  float decimal_month = input.gps_month + input.gps_day/31.0;
-  float decimal_year = input.gps_year + decimal_month/12.0;
+  // Take the current year and then add a decimal for the current day.
+  float decimal_year = input.gps_year + input.gps_yday/365.0f;
 
-  int mag_success = geomag_calc(input.gps_alt/1000.0,
+  int mag_success = geomag_calc(input.gps_alt/1000.0f,
                                 input.gps_lat,
                                 input.gps_lon,
                                 decimal_year,
@@ -786,7 +777,6 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   double frequency = params_.get_double("estimator_update_frequency");
   double Ts = 1.0 / frequency;
   float gyro_cutoff_freq = params_.get_double("gyro_cutoff_freq");
-  float baro_cutoff_freq = params_.get_double("baro_cutoff_freq");
 
   R_gnss_(0, 0) = powf(sigma_n_gps, 2);
   R_gnss_(1, 1) = powf(sigma_e_gps, 2);
@@ -804,7 +794,6 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   
   // Calculate low pass filter alpha values.
   alpha_gyro_ = exp(-2.*M_PI*gyro_cutoff_freq * Ts);
-  alpha_baro_ = exp(-2.*M_PI*baro_cutoff_freq * Ts);
 }
 
 void EstimatorContinuousDiscrete::declare_parameters()
@@ -872,7 +861,6 @@ bool EstimatorContinuousDiscrete::is_parameter_changed()
 {
   if (parameter_changed) {
     parameter_changed = false;
-    // TODO: Check if the parameter changed was relavent. Will require structural changes. Like putting names in a dictionary.
     return true;
   }
   return false;
