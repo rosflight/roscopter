@@ -351,9 +351,9 @@ void ControllerCascadingPID::npos_epos_dpos_yaw(roscopter_msgs::msg::ControllerC
   input_cmd.mode = roscopter_msgs::msg::ControllerCommand::MODE_NVEL_EVEL_DVEL_YAWRATE;
 
   // Inertial velocities in inertial NED frame
-  input_cmd.cmd1 = PID_n_to_vel_.compute_pid(pn, xhat_.position[0], dt_);
-  input_cmd.cmd2 = PID_e_to_vel_.compute_pid(pe, xhat_.position[1], dt_);
-  input_cmd.cmd3 = PID_d_to_vel_.compute_pid(pd, xhat_.position[2], dt_);
+  input_cmd.cmd1 = PID_n_to_vel_.compute_pid(pn, xhat_.p_n, dt_);
+  input_cmd.cmd2 = PID_e_to_vel_.compute_pid(pe, xhat_.p_e, dt_);
+  input_cmd.cmd3 = PID_d_to_vel_.compute_pid(pd, xhat_.p_d, dt_);
   input_cmd.cmd4 = PID_yaw_to_rate_.compute_pid(psi, xhat_.psi, dt_);
 
   nvel_evel_dvel_yawrate(input_cmd);
