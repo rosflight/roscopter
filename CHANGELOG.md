@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0-beta.1](https://github.com/rosflight/roscopter/compare/v2.0.0-beta...v2.0.0-beta.1) (2025-12-15)
+
+
+### Bug Fixes
+
+* update controller to use correct state definition ([3db4365](https://github.com/rosflight/roscopter/commit/3db4365ce46f4c200c3bda562c33b24fb3bb0954))
+
 ## [2.0.0-beta](https://github.com/rosflight/roscopter/compare/v1.0.0...v2.0.0-beta) (2025-12-12)
 
 
