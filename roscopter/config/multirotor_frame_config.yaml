@@ -37,12 +37,12 @@ motor_directions:
   - 1
 
 # Misc motor/frame parameters
-vehicle_mass: 3.5   # kg
+vehicle_mass: 3.9         # kg
 motor_resistance: 0.085   # ohms
-air_density: 1.225        # kg/m3
+air_density: 1.074        # kg/m3
 motor_kv: 0.02894         # SI units
 no_load_current: 1.01     # amps
 prop_diameter: 0.381      # meters
-max_voltage: 25.0         # Volts
+max_voltage: 23.5         # Volts
 prop_ct: 0.075
-prop_cq: 0.0045
+prop_cq: 0.004286
