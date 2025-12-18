@@ -24,6 +24,7 @@
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <sensor_msgs/msg/imu.hpp>
+#include <sensor_msgs/msg/range.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 
 #include <cstdlib>
@@ -82,6 +83,8 @@ protected:
     float mag_x;
     float mag_y;
     float mag_z;
+    bool range_new;
+    float range;
   };
 
   struct Output
@@ -142,6 +145,7 @@ private:
   rclcpp::Subscription<rosflight_msgs::msg::Barometer>::SharedPtr baro_sub_;
   rclcpp::Subscription<rosflight_msgs::msg::Status>::SharedPtr status_sub_;
   rclcpp::Subscription<sensor_msgs::msg::MagneticField>::SharedPtr magnetometer_sub_;
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr range_sub_;
 
   void update();
   void gnssCallback(const rosflight_msgs::msg::GNSS::SharedPtr msg);
@@ -150,6 +154,7 @@ private:
   void update_barometer_calibration(const rosflight_msgs::msg::Barometer::SharedPtr msg);
   void statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg);
   void magnetometerCallback(const sensor_msgs::msg::MagneticField::SharedPtr msg);
+  void rangeCallback(const sensor_msgs::msg::Range::SharedPtr msg);
 
   rclcpp::TimerBase::SharedPtr update_timer_;
   std::chrono::microseconds update_period_;
@@ -159,6 +164,7 @@ private:
   std::string baro_topic_ = "baro";
   std::string status_topic_ = "status";
   std::string magnetometer_topic_ = "magnetometer";
+  std::string range_topic_ = "range";
 
   bool gps_new_;
   bool armed_first_time_;                 /**< Arm before starting estimation  */

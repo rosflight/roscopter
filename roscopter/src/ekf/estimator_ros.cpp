@@ -19,6 +19,8 @@ EstimatorROS::EstimatorROS()
     status_topic_, 10, std::bind(&EstimatorROS::statusCallback, this, std::placeholders::_1));
   magnetometer_sub_ = this->create_subscription<sensor_msgs::msg::MagneticField>(
     magnetometer_topic_, 10, std::bind(&EstimatorROS::magnetometerCallback, this, std::placeholders::_1));
+  range_sub_ = this->create_subscription<sensor_msgs::msg::Range>(
+    range_topic_, 10, std::bind(&EstimatorROS::rangeCallback, this, std::placeholders::_1));
 
   init_static_ = 0;
   baro_count_ = 0;
@@ -349,6 +351,13 @@ void EstimatorROS::magnetometerCallback(const sensor_msgs::msg::MagneticField::S
 void EstimatorROS::statusCallback(const rosflight_msgs::msg::Status::SharedPtr msg)
 {
   if (!armed_first_time_ && msg->armed) armed_first_time_ = true;
+}
+
+void EstimatorROS::rangeCallback(const sensor_msgs::msg::Range::SharedPtr msg)
+{
+  input_.range_new = true;
+
+  input_.range = msg->range;
 }
 
 void EstimatorROS::set_sensor_monitoring()

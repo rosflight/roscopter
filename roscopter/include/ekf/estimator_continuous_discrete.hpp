@@ -192,6 +192,7 @@ private:
    * but is not contained in the state.
    */
   Eigen::VectorXf baro_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+
   /**
    * @brief This is a reference to the baro_measurement_prediction function. This incurs minimum time cost
    * when passing into a function.
@@ -205,6 +206,7 @@ private:
    * @param input Any inputs not in the state needed for the system.
    */
   Eigen::MatrixXf baro_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+
   /**
    * @brief This is a reference to the baro_measurement_jacobian function. This incurs minimum time cost
    * when passing into a function.
@@ -220,6 +222,45 @@ private:
    * @brief Reference to the calculation of the barometer sensor noise.
    */
   SensorNoiseFuncRef baro_measurement_sensor_noise_model;
+
+  /**
+   * @brief Calculates measurement prediction for the range sensor.
+   *
+   * @param state The state of the system.
+   * @param input Inputs to the measurement prediction. Essentially information necessary to the prediction,
+   * but is not contained in the state.
+   */
+  Eigen::VectorXf range_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  
+  /**
+   * @brief This is a reference to the range_measurement_prediction function. This incurs minimum time cost
+   * when passing into a function.
+   */
+  MeasurementModelFuncRef range_measurement_model;
+
+  /**
+   * @brief Calculates the jacobian of the measurement model for the range sensor.
+   *
+   * @param state State of the system.
+   * @param input Any inputs not in the state needed for the system.
+   */
+  Eigen::MatrixXf range_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  
+  /**
+   * @brief This is a reference to the range_measurement_jacobian function. This incurs minimum time cost
+   * when passing into a function.
+   */
+  JacobianFuncRef range_measurement_jacobian_model;
+
+  /**
+   * @brief Calculates the range sensor noise.
+   */
+  Eigen::MatrixXf range_measurement_sensor_noise(const Eigen::VectorXf& state, const Eigen::VectorXf& input);
+  
+  /**
+   * @brief Reference to the calculation of the range sensor noise.
+   */
+  SensorNoiseFuncRef range_measurement_sensor_noise_model;
 
   /**
    * @brief The number of states to estimate.
@@ -293,6 +334,16 @@ private:
   Eigen::Matrix<float, num_baro_measurements, num_baro_measurements> R_baro_;
   
   /**
+   * @brief There is one range measuremet, the height above the ground in meters.
+   */
+  static constexpr int num_range_measurements = 1;
+  
+  /**
+   * @brief The sensor noises for the range sensor.
+   */
+  Eigen::Matrix<float, num_range_measurements, num_range_measurements> R_range_;
+  
+  /**
    * @brief The calculated inclination of the magnetic field at the current location.
    */
   double inclination_;
@@ -326,6 +377,11 @@ private:
    * @brief Run the barometer measurement update.
    */
   void baro_measurement_update_step(const Input& input);
+  
+  /**
+   * @brief Run the range sensor measurement update.
+   */
+  void range_measurement_update_step(const Input& input);
 
   /**
    * @brief Run the GNSS measurement update.

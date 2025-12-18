@@ -35,9 +35,10 @@ EstimatorContinuousDiscrete::EstimatorContinuousDiscrete()
     , Q_(Eigen::Matrix<float, num_states, num_states>::Identity())
     , Q_inputs_(Eigen::Matrix<float, num_estimator_inputs, num_estimator_inputs>::Identity())
     , R_gnss_(Eigen::Matrix<float, num_gnss_measurements, num_gnss_measurements>::Zero())
-    , R_mag_(Eigen::Matrix<float,num_mag_measurements, num_mag_measurements>::Zero())
     , R_tilt_(Eigen::Matrix<float,num_tilt_mag_measurements, num_tilt_mag_measurements>::Zero())
+    , R_mag_(Eigen::Matrix<float,num_mag_measurements, num_mag_measurements>::Zero())
     , R_baro_(Eigen::Matrix<float,num_baro_measurements, num_baro_measurements>::Zero())
+    , R_range_(Eigen::Matrix<float,num_range_measurements, num_range_measurements>::Zero())
 {
   // This binds the various functions for the measurement and dynamic models and their jacobians,
   // to a reference that is efficient to pass to the functions used to do the estimation.
@@ -96,6 +97,10 @@ void EstimatorContinuousDiscrete::estimate(const Input & input, Output & output)
   mag_measurement_update_step(input);
   baro_measurement_update_step(input);
   gnss_measurement_update_step(input);
+  
+  if (this->get_parameter("use_range_sensor").as_bool()) {
+    range_measurement_update_step(input);
+  }
 
   check_sensors();
   check_estimate(input);
@@ -214,6 +219,26 @@ void EstimatorContinuousDiscrete::gnss_measurement_update_step(const Input& inpu
     std::tie(P_, xhat_) = measurement_update(xhat_, _, gnss_measurement_model, y_gps,
                                              gnss_measurement_jacobian_model, gnss_measurement_sensor_noise_model, P_);
   }
+}
+
+void EstimatorContinuousDiscrete::range_measurement_update_step(const Input& input) {
+  
+  // Only update when have new baro.
+  if (!input.range_new || fabs(xhat_(2)) > this->get_parameter("max_range").as_double()) {
+    return;
+  }
+  
+  Eigen::Vector<float, num_range_measurements> y_range;
+  y_range << input.range;
+
+  if (sqrtf(y_range(0)*y_range(0) - xhat_(2)*xhat_(2)) > this->get_parameter("max_range_horizontal_dist").as_double()) {
+    return;
+  }
+
+  Eigen::Vector<float, 1> _;
+
+  std::tie(P_, xhat_) = measurement_update(xhat_, _, range_measurement_model, y_range,
+                                             range_measurement_jacobian_model, range_measurement_sensor_noise_model, P_);
 }
 
 // ======== PREDICITON STEP EQUATIONS ========
@@ -369,6 +394,63 @@ Eigen::MatrixXf EstimatorContinuousDiscrete::del_tilt_mag_del_states(const Eigen
   G(0,7) =(my*c_phi - mz*s_phi)*(-mx*s_theta+ my*s_phi*c_theta + mz*c_phi*c_theta)/den;
 
   return G;
+}
+
+// ======== RANGE MEAUREMENT STEP EQUATIONS========
+// These are passed by reference to the range measurement update step.
+Eigen::VectorXf EstimatorContinuousDiscrete::range_measurement_prediction(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  Eigen::Vector<float, num_range_measurements> h = Eigen::Vector<float, num_range_measurements>::Zero();
+
+  float pd = state(2);
+  
+  Eigen::Vector3f Theta = state.block<3,1>(6,0);
+
+  Eigen::Vector3f z_b_in_I = R(Theta).block<3,1>(0,2);
+  Eigen::Vector3f z_I_in_I = Eigen::Vector3f::UnitZ();
+
+  float cos_gamma = z_b_in_I.dot(z_I_in_I);
+
+  // Predicted static pressure measurement
+  h(0) = -pd/cos_gamma;
+
+  return h;
+}
+
+Eigen::MatrixXf EstimatorContinuousDiscrete::range_measurement_jacobian(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  float pd = state(2);
+  
+  Eigen::Vector3f Theta = state.block<3,1>(6,0);
+
+  float sin_phi = sinf(state(6));
+  float cos_phi = cosf(state(6));
+  float sin_theta = sinf(state(7));
+  float cos_theta = cosf(state(7));
+
+  Eigen::Vector3f z_b_in_I = R(Theta).block<3,1>(0,2);
+  Eigen::Vector3f z_I_in_I = Eigen::Vector3f::UnitZ();
+
+  float cos_gamma = z_b_in_I.dot(z_I_in_I);
+
+  Eigen::Matrix<float, num_range_measurements, num_states> C = Eigen::Matrix<float, num_range_measurements, num_states>::Zero();
+
+  // Static pressure
+  C(0,2) = -1/cos_gamma;
+  
+  C(0,6) = -(pd*sin_phi)/(cos_phi*cos_gamma);
+  C(0,7) = -(pd*sin_theta)/(cos_theta*cos_gamma);
+
+  return C;
+}
+
+Eigen::MatrixXf EstimatorContinuousDiscrete::range_measurement_sensor_noise(const Eigen::VectorXf& state, const Eigen::VectorXf& input)
+{
+  Eigen::Matrix<float, num_range_measurements, num_range_measurements> R;
+
+  R = R_range_;
+
+  return R;
 }
 
 // ======== BARO MEAUREMENT STEP EQUATIONS========
@@ -774,6 +856,7 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   double sigma_static_press = params_.get_double("sigma_static_press");
   double sigma_mag = params_.get_double("sigma_mag");
   double sigma_tilt = params_.get_double("sigma_tilt_mag");
+  double sigma_range = params_.get_double("sigma_range");
   double frequency = params_.get_double("estimator_update_frequency");
   double Ts = 1.0 / frequency;
   float gyro_cutoff_freq = params_.get_double("gyro_cutoff_freq");
@@ -789,6 +872,8 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   R_mag_(0,0) = powf(sigma_mag,2);
   R_mag_(1,1) = powf(sigma_mag,2);
   R_mag_(2,2) = powf(sigma_mag,2);
+  
+  R_range_(0,0) = powf(sigma_range,2);
   
   R_tilt_(0,0) = powf(sigma_tilt,2);
   
@@ -810,6 +895,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   params_.declare_double("sigma_mag", 0.004);
   params_.declare_double("sigma_tilt_mag", radians(0.02));
   params_.declare_double("sigma_accel", .025 * 9.81);
+  params_.declare_double("sigma_range", .025);
 
   // Low pass filter parameters
   params_.declare_double("gyro_cutoff_freq", 20.0);
@@ -843,6 +929,7 @@ void EstimatorContinuousDiscrete::declare_parameters()
   
   // Conversion flags
   params_.declare_bool("convert_to_gauss", true);
+  params_.declare_bool("use_range_sensor", false);
   
   // Magnetic Field Parameters -- Set to -1000.0 to make estimator
   // find values using the WMM given GPS. If a reasonable number 
@@ -853,8 +940,10 @@ void EstimatorContinuousDiscrete::declare_parameters()
   // Saturations limits
   params_.declare_double("max_estimated_phi", 85.0); // Deg
   params_.declare_double("max_estimated_theta", 80.0); // Deg
-  params_.declare_double("gps_n_lim", 10000.);
-  params_.declare_double("gps_e_lim", 10000.); 
+  params_.declare_double("gps_n_lim", 10000.); // Meters
+  params_.declare_double("gps_e_lim", 10000.); // Meters
+  params_.declare_double("max_range", 40.0); // Meters
+  params_.declare_double("max_range_horizontal_dist", 3.0); // Meters
 }
 
 bool EstimatorContinuousDiscrete::is_parameter_changed()
@@ -896,6 +985,10 @@ void EstimatorContinuousDiscrete::bind_functions()
   baro_measurement_model = std::bind(&This::baro_measurement_prediction, this, _1, _2);
   baro_measurement_jacobian_model = std::bind(&This::baro_measurement_jacobian, this, _1, _2);
   baro_measurement_sensor_noise_model = std::bind(&This::baro_measurement_sensor_noise, this, _1, _2);
+  
+  range_measurement_model = std::bind(&This::range_measurement_prediction, this, _1, _2);
+  range_measurement_jacobian_model = std::bind(&This::range_measurement_jacobian, this, _1, _2);
+  range_measurement_sensor_noise_model = std::bind(&This::range_measurement_sensor_noise, this, _1, _2);
 }
 
 } // namespace roscopter
