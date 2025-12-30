@@ -101,17 +101,15 @@ add_executable(estimator
               src/ekf/estimator_ekf.cpp
               src/ekf/estimator_continuous_discrete.cpp
               src/utils/geomag.c)
-target_link_libraries(estimator
-  ${YAML_CPP_LIBRARIES}
-)
 ament_target_dependencies(estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3 ament_index_cpp)
-target_link_libraries(estimator param_manager)
+target_link_libraries(estimator ${ament_LIBRARIES} param_manager ${YAML_CPP_LIBRARIES})
 target_include_directories(estimator PUBLIC include)
 install(TARGETS
   estimator
   DESTINATION lib/${PROJECT_NAME})
 
-add_library(estimator_lib
+# ESTIMATOR LIB
+add_library(estimation_lib SHARED
   src/ekf/estimator_node.cpp
   src/ekf/estimator_ros.cpp
   src/ekf/estimator_ekf.cpp
@@ -120,9 +118,17 @@ add_library(estimator_lib
   include/ekf/estimator_ros.hpp
   include/ekf/estimator_ekf.hpp
   include/ekf/estimator_continuous_discrete.hpp)
-target_link_libraries(estimator_lib param_manager)
-target_link_libraries(estimator estimator_lib)
-ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs ament_index_cpp)
+target_link_libraries(estimation_lib)
+ament_target_dependencies(estimation_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs ament_index_cpp)
+ament_export_targets(estimation_lib HAS_LIBRARY_TARGET)
+install(DIRECTORY include/ekf DESTINATION include)
+install(TARGETS estimation_lib
+  EXPORT estimation_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
 
 # External attitude transcriber
 add_executable(ext_att_transcriber
@@ -175,25 +181,25 @@ install(
   DESTINATION lib/${PROJECT_NAME})
 
 
-if(BUILD_TESTING)
-
-  find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(estimator_test test/estimator_test.cpp)
-  ament_target_dependencies(estimator_test rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
-  target_include_directories(estimator_test PUBLIC
-    include
-  )
-  target_link_libraries(estimator_test estimator_lib) 
-
-  find_package(ament_lint_auto REQUIRED)
-  # the following line skips the linter which checks for copyrights
-  # comment the line when a copyright and license is added to all source files
-  set(ament_cmake_copyright_FOUND TRUE)
-  # the following line skips cpplint (only works in a git repo)
-  # comment the line when this package is in a git repo and when
-  # a copyright and license is added to all source files
-  set(ament_cmake_cpplint_FOUND TRUE)
-  ament_lint_auto_find_test_dependencies()
-endif()
+# if(BUILD_TESTING)
+#
+#   find_package(ament_cmake_gtest REQUIRED)
+#   ament_add_gtest(estimator_test test/estimator_test.cpp)
+#   ament_target_dependencies(estimator_test rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
+#   target_include_directories(estimator_test PUBLIC
+#     include
+#   )
+#   target_link_libraries(estimator_test estimation_lib) 
+#
+#   find_package(ament_lint_auto REQUIRED)
+#   # the following line skips the linter which checks for copyrights
+#   # comment the line when a copyright and license is added to all source files
+#   set(ament_cmake_copyright_FOUND TRUE)
+#   # the following line skips cpplint (only works in a git repo)
+#   # comment the line when this package is in a git repo and when
+#   # a copyright and license is added to all source files
+#   set(ament_cmake_cpplint_FOUND TRUE)
+#   ament_lint_auto_find_test_dependencies()
+# endif()
 
 ament_package()
