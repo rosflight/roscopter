@@ -52,7 +52,7 @@ else()
 endif()
 
 ament_export_include_directories(include ${EIGEN3_INCLUDE_DIRS})
-ament_export_dependencies(rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs EIGEN3 geometry_msgs)
+ament_export_dependencies(rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs nav_msgs sensor_msgs Eigen3 geometry_msgs)
 
 add_definitions(-DROSCOPTER_DIR="${CMAKE_CURRENT_LIST_DIR}")
 
@@ -90,39 +90,38 @@ install(TARGETS param_manager
   INCLUDES DESTINATION include
 )
 
+# ESTIMATOR LIB
+set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
+add_library(estimation_lib SHARED
+  src/ekf/estimator_ros.cpp
+  src/ekf/estimator_ekf.cpp
+  src/ekf/estimator_continuous_discrete.cpp
+  src/utils/geomag.c)
+target_include_directories(estimation_lib
+  PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ekf>"
+    "$<INSTALL_INTERFACE:include/ekf>")
+ament_target_dependencies(estimation_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs ament_index_cpp)
+install(DIRECTORY include/ekf DESTINATION include)
+install(TARGETS estimation_lib
+  EXPORT export_estimation_lib
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+ament_export_targets(export_estimation_lib HAS_LIBRARY_TARGET)
 
 ### EXECUTABLES ###
 
 # Estimator
-set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
 add_executable(estimator
-              src/ekf/estimator_node.cpp
-              src/ekf/estimator_ros.cpp
-              src/ekf/estimator_ekf.cpp
-              src/ekf/estimator_continuous_discrete.cpp
-              src/utils/geomag.c)
-target_link_libraries(estimator
-  ${YAML_CPP_LIBRARIES}
-)
-ament_target_dependencies(estimator roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3 ament_index_cpp)
-target_link_libraries(estimator param_manager)
+              src/ekf/estimator_node.cpp)
+ament_target_dependencies(estimator PUBLIC roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3 ament_index_cpp)
+target_link_libraries(estimator PUBLIC estimation_lib ${ament_LIBRARIES} param_manager ${YAML_CPP_LIBRARIES})
 target_include_directories(estimator PUBLIC include)
 install(TARGETS
   estimator
   DESTINATION lib/${PROJECT_NAME})
-
-add_library(estimator_lib
-  src/ekf/estimator_node.cpp
-  src/ekf/estimator_ros.cpp
-  src/ekf/estimator_ekf.cpp
-  src/ekf/estimator_continuous_discrete.cpp
-  src/utils/geomag.c
-  include/ekf/estimator_ros.hpp
-  include/ekf/estimator_ekf.hpp
-  include/ekf/estimator_continuous_discrete.hpp)
-target_link_libraries(estimator_lib param_manager)
-target_link_libraries(estimator estimator_lib)
-ament_target_dependencies(estimator_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs ament_index_cpp)
 
 # External attitude transcriber
 add_executable(ext_att_transcriber
@@ -183,7 +182,7 @@ if(BUILD_TESTING)
   target_include_directories(estimator_test PUBLIC
     include
   )
-  target_link_libraries(estimator_test estimator_lib) 
+  target_link_libraries(estimator_test estimation_lib param_manager) 
 
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
