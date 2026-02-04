@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.0](https://github.com/rosflight/roscopter/compare/v2.0.0-beta.1...v2.0.0) (2026-02-04)
+
+
+### Features
+
+* update rosflight command message with new vector notation ([#56](https://github.com/rosflight/roscopter/issues/56)) ([a0d353c](https://github.com/rosflight/roscopter/commit/a0d353c6e7c1379fd66331b30d036eeab6148118))
+
 ## [2.0.0-beta.1](https://github.com/rosflight/roscopter/compare/v2.0.0-beta...v2.0.0-beta.1) (2025-12-15)
 
 
