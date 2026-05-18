@@ -10,7 +10,7 @@ namespace roscopter
 
 EstimatorEKF::EstimatorEKF() : EstimatorROS()
 {
-  params_.declare_int("num_propagation_steps", 1);
+  params_.declare_int("num_propagation_steps", 10);
   params_.set_parameters();
 }
 
@@ -72,7 +72,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::propagate_model(Eigen
 {
 
   int N = params_.get_int("num_propagation_steps");
-
+  float Ts_imu = Ts; // TODO: make this correct.
   for (int _ = 0; _ < N; _++)
   {
 
@@ -89,7 +89,7 @@ std::tuple<Eigen::MatrixXf, Eigen::VectorXf> EstimatorEKF::propagate_model(Eigen
     Eigen::MatrixXf G = input_jacobian(x, inputs);
     
     // Propagate the covariance.
-    P = A_d * P * A_d.transpose() + (Q + G * Q_g * G.transpose()) * pow(Ts / N, 2);
+    P = A_d * P * A_d.transpose() + Q * Ts / N + G * Q_g * Ts_imu * G.transpose() * Ts / N;
     
   }
 
