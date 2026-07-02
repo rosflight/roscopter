@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.0](https://github.com/rosflight/roscopter/compare/v2.0.0...v2.1.0) (2026-07-02)
+
+
+### Features
+
+* updated to WMM-2025 valid thru 2030 ([daad384](https://github.com/rosflight/roscopter/commit/daad3845901520d3c6cbd24b5819a40d24018152))
+* updated to WMM-2025 valid thru 2030 ([b360a37](https://github.com/rosflight/roscopter/commit/b360a3739978a764ca50ad27b6fb947f1ec6c467))
+
 ## [2.0.0](https://github.com/rosflight/roscopter/compare/v2.0.0-beta.1...v2.0.0) (2026-02-04)
 
 
