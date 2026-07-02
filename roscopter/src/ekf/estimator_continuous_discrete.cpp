@@ -800,31 +800,31 @@ void EstimatorContinuousDiscrete::declare_parameters()
 {
   
   // Sensor uncertainties
-  params_.declare_double("sigma_n_gps", .5);
-  params_.declare_double("sigma_e_gps", .5);
-  params_.declare_double("sigma_h_gps", 1.0);
-  params_.declare_double("sigma_vn_gps", .07);
-  params_.declare_double("sigma_ve_gps", .07);
-  params_.declare_double("sigma_vd_gps", .1);
-  params_.declare_double("sigma_static_press", 0.5);
+  params_.declare_double("sigma_n_gps", .75);
+  params_.declare_double("sigma_e_gps", .75);
+  params_.declare_double("sigma_h_gps", 1.5);
+  params_.declare_double("sigma_vn_gps", .02);
+  params_.declare_double("sigma_ve_gps", .02);
+  params_.declare_double("sigma_vd_gps", .01);
+  params_.declare_double("sigma_static_press", 2.0);
   params_.declare_double("sigma_mag", 0.004);
-  params_.declare_double("sigma_tilt_mag", radians(0.02));
-  params_.declare_double("sigma_accel", .025 * 9.81);
+  params_.declare_double("sigma_tilt_mag", radians(1.0)); // TODO: Check this!!!!
+  params_.declare_double("sigma_accel", .5);
 
   // Low pass filter parameters
   params_.declare_double("gyro_cutoff_freq", 20.0);
   params_.declare_double("baro_cutoff_freq", 1.25);
   
   // Proccess noises
-  params_.declare_double("roll_process_noise", 1000*powf(0.0001,2));
-  params_.declare_double("pitch_process_noise", 1000*powf(0.0001,2));
-  params_.declare_double("yaw_process_noise", 1000*powf(0.0001,2));
-  params_.declare_double("gyro_process_noise", 0.13);
-  params_.declare_double("accel_process_noise", 0.24525);
-  params_.declare_double("pos_process_noise", 1000*powf(0.00003,2));
-  params_.declare_double("alt_process_noise", 1000*0.000001);
-  params_.declare_double("vel_horizontal_process_noise", 1000*powf(0.0001,2)); 
-  params_.declare_double("vel_vertical_process_noise", 1000*powf(0.0001,2));
+  params_.declare_double("roll_process_noise", powf(0.0001,2));
+  params_.declare_double("pitch_process_noise", powf(0.0001,2));
+  params_.declare_double("yaw_process_noise", powf(0.001,2));
+  params_.declare_double("gyro_process_noise", 0.16);
+  params_.declare_double("accel_process_noise", 0.6);
+  params_.declare_double("pos_process_noise", powf(0.00003,2));
+  params_.declare_double("alt_process_noise", 0.000001);
+  params_.declare_double("vel_horizontal_process_noise", powf(0.0001,2)); 
+  params_.declare_double("vel_vertical_process_noise", powf(0.001,2));
   params_.declare_double("bias_process_noise", 0.0000001*0.0000001);
   
   // Initial covariances
