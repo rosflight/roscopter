@@ -22,7 +22,6 @@
 
 #include <vector>
 #include <thread>
-#include <eigen3/Eigen/Eigen>
 
 #include <gazebo/common/common.hh>
 #include <gazebo/common/Plugin.hh>

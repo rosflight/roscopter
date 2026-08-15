@@ -1,11 +1,8 @@
-#include <memory>
-
 #include <Eigen/Geometry>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
-
-#include "roscopter_msgs/msg/state.hpp"
-#include "rosflight_msgs/msg/sim_state.hpp"
+#include <roscopter_msgs/msg/state.hpp>
+#include <rosflight_msgs/msg/sim_state.hpp>
 
 namespace roscopter_sim {
 

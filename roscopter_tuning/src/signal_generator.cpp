@@ -39,6 +39,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <sstream>
 #include <string>
 
 #include "signal_generator.hpp"

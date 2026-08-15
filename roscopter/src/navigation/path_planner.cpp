@@ -1,6 +1,7 @@
 #include <functional>
 
 #include <rclcpp/executors.hpp>
+#include <yaml-cpp/yaml.h>
 #include <rosflight_compat/service_client.hpp>
 
 #include "navigation/path_planner.hpp"
