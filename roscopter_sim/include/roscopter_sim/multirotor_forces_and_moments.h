@@ -21,7 +21,7 @@
 #include <stdio.h>
 
 #include <vector>
-#include <boost/bind.hpp>
+#include <thread>
 #include <eigen3/Eigen/Eigen>
 
 #include <gazebo/common/common.hh>
@@ -132,7 +132,7 @@ private:
   ros::Subscriber wind_sub_;
   ros::Publisher attitude_pub_;
 
-  boost::thread callback_queue_thread_;
+  std::thread callback_queue_thread_;
   void QueueThread();
   void WindCallback(const geometry_msgs::Vector3& wind);
   void CommandCallback(const rosflight_msgs::Command msg);
