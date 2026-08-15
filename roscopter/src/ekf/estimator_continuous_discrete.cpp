@@ -244,7 +244,7 @@ Eigen::VectorXd EstimatorContinuousDiscrete::dynamics(const Eigen::VectorXd& sta
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::jacobian(const Eigen::VectorXd& state, const Eigen::VectorXd& inputs)
 {
-  Eigen::Vector3d accel = inputs.block<3,1>(0,0);
+  [[maybe_unused]] Eigen::Vector3d accel = inputs.block<3,1>(0,0);
   Eigen::Vector3d gyro = inputs.block<3,1>(3,0);
   
   Eigen::Vector3d vels = state.block<3,1>(3,0);
@@ -275,7 +275,7 @@ return A;
 }
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::input_jacobian(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& inputs)
+  const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& inputs)
 {
   // This uses both the accel and gyro. The associated jacobians have been combined.
   Eigen::Matrix<double, num_states, 6> G = Eigen::Matrix<double, num_states, num_estimator_inputs>::Zero();
@@ -296,7 +296,7 @@ Eigen::MatrixXd EstimatorContinuousDiscrete::input_jacobian(
 
 
 Eigen::VectorXd EstimatorContinuousDiscrete::tilt_mag_measurement_prediction(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   Eigen::Vector<double, num_tilt_mag_measurements> h = Eigen::Vector<double, num_tilt_mag_measurements>::Zero();
 
@@ -306,7 +306,7 @@ Eigen::VectorXd EstimatorContinuousDiscrete::tilt_mag_measurement_prediction(
 }
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::tilt_mag_measurement_jacobian(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  [[maybe_unused]] const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   Eigen::Matrix<double, num_tilt_mag_measurements, num_states> C = Eigen::Matrix<double, num_tilt_mag_measurements, num_states>::Zero();
   
@@ -377,7 +377,7 @@ Eigen::MatrixXd EstimatorContinuousDiscrete::del_tilt_mag_del_states(const Eigen
 // ======== BARO MEAUREMENT STEP EQUATIONS========
 // These are passed by reference to the baro measurement update step.
 Eigen::VectorXd EstimatorContinuousDiscrete::baro_measurement_prediction(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   double gravity = params_.get_double("gravity");
 
@@ -390,7 +390,7 @@ Eigen::VectorXd EstimatorContinuousDiscrete::baro_measurement_prediction(
 }
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::baro_measurement_jacobian(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  [[maybe_unused]] const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   double gravity = params_.get_double("gravity");
 
@@ -403,7 +403,7 @@ Eigen::MatrixXd EstimatorContinuousDiscrete::baro_measurement_jacobian(
 }
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::baro_measurement_sensor_noise(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  [[maybe_unused]] const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   Eigen::Matrix<double, num_baro_measurements, num_baro_measurements> R;
 
@@ -415,7 +415,7 @@ Eigen::MatrixXd EstimatorContinuousDiscrete::baro_measurement_sensor_noise(
 // ======== GNSS MEAUREMENT STEP EQUATIONS========
 // These are passed by reference to the GNSS measurement update step.
 Eigen::VectorXd EstimatorContinuousDiscrete::gnss_measurement_prediction(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   Eigen::Vector<double, num_gnss_measurements> h = Eigen::Vector<double, num_gnss_measurements>::Zero();
 
@@ -449,7 +449,7 @@ Eigen::VectorXd EstimatorContinuousDiscrete::gnss_measurement_prediction(
 }
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::gnss_measurement_jacobian(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   Eigen::Matrix<double, num_gnss_measurements, num_states> C = Eigen::Matrix<double, num_gnss_measurements, num_states>::Zero();
   Eigen::Vector3d vels = state.block<3,1>(3,0);
@@ -473,7 +473,7 @@ Eigen::MatrixXd EstimatorContinuousDiscrete::gnss_measurement_jacobian(
 }
 
 Eigen::MatrixXd EstimatorContinuousDiscrete::gnss_measurement_sensor_noise(
-  const Eigen::VectorXd& state, const Eigen::VectorXd& input)
+  [[maybe_unused]] const Eigen::VectorXd& state, [[maybe_unused]] const Eigen::VectorXd& input)
 {
   Eigen::Matrix<double, num_gnss_measurements, num_gnss_measurements> R;
 
@@ -776,7 +776,7 @@ void EstimatorContinuousDiscrete::update_measurement_model_parameters()
   // For readability, declare the parameters used in the function here
   double sigma_n_gps = params_.get_double("sigma_n_gps");
   double sigma_e_gps = params_.get_double("sigma_e_gps");
-  double sigma_h_gps = params_.get_double("sigma_h_gps");
+  [[maybe_unused]] double sigma_h_gps = params_.get_double("sigma_h_gps");
   double sigma_vn_gps = params_.get_double("sigma_vn_gps");
   double sigma_ve_gps = params_.get_double("sigma_ve_gps");
   double sigma_vd_gps = params_.get_double("sigma_vd_gps");

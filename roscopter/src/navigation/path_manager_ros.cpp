@@ -116,8 +116,9 @@ void PathManagerROS::single_waypoint_callback(const roscopter_msgs::msg::Waypoin
   waypoint_list_.push_back(msg);
 }
 
-bool PathManagerROS::clear_waypoints(const std_srvs::srv::Trigger::Request::SharedPtr &req,
-                                     const std_srvs::srv::Trigger::Response::SharedPtr &res)
+bool PathManagerROS::clear_waypoints(
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr &req,
+  const std_srvs::srv::Trigger::Response::SharedPtr &res)
 {
   clear_waypoints_internally();
   
@@ -132,8 +133,9 @@ void PathManagerROS::publish_command(roscopter_msgs::msg::TrajectoryCommand &com
   cmd_pub_->publish(command);
 }
 
-bool PathManagerROS::print_path(const std_srvs::srv::Trigger::Request::SharedPtr & req,
-                             const std_srvs::srv::Trigger::Response::SharedPtr & res)
+bool PathManagerROS::print_path(
+  [[maybe_unused]]const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   std::stringstream output;
 
