@@ -19,7 +19,8 @@
   <depend>rclpy</depend>
   <depend>roscopter_msgs</depend>
   <depend>rosflight_msgs</depend>
-  <depend>tf2</depend>
+  <depend>rosflight_compat</depend>
+  <depend>ament_index_cpp</depend>
 
   <test_depend>ament_cmake_gtest</test_depend>
 
