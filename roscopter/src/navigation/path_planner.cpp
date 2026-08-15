@@ -1,4 +1,7 @@
+#include <functional>
+
 #include <rclcpp/executors.hpp>
+#include <rosflight_compat/service_client.hpp>
 
 #include "navigation/path_planner.hpp"
 
@@ -14,7 +17,8 @@ PathPlanner::PathPlanner()
 {
   // Set up the callback groups for the clear wp service and the service client so they can execute properly
   client_cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-  clear_wp_client_ = this->create_client<std_srvs::srv::Trigger>("/path_manager/clear_waypoints", rmw_qos_profile_services_default, client_cb_group_);
+  clear_wp_client_ = rosflight_compat::create_service_client<std_srvs::srv::Trigger>(
+    *this, "/path_manager/clear_waypoints", client_cb_group_);
 
   // Make this publisher transient_local so that it publishes the last 10 waypoints to late subscribers
   rclcpp::QoS qos_transient_local_10_(10);
