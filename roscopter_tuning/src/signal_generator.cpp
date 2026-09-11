@@ -39,6 +39,7 @@
 
 #include <chrono>
 #include <cmath>
+#include <sstream>
 #include <string>
 
 #include "signal_generator.hpp"
@@ -211,7 +212,7 @@ TuningSignalGenerator::param_callback(const std::vector<rclcpp::Parameter> & par
 }
 
 bool TuningSignalGenerator::step_toggle_service_callback(
-  const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
   const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   if (signal_type_ != SignalType::STEP) {
@@ -231,7 +232,7 @@ bool TuningSignalGenerator::step_toggle_service_callback(
 }
 
 bool TuningSignalGenerator::reset_service_callback(
-  const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
   const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   reset();
@@ -240,7 +241,7 @@ bool TuningSignalGenerator::reset_service_callback(
 }
 
 bool TuningSignalGenerator::pause_service_callback(
-  const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
   const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   if (signal_type_ == SignalType::STEP) {
@@ -257,7 +258,7 @@ bool TuningSignalGenerator::pause_service_callback(
 }
 
 bool TuningSignalGenerator::start_continuous_service_callback(
-  const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
   const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   if (signal_type_ == SignalType::STEP) {
@@ -274,7 +275,7 @@ bool TuningSignalGenerator::start_continuous_service_callback(
 }
 
 bool TuningSignalGenerator::start_single_service_callback(
-  const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
   const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   if (signal_type_ == SignalType::STEP) {

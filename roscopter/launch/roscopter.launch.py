@@ -1,15 +1,13 @@
-import os
-import sys
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-    roscopter_dir = get_package_share_directory('roscopter')
-    controller_param_file = os.path.join(roscopter_dir, 'params', 'multirotor.yaml')
-    estimator_param_file = os.path.join(roscopter_dir, 'params', 'estimator.yaml')
+    roscopter_share = FindPackageShare('roscopter')
+    controller_param_file = PathJoinSubstitution([roscopter_share, 'params', 'multirotor.yaml'])
+    estimator_param_file = PathJoinSubstitution([roscopter_share, 'params', 'estimator.yaml'])
     
     hotstart_estimator_arg = DeclareLaunchArgument(
         "hotstart_estimator",

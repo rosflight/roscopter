@@ -42,14 +42,13 @@
 #ifndef TUNING_SIGNAL_GENERATOR_HPP
 #define TUNING_SIGNAL_GENERATOR_HPP
 
-#include "roscopter_msgs/msg/controller_command.hpp"
+#include <unordered_set>
+
+#include <roscopter_msgs/msg/controller_command.hpp>
 #include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
-#include <unordered_set>
-#include <system_error>
-#include <sstream>
 
 namespace roscopter
 {

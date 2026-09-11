@@ -1,26 +1,13 @@
-import os
-import sys
 from launch import LaunchDescription
-from launch.descriptions import executable
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
+from launch_ros.substitutions import FindPackageShare
+from launch.substitutions import PathJoinSubstitution
 
 def generate_launch_description():
     # Create the package directory
-    roscopter_dir = get_package_share_directory('roscopter')
+    roscopter_share = FindPackageShare('roscopter')
 
-    # Determine the appropriate control scheme.
-    control_type = "default"
-
-    for arg in sys.argv:
-        if arg.startswith("control_type:="):
-            control_type = arg.split(":=")[1]
-
-    autopilot_params = os.path.join(
-        roscopter_dir,
-        'params',
-        'multirotor.yaml'
-    )
+    autopilot_params = PathJoinSubstitution([roscopter_share, 'params', 'multirotor.yaml'])
 
     return LaunchDescription([
         Node(
@@ -31,7 +18,6 @@ def generate_launch_description():
                           {'pitch_tuning_override': False},
                           {'roll_tuning_override': True}],
             output = 'screen',
-            arguments = [control_type],
             remappings=[('estimated_state', 'state')]
         ),
         Node(

@@ -130,7 +130,8 @@ void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr 
   alt_controller_.setGains(altP, altI, altD);
 
   // Connect the update function to the simulation
-  updateConnection_ = event::Events::ConnectWorldUpdateBegin(boost::bind(&MultiRotorForcesAndMoments::OnUpdate, this, _1));
+  updateConnection_ = event::Events::ConnectWorldUpdateBegin(
+    [this](const common::UpdateInfo & info) { OnUpdate(info); });
 
   // Connect Subscribers
   command_sub_ = nh_->subscribe(command_topic_, 1, &MultiRotorForcesAndMoments::CommandCallback, this);

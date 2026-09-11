@@ -1,15 +1,12 @@
 #ifndef PATH_MANAGER_H
 #define PATH_MANAGER_H
 
-#include <algorithm>
-#include <vector>
-#include <cmath>
+#include <Eigen/Core>
+
+#include <roscopter_msgs/msg/waypoint.hpp>
+#include <roscopter_msgs/msg/trajectory_command.hpp>
 
 #include "navigation/path_manager_ros.hpp"
-#include "roscopter_msgs/msg/waypoint.hpp"
-#include "roscopter_msgs/msg/trajectory_command.hpp"
-
-#include <Eigen/Core>
 
 namespace roscopter {
 

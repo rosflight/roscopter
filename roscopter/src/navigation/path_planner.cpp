@@ -1,4 +1,8 @@
+#include <functional>
+
 #include <rclcpp/executors.hpp>
+#include <yaml-cpp/yaml.h>
+#include <rosflight_compat/service_client.hpp>
 
 #include "navigation/path_planner.hpp"
 
@@ -14,7 +18,8 @@ PathPlanner::PathPlanner()
 {
   // Set up the callback groups for the clear wp service and the service client so they can execute properly
   client_cb_group_ = this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
-  clear_wp_client_ = this->create_client<std_srvs::srv::Trigger>("/path_manager/clear_waypoints", rmw_qos_profile_services_default, client_cb_group_);
+  clear_wp_client_ = rosflight_compat::create_service_client<std_srvs::srv::Trigger>(
+    *this, "/path_manager/clear_waypoints", client_cb_group_);
 
   // Make this publisher transient_local so that it publishes the last 10 waypoints to late subscribers
   rclcpp::QoS qos_transient_local_10_(10);
@@ -87,8 +92,9 @@ void PathPlanner::state_callback(const roscopter_msgs::msg::State & msg)
   }
 }
 
-bool PathPlanner::publish_next_waypoint(const std_srvs::srv::Trigger::Request::SharedPtr & req,
-                                        const std_srvs::srv::Trigger::Response::SharedPtr & res)
+bool PathPlanner::publish_next_waypoint(
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   // Publish the next waypoint, if available
   if (num_waypoints_published_ < (int) wps_.size()) {
@@ -163,8 +169,9 @@ bool PathPlanner::update_path(const roscopter_msgs::srv::AddWaypoint::Request::S
   return true;
 }
 
-bool PathPlanner::clear_path_callback(const std_srvs::srv::Trigger::Request::SharedPtr & req,
-                                      const std_srvs::srv::Trigger::Response::SharedPtr & res)
+bool PathPlanner::clear_path_callback(
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   res->success = clear_path();
 
@@ -183,8 +190,9 @@ bool PathPlanner::clear_path()
   return true;
 }
 
-bool PathPlanner::print_path(const std_srvs::srv::Trigger::Request::SharedPtr & req,
-                             const std_srvs::srv::Trigger::Response::SharedPtr & res)
+bool PathPlanner::print_path(
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr & req,
+  const std_srvs::srv::Trigger::Response::SharedPtr & res)
 {
   std::stringstream output;
 
