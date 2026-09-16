@@ -106,8 +106,9 @@ void TrajectoryFollowerROS::publish_command(roscopter_msgs::msg::ControllerComma
   cmd_pub_->publish(command);
 }
 
-bool TrajectoryFollowerROS::clear_integrators_callback(const std_srvs::srv::Trigger::Request::SharedPtr req,
-                                                       const std_srvs::srv::Trigger::Response::SharedPtr res)
+bool TrajectoryFollowerROS::clear_integrators_callback(
+  [[maybe_unused]] const std_srvs::srv::Trigger::Request::SharedPtr req,
+  const std_srvs::srv::Trigger::Response::SharedPtr res)
 {
   clear_integrators();
   res->success = true;

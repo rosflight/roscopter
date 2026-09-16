@@ -18,12 +18,8 @@
 
   <!-- Dependencies needed to compile and for after this package is compiled -->
   <depend>geometry_msgs</depend>
-  <depend>std_srvs</depend>
   <depend>rosflight_msgs</depend>
   <depend>roscopter_msgs</depend>
-  <depend>nav_msgs</depend>
-  <depend>std_msgs</depend>
-  <depend>sensor_msgs</depend>
 
   <!-- =========================================== -->
 

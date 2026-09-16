@@ -63,7 +63,7 @@ static char **wmm_lines;
 static char *wmm_string;
 static int wmm_index;
 static int maxdeg;
-static double epochlowlim,epochuplim,epoch;
+static double epochlowlim,epoch;
 char decd[7], dipd[7],modl[20];
 
 static int geomag_E0_init(int *maxdeg);

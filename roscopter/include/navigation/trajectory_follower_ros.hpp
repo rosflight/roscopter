@@ -1,16 +1,15 @@
 #ifndef TRAJECTORY_FOLLOWER_ROS_H
 #define TRAJECTORY_FOLLOWER_ROS_H
 
-#include <stdint.h>
-
 #include <rclcpp/rclcpp.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
+#include <roscopter_msgs/msg/controller_command.hpp>
+#include <roscopter_msgs/msg/trajectory_command.hpp>
+#include <roscopter_msgs/msg/state.hpp>
+#include <rosflight_msgs/msg/status.hpp>
+
 #include "param_manager/param_manager.hpp"
-#include "roscopter_msgs/msg/controller_command.hpp"
-#include "roscopter_msgs/msg/trajectory_command.hpp"
-#include "roscopter_msgs/msg/state.hpp"
-#include "rosflight_msgs/msg/status.hpp"
 
 using std::placeholders::_1;
 

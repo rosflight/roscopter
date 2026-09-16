@@ -1,167 +1,180 @@
-set(CMAKE_CXX_STANDARD 14)
-cmake_minimum_required(VERSION 3.8)
-project(roscopter)
-
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
+cmake_minimum_required(VERSION 3.20...3.28)
+project(roscopter LANGUAGES C CXX)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
-endif(NOT CMAKE_BUILD_TYPE)
-
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
-find_package(roscopter_msgs REQUIRED)
-find_package(rosflight_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
-find_package(sensor_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-pkg_check_modules(YAML_CPP REQUIRED yaml-cpp)
+find_package(sensor_msgs REQUIRED)
+find_package(rosflight_compat REQUIRED)
+find_package(rosflight_msgs REQUIRED)
+find_package(roscopter_msgs REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
-ament_export_include_directories(include ${EIGEN3_INCLUDE_DIRS})
-ament_export_dependencies(rclcpp rclpy roscopter_msgs rosflight_msgs std_msgs sensor_msgs Eigen3 geometry_msgs)
-
-add_definitions(-DROSCOPTER_DIR="${CMAKE_CURRENT_LIST_DIR}")
-
-install(
-  DIRECTORY launch params 
-  DESTINATION share/${PROJECT_NAME})
-
-###########
-## Build ##
-###########
-
-include_directories(
-  include
-  ${EIGEN3_INCLUDE_DIRS} 
-  ${ament_INCLUDE_DIRS}
-  ${YAML_CPP_INCLUDEDIR}
+# Legacy yaml-cpp support for Ubuntu 22.04
+if(NOT TARGET yaml-cpp::yaml-cpp)
+  add_library(yaml-cpp::yaml-cpp INTERFACE IMPORTED)
+  set_target_properties(yaml-cpp::yaml-cpp PROPERTIES
+    INTERFACE_INCLUDE_DIRECTORIES "${YAML_CPP_INCLUDE_DIR}"
+    INTERFACE_LINK_LIBRARIES "${YAML_CPP_LIBRARIES}"
   )
+endif()
 
-
+#################
 ### LIBRARIES ###
+#################
 
-# Param Manager
-add_library(param_manager
-  include/param_manager/param_manager.hpp
-  src/param_manager/param_manager.cpp
+# Param Manager (exported)
+add_library(roscopter_param_manager src/param_manager/param_manager.cpp)
+add_library(roscopter::param_manager ALIAS roscopter_param_manager)
+set_target_properties(roscopter_param_manager PROPERTIES
+  EXPORT_NAME param_manager
 )
-ament_target_dependencies(param_manager rclcpp)
-ament_export_targets(param_manager HAS_LIBRARY_TARGET)
-install(DIRECTORY include/param_manager DESTINATION include)
-install(TARGETS param_manager
-  EXPORT param_manager
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-  INCLUDES DESTINATION include
+target_compile_features(roscopter_param_manager PUBLIC cxx_std_17)
+target_compile_options(roscopter_param_manager PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(roscopter_param_manager PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
 )
+target_link_libraries(roscopter_param_manager PUBLIC rclcpp::rclcpp)
 
-# ESTIMATOR LIB
-set_source_files_properties(geomag.c PROPERTIES LANGUAGE C)
-add_library(estimation_lib SHARED
+# Estimation (exported)
+set_source_files_properties(src/utils/geomag.c PROPERTIES
+  LANGUAGE C
+  COMPILE_OPTIONS "-Wno-overlength-strings"
+)
+add_library(roscopter_estimation
   src/ekf/estimator_ros.cpp
   src/ekf/estimator_ekf.cpp
   src/ekf/estimator_continuous_discrete.cpp
-  src/utils/geomag.c)
-target_include_directories(estimation_lib
-  PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/ekf>"
-    "$<INSTALL_INTERFACE:include/ekf>")
-ament_target_dependencies(estimation_lib rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs ament_index_cpp)
-install(DIRECTORY include/ekf DESTINATION include)
-install(TARGETS estimation_lib
-  EXPORT export_estimation_lib
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
+  src/utils/geomag.c
 )
-ament_export_targets(export_estimation_lib HAS_LIBRARY_TARGET)
+add_library(roscopter::estimation ALIAS roscopter_estimation)
+target_compile_features(roscopter_estimation PUBLIC c_std_99 cxx_std_17)
+target_compile_options(roscopter_estimation PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(roscopter_estimation PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include/${PROJECT_NAME}>
+)
+target_link_libraries(roscopter_estimation
+  PUBLIC
+    roscopter::param_manager
+    rclcpp::rclcpp
+    sensor_msgs::sensor_msgs
+    rosflight_msgs::rosflight_msgs
+    roscopter_msgs::roscopter_msgs
+    Eigen3::Eigen
+  PRIVATE
+    rosflight_compat::compat_headers # FIXME: legacy support for Humble
+    # ament_index_cpp::ament_index_cpp # FIXME: use when Humble is dropped
+)
 
+###################
 ### EXECUTABLES ###
+###################
 
 # Estimator
-add_executable(estimator
-              src/ekf/estimator_node.cpp)
-ament_target_dependencies(estimator PUBLIC roscopter_msgs rosflight_msgs sensor_msgs rclcpp Eigen3 ament_index_cpp)
-target_link_libraries(estimator PUBLIC estimation_lib ${ament_LIBRARIES} param_manager ${YAML_CPP_LIBRARIES})
-target_include_directories(estimator PUBLIC include)
-install(TARGETS
-  estimator
-  DESTINATION lib/${PROJECT_NAME})
+add_executable(estimator src/ekf/estimator_node.cpp)
+target_compile_features(estimator PRIVATE cxx_std_17)
+target_compile_options(estimator PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(estimator PRIVATE roscopter::estimation)
 
 # External attitude transcriber
-add_executable(ext_att_transcriber
-  src/ekf/external_attitude_transcriber.cpp)
-ament_target_dependencies(ext_att_transcriber rclcpp roscopter_msgs rosflight_msgs)
-target_link_libraries(ext_att_transcriber ${ament_LIBRARIES})
-install(TARGETS ext_att_transcriber
-  DESTINATION lib/${PROJECT_NAME})
+add_executable(ext_att_transcriber src/ekf/external_attitude_transcriber.cpp)
+target_compile_features(ext_att_transcriber PRIVATE cxx_std_17)
+target_compile_options(ext_att_transcriber PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(ext_att_transcriber PRIVATE
+  rclcpp::rclcpp
+  rosflight_msgs::rosflight_msgs
+  roscopter_msgs::roscopter_msgs
+)
 
 # Controller
 add_executable(controller
   src/controller/controller_ros.cpp
   src/controller/controller_state_machine.cpp
   src/controller/controller_cascading_pid.cpp
-  src/controller/simple_pid.cpp)
-ament_target_dependencies(controller rclcpp rclpy roscopter_msgs rosflight_msgs Eigen3)
-target_link_libraries(controller ${ament_LIBRARIES} param_manager)
-install(
-  TARGETS controller
-  DESTINATION lib/${PROJECT_NAME})
+  src/controller/simple_pid.cpp
+)
+target_compile_features(controller PRIVATE cxx_std_17)
+target_compile_options(controller PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(controller PRIVATE
+  roscopter::param_manager
+  rclcpp::rclcpp
+  rosflight_msgs::rosflight_msgs
+  roscopter_msgs::roscopter_msgs
+  Eigen3::Eigen
+)
 
 # Trajectory Follower
 add_executable(trajectory_follower
   src/navigation/trajectory_follower_ros.cpp
   src/navigation/trajectory_follower.cpp
-  src/controller/simple_pid.cpp)
-ament_target_dependencies(trajectory_follower rclcpp rclpy roscopter_msgs std_srvs rosflight_msgs Eigen3)
-target_link_libraries(trajectory_follower ${ament_LIBRARIES} param_manager)
-install(
-  TARGETS trajectory_follower
-  DESTINATION lib/${PROJECT_NAME})
+  src/controller/simple_pid.cpp
+)
+target_compile_features(trajectory_follower PRIVATE cxx_std_17)
+target_compile_options(trajectory_follower PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(trajectory_follower PRIVATE
+  roscopter::param_manager
+  rclcpp::rclcpp
+  std_srvs::std_srvs
+  rosflight_msgs::rosflight_msgs
+  roscopter_msgs::roscopter_msgs
+  Eigen3::Eigen
+)
 
 # Path Manager
 add_executable(path_manager
   src/navigation/path_manager_ros.cpp
-  src/navigation/path_manager.cpp)
-ament_target_dependencies(path_manager rclcpp rclpy roscopter_msgs std_srvs)
-target_link_libraries(path_manager ${ament_LIBRARIES} param_manager)
-install(
-  TARGETS path_manager
-  DESTINATION lib/${PROJECT_NAME})
+  src/navigation/path_manager.cpp
+)
+target_compile_features(path_manager PRIVATE cxx_std_17)
+target_compile_options(path_manager PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(path_manager PRIVATE
+  roscopter::param_manager
+  rclcpp::rclcpp
+  std_srvs::std_srvs
+  roscopter_msgs::roscopter_msgs
+  Eigen3::Eigen
+)
 
 # Path Planner
-add_executable(path_planner
-  src/navigation/path_planner.cpp)
-ament_target_dependencies(path_planner rclcpp roscopter_msgs std_srvs rosflight_msgs)
-target_link_libraries(path_planner ${ament_LIBRARIES} param_manager ${YAML_CPP_LIBRARIES})
-install(
-  TARGETS path_planner
-  DESTINATION lib/${PROJECT_NAME})
+add_executable(path_planner src/navigation/path_planner.cpp)
+target_compile_features(path_planner PRIVATE cxx_std_17)
+target_compile_options(path_planner PRIVATE -Wall -Wextra -Wpedantic)
+target_link_libraries(path_planner PRIVATE
+  roscopter::param_manager
+  rosflight_compat::compat_headers
+  rclcpp::rclcpp
+  std_srvs::std_srvs
+  rosflight_msgs::rosflight_msgs
+  roscopter_msgs::roscopter_msgs
+  yaml-cpp::yaml-cpp
+)
 
+###############
+### Testing ###
+###############
 
 if(BUILD_TESTING)
 
   find_package(ament_cmake_gtest REQUIRED)
   ament_add_gtest(estimator_test test/estimator_test.cpp)
-  ament_target_dependencies(estimator_test rclcpp geometry_msgs rosflight_msgs sensor_msgs Eigen3 roscopter_msgs)
-  target_include_directories(estimator_test PUBLIC
-    include
+  target_link_libraries(estimator_test
+    roscopter::estimation
+    rclcpp::rclcpp
+    geometry_msgs::geometry_msgs
+    sensor_msgs::sensor_msgs
+    rosflight_msgs::rosflight_msgs
+    roscopter_msgs::roscopter_msgs
+    Eigen3::Eigen
   )
-  target_link_libraries(estimator_test estimation_lib param_manager) 
 
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -173,5 +186,64 @@ if(BUILD_TESTING)
   set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
+
+###############
+### Install ###
+###############
+
+# Headers for exported/public libraries
+install(
+  DIRECTORY
+    include/param_manager
+    include/ekf
+  DESTINATION include/${PROJECT_NAME}
+)
+
+# Exported/public libraries
+install(
+  TARGETS
+    roscopter_param_manager
+    roscopter_estimation
+  EXPORT export_${PROJECT_NAME}
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+)
+
+# C++ nodes/executables
+install(
+  TARGETS
+    estimator
+    ext_att_transcriber
+    controller
+    trajectory_follower
+    path_manager
+    path_planner
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Resources
+install(
+  DIRECTORY
+    launch
+    params
+  DESTINATION share/${PROJECT_NAME}
+)
+
+########################
+### ROS Finalization ###
+########################
+
+# export custom libraries
+ament_export_targets(export_${PROJECT_NAME} HAS_LIBRARY_TARGET)
+
+# export public cmake package dependencies (not targets)
+ament_export_dependencies(
+  rclcpp
+  rosflight_msgs
+  roscopter_msgs
+  sensor_msgs
+  Eigen3
+)
 
 ament_package()

@@ -1,11 +1,8 @@
-#include <memory>
-
 #include <Eigen/Geometry>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <rclcpp/rclcpp.hpp>
-
-#include "roscopter_msgs/msg/state.hpp"
-#include "rosflight_msgs/msg/sim_state.hpp"
+#include <roscopter_msgs/msg/state.hpp>
+#include <rosflight_msgs/msg/sim_state.hpp>
 
 namespace roscopter_sim {
 
@@ -58,7 +55,7 @@ private:
     state.p_d = msg.pose.position.z;
 
     // Quaternion is from body to inertial
-    Eigen::Quaternionf q;
+    Eigen::Quaterniond q;
     q.w() = msg.pose.orientation.w;
     q.x() = msg.pose.orientation.x;
     q.y() = msg.pose.orientation.y;
@@ -72,7 +69,7 @@ private:
                      pow(q.w(), 2) + pow(q.x(), 2) - pow(q.y(), 2) - pow(q.z(), 2));
 
     // Inertial linear velocities in body frame
-    Eigen::Vector3f body_frame_velocity(msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z);
+    Eigen::Vector3d body_frame_velocity(msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z);
     state.v_x = body_frame_velocity[0];
     state.v_y = body_frame_velocity[1];
     state.v_z = body_frame_velocity[2];

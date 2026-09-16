@@ -1,8 +1,6 @@
 #ifndef TRAJECTORY_FOLLOWER_HPP
 #define TRAJECTORY_FOLLOWER_HPP
 
-#include <stdint.h>
-
 #include <Eigen/Geometry>
 
 #include "navigation/trajectory_follower_ros.hpp"

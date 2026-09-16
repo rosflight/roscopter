@@ -11,12 +11,8 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <depend>rclcpp</depend>
-  <depend>rclpy</depend>
-  <depend>std_msgs</depend>
   <depend>std_srvs</depend>
-  <depend>sensor_msgs</depend>
   <depend>roscopter_msgs</depend>
-  <depend>rosflight_msgs</depend>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

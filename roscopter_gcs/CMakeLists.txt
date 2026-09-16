@@ -1,21 +1,8 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.20...3.28)
 project(roscopter_gcs)
-
-# Default to C99
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-# Default to C++17
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
-endif(NOT CMAKE_BUILD_TYPE)
-
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 # find dependencies
@@ -23,51 +10,66 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(roscopter_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-ament_export_dependencies(rclcpp visualization_msgs)
-
-install(DIRECTORY launch config resource DESTINATION share/${PROJECT_NAME})
+###################
+### EXECUTABLES ###
+###################
 
 # Waypoint publisher node executable
-add_executable(rviz_waypoint_publisher
-               src/rviz_waypoint_publisher.cpp)
-target_include_directories(rviz_waypoint_publisher
-  PRIVATE
-    include)
-ament_target_dependencies(rviz_waypoint_publisher
-  roscopter_msgs
-  visualization_msgs
-  rclcpp
-  tf2
-  tf2_ros
-  geometry_msgs
-  ament_index_cpp
+add_executable(rviz_waypoint_publisher src/rviz_waypoint_publisher.cpp)
+target_compile_features(rviz_waypoint_publisher PRIVATE cxx_std_17)
+target_compile_options(rviz_waypoint_publisher PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(rviz_waypoint_publisher PRIVATE include)
+target_link_libraries(rviz_waypoint_publisher PRIVATE
+  rclcpp::rclcpp
+  geometry_msgs::geometry_msgs
+  visualization_msgs::visualization_msgs
+  tf2_ros::tf2_ros
+  tf2_geometry_msgs::tf2_geometry_msgs
+  roscopter_msgs::roscopter_msgs
 )
-install(TARGETS
-  rviz_waypoint_publisher
-  DESTINATION lib/${PROJECT_NAME})
 
 # Aircraft publisher node executable
-add_executable(rviz_aircraft_publisher
-               src/rviz_aircraft_publisher.cpp)
-target_include_directories(rviz_aircraft_publisher
-  PRIVATE
-    include)
-ament_target_dependencies(rviz_aircraft_publisher
-  roscopter_msgs
-  visualization_msgs
-  rclcpp
-  tf2
-  tf2_ros
-  geometry_msgs
-  ament_index_cpp
+add_executable(rviz_aircraft_publisher src/rviz_aircraft_publisher.cpp)
+target_compile_features(rviz_aircraft_publisher PRIVATE cxx_std_17)
+target_compile_options(rviz_aircraft_publisher PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(rviz_aircraft_publisher PRIVATE include)
+target_link_libraries(rviz_aircraft_publisher PRIVATE
+  rclcpp::rclcpp
+  geometry_msgs::geometry_msgs
+  visualization_msgs::visualization_msgs
+  tf2_ros::tf2_ros
+  tf2_geometry_msgs::tf2_geometry_msgs
+  roscopter_msgs::roscopter_msgs
 )
-install(TARGETS
-  rviz_aircraft_publisher
-  DESTINATION lib/${PROJECT_NAME})
+
+###############
+### Install ###
+###############
+
+# C++ nodes/executables
+install(
+  TARGETS
+    rviz_waypoint_publisher
+    rviz_aircraft_publisher
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Resources
+install(
+  DIRECTORY
+    launch
+    config
+    resource
+  DESTINATION share/${PROJECT_NAME}
+)
+
+########################
+### ROS Finalization ###
+########################
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

@@ -1,66 +1,53 @@
-set(CMAKE_CXX_STANDARD 14)
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.20...3.28)
 project(roscopter_tuning)
-
-if(NOT CMAKE_C_STANDARD)
-  set(CMAKE_C_STANDARD 99)
-endif()
-if(NOT CMAKE_CXX_STANDARD)
-  set(CMAKE_CXX_STANDARD 17)
-endif()
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release")
-endif(NOT CMAKE_BUILD_TYPE)
-
-if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(ament_cmake_python REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
-find_package(rclpy REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(nav_msgs REQUIRED)
-find_package(geometry_msgs REQUIRED)
 find_package(roscopter_msgs REQUIRED)
-find_package(Eigen3 3.3 REQUIRED NO_MODULE)
-find_package(rosflight_msgs REQUIRED)
 
-ament_export_dependencies(rclcpp rclpy)
-ament_export_include_directories(include)
-
-install(
-  DIRECTORY launch
-  DESTINATION share/${PROJECT_NAME}
-)
-
-install(
-  DIRECTORY resources
-  DESTINATION share/${PROJECT_NAME}
-)
-
-include_directories(
-  include
-  ${ament_INCLUDE_DIRS})
-
-### START OF EXECUTABLES ###
+###################
+### EXECUTABLES ###
+###################
 
 # Signal Generator
-add_executable(signal_generator
-               src/signal_generator.cpp)
-ament_target_dependencies(signal_generator roscopter_msgs std_srvs rclcpp)
-target_compile_options(signal_generator PRIVATE -Wno-unused-parameter)
-install(TARGETS
-        signal_generator
-        DESTINATION lib/${PROJECT_NAME})
+add_executable(signal_generator src/signal_generator.cpp)
+target_compile_features(signal_generator PRIVATE cxx_std_17)
+target_compile_options(signal_generator PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(signal_generator PRIVATE include)
+target_link_libraries(signal_generator PRIVATE
+  roscopter_msgs::roscopter_msgs
+  std_srvs::std_srvs
+  rclcpp::rclcpp
+)
 
-#### END OF EXECUTABLES ###
+###############
+### Install ###
+###############
+
+# C++ nodes/executables
+install(
+  TARGETS
+    signal_generator
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# Resources
+install(
+  DIRECTORY
+    launch
+    resources
+  DESTINATION share/${PROJECT_NAME}
+)
+
+########################
+### ROS Finalization ###
+########################
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

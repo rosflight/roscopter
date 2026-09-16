@@ -1,19 +1,18 @@
 #ifndef PATH_MANAGER_ROS_H
 #define PATH_MANAGER_ROS_H
 
+#include <chrono>
+#include <vector>
+
 #include <rclcpp/rclcpp.hpp>
 
-#include "roscopter_msgs/msg/waypoint.hpp"
-#include "roscopter_msgs/msg/trajectory_command.hpp"
-#include "roscopter_msgs/msg/state.hpp"
+#include <roscopter_msgs/msg/waypoint.hpp>
+#include <roscopter_msgs/msg/trajectory_command.hpp>
+#include <roscopter_msgs/msg/state.hpp>
 
-#include "std_srvs/srv/trigger.hpp"
+#include <std_srvs/srv/trigger.hpp>
 
 #include "param_manager/param_manager.hpp"
-
-#include <stdint.h>
-#include <vector>
-#include <chrono>
 
 using std::placeholders::_1;
 
