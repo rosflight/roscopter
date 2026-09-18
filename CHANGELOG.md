@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.1.0](https://github.com/rosflight/roscopter/compare/v2.0.0...v2.1.0) (2026-09-18)
+
+
+### Features
+
+* add code formatting script ([6da9f2c](https://github.com/rosflight/roscopter/commit/6da9f2c069b4373a8e45596fbece069c554e07dc))
+* updated to WMM-2025 valid thru 2030 ([daad384](https://github.com/rosflight/roscopter/commit/daad3845901520d3c6cbd24b5819a40d24018152))
+* updated to WMM-2025 valid thru 2030 ([b360a37](https://github.com/rosflight/roscopter/commit/b360a3739978a764ca50ad27b6fb947f1ec6c467))
+
+
+### Bug Fixes
+
+* add rosflight compat as build dep to workflow ([afe11a5](https://github.com/rosflight/roscopter/commit/afe11a509d5e8dae7f3e15075bed1b0baa0536c4))
+* convert floats to doubles ([a2378cf](https://github.com/rosflight/roscopter/commit/a2378cf878e246ef1365c6f8049899a902ee1b47))
+* remove deprecated ROS features ([23b8280](https://github.com/rosflight/roscopter/commit/23b8280505d5a1abb0c1afb79347126e5fbb811b))
+* remove or mark unused variables ([39075c1](https://github.com/rosflight/roscopter/commit/39075c102522490afaf7d77ec04ce1db96ec46ac))
+* use std lib instead of Boost ([4cc3067](https://github.com/rosflight/roscopter/commit/4cc30672517a9c36c0b96c91fd43730584677bdd))
+
 ## [2.0.0](https://github.com/rosflight/roscopter/compare/v2.0.0-beta.1...v2.0.0) (2026-02-04)
 
 
