@@ -4,7 +4,8 @@
 #include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/sim_state.hpp>
 
-namespace roscopter_sim {
+namespace roscopter_sim
+{
 
 class SimStateTranscription : public rclcpp::Node
 {
@@ -13,11 +14,14 @@ public:
       : Node("roscopter_state_transcription")
   {
     sim_state_sub_ = this->create_subscription<rosflight_msgs::msg::SimState>(
-      "sim/truth_state", 10, std::bind(&SimStateTranscription::publish_truth, this, std::placeholders::_1));
+      "sim/truth_state", 10,
+      std::bind(&SimStateTranscription::publish_truth, this, std::placeholders::_1));
     wind_truth_sub_ = this->create_subscription<geometry_msgs::msg::Vector3Stamped>(
-      "sim/truth_wind", 10, std::bind(&SimStateTranscription::wind_callback, this, std::placeholders::_1));
+      "sim/truth_wind", 10,
+      std::bind(&SimStateTranscription::wind_callback, this, std::placeholders::_1));
 
-    roscopter_state_pub_ = this->create_publisher<roscopter_msgs::msg::State>("sim/roscopter/state", 10);
+    roscopter_state_pub_ =
+      this->create_publisher<roscopter_msgs::msg::State>("sim/roscopter/state", 10);
   }
 
 private:
@@ -63,10 +67,10 @@ private:
 
     // Equation B.1 in Small Unmanned Aircraft
     state.phi = atan2(2.0 * (q.w() * q.x() + q.y() * q.z()),
-                     pow(q.w(), 2) + pow(q.z(), 2) - pow(q.x(), 2) - pow(q.y(), 2));
+                      pow(q.w(), 2) + pow(q.z(), 2) - pow(q.x(), 2) - pow(q.y(), 2));
     state.theta = asin(2.0 * (q.w() * q.y() - q.x() * q.z()));
     state.psi = atan2(2.0 * (q.w() * q.z() + q.x() * q.y()),
-                     pow(q.w(), 2) + pow(q.x(), 2) - pow(q.y(), 2) - pow(q.z(), 2));
+                      pow(q.w(), 2) + pow(q.x(), 2) - pow(q.y(), 2) - pow(q.z(), 2));
 
     // Inertial linear velocities in body frame
     Eigen::Vector3d body_frame_velocity(msg.twist.linear.x, msg.twist.linear.y, msg.twist.linear.z);

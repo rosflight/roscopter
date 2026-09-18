@@ -19,11 +19,7 @@
 namespace gazebo
 {
 
-MultiRotorForcesAndMoments::MultiRotorForcesAndMoments()
-{
-
-}
-
+MultiRotorForcesAndMoments::MultiRotorForcesAndMoments() {}
 
 MultiRotorForcesAndMoments::~MultiRotorForcesAndMoments()
 {
@@ -34,7 +30,6 @@ MultiRotorForcesAndMoments::~MultiRotorForcesAndMoments()
   }
 }
 
-
 void MultiRotorForcesAndMoments::SendForces()
 {
   // apply the forces and torques to the joint
@@ -42,7 +37,6 @@ void MultiRotorForcesAndMoments::SendForces()
   link_->AddRelativeForce(GazeboVector(actual_forces_.Fx, -actual_forces_.Fy, -actual_forces_.Fz));
   link_->AddRelativeTorque(GazeboVector(actual_forces_.l, -actual_forces_.m, -actual_forces_.n));
 }
-
 
 void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr _sdf)
 {
@@ -64,10 +58,12 @@ void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr 
   if (_sdf->HasElement("linkName"))
     link_name_ = _sdf->GetElement("linkName")->Get<std::string>();
   else
-    gzerr << "[multirotor_forces_and_moments] Please specify a linkName of the forces and moments plugin.\n";
+    gzerr << "[multirotor_forces_and_moments] Please specify a linkName of the forces and moments "
+             "plugin.\n";
   link_ = model_->GetLink(link_name_);
   if (link_ == NULL)
-    gzthrow("[multirotor_forces_and_moments] Couldn't find specified link \"" << link_name_ << "\".");
+    gzthrow("[multirotor_forces_and_moments] Couldn't find specified link \"" << link_name_
+                                                                              << "\".");
 
   /* Load Params from Gazebo Server */
   getSdfParam<std::string>(_sdf, "windTopic", wind_topic_, "wind");
@@ -80,8 +76,8 @@ void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr 
   angular_mu_ = nh_private_.param<double>("angular_mu", 0.5);
 
   // Drag Constant
-  linear_mu_ = nh_private_.param<double>( "linear_mu", 0.8);
-  angular_mu_ = nh_private_.param<double>( "angular_mu", 0.5);
+  linear_mu_ = nh_private_.param<double>("linear_mu", 0.8);
+  angular_mu_ = nh_private_.param<double>("angular_mu", 0.5);
 
   /* Ground Effect Coefficients */
   std::vector<double> ground_effect_list = {-55.3516, 181.8265, -203.9874, 85.3735, -7.6619};
@@ -93,9 +89,9 @@ void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr 
   ground_effect_.e = ground_effect_list[4];
 
   // Build Actuators Container
-  actuators_.l.max = nh_private_.param<double>("max_l", .2); // N-m
-  actuators_.m.max = nh_private_.param<double>("max_m", .2); // N-m
-  actuators_.n.max = nh_private_.param<double>("max_n", .2); // N-m
+  actuators_.l.max = nh_private_.param<double>("max_l", .2);  // N-m
+  actuators_.m.max = nh_private_.param<double>("max_m", .2);  // N-m
+  actuators_.n.max = nh_private_.param<double>("max_n", .2);  // N-m
   actuators_.F.max = nh_private_.param<double>("max_F", 1.0); // N
   actuators_.l.tau_up = nh_private_.param<double>("tau_up_l", .25);
   actuators_.m.tau_up = nh_private_.param<double>("tau_up_m", .25);
@@ -134,7 +130,8 @@ void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr 
     [this](const common::UpdateInfo & info) { OnUpdate(info); });
 
   // Connect Subscribers
-  command_sub_ = nh_->subscribe(command_topic_, 1, &MultiRotorForcesAndMoments::CommandCallback, this);
+  command_sub_ =
+    nh_->subscribe(command_topic_, 1, &MultiRotorForcesAndMoments::CommandCallback, this);
   wind_sub_ = nh_->subscribe(wind_topic_, 1, &MultiRotorForcesAndMoments::WindCallback, this);
 
   // Connect Publishers
@@ -145,13 +142,13 @@ void MultiRotorForcesAndMoments::Load(physics::ModelPtr _model, sdf::ElementPtr 
 }
 
 // This gets called by the world update event.
-void MultiRotorForcesAndMoments::OnUpdate(const common::UpdateInfo& _info) {
+void MultiRotorForcesAndMoments::OnUpdate(const common::UpdateInfo & _info)
+{
 
   if (!cmd_valid_)
     return;
 
-  if (prev_sim_time_ > 0.)
-  {
+  if (prev_sim_time_ > 0.) {
     sampling_time_ = _info.simTime.Double() - prev_sim_time_;
     UpdateForcesAndMoments();
     SendForces();
@@ -160,10 +157,11 @@ void MultiRotorForcesAndMoments::OnUpdate(const common::UpdateInfo& _info) {
   prev_sim_time_ = _info.simTime.Double();
 }
 
-void MultiRotorForcesAndMoments::WindCallback(const geometry_msgs::Vector3 &wind){
-  GZ_COMPAT_SET_X(W_wind_ , wind.x);
-  GZ_COMPAT_SET_Y(W_wind_ , wind.y);
-  GZ_COMPAT_SET_Z(W_wind_ , wind.z);
+void MultiRotorForcesAndMoments::WindCallback(const geometry_msgs::Vector3 & wind)
+{
+  GZ_COMPAT_SET_X(W_wind_, wind.x);
+  GZ_COMPAT_SET_Y(W_wind_, wind.y);
+  GZ_COMPAT_SET_Z(W_wind_, wind.z);
 }
 
 void MultiRotorForcesAndMoments::CommandCallback(const rosflight_msgs::Command msg)
@@ -203,7 +201,6 @@ void MultiRotorForcesAndMoments::Reset()
   // link_->ResetPhysicsStates();
 }
 
-
 void MultiRotorForcesAndMoments::UpdateForcesAndMoments()
 {
   /* Get state information from Gazebo                          *
@@ -235,32 +232,25 @@ void MultiRotorForcesAndMoments::UpdateForcesAndMoments()
   double wr = w - GZ_COMPAT_GET_Z(C_wind_speed);
 
   // calculate the appropriate control <- Depends on Control type (which block is being controlled)
-  if (command_.mode < 0)
-  {
+  if (command_.mode < 0) {
     // We have not received a command yet.  This is not an error, but needs to be handled
-  }
-  else if (command_.mode == rosflight_msgs::Command::MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE)
-  {
+  } else if (command_.mode == rosflight_msgs::Command::MODE_ROLLRATE_PITCHRATE_YAWRATE_THROTTLE) {
     desired_forces_.l = roll_controller_.computePID(command_.x, p, sampling_time_);
     desired_forces_.m = pitch_controller_.computePID(command_.y, q, sampling_time_);
     desired_forces_.n = yaw_controller_.computePID(command_.z, r, sampling_time_);
-    desired_forces_.Fz = command_.F*actuators_.F.max; // this comes in normalized between 0 and 1
-  }
-  else if (command_.mode == rosflight_msgs::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE)
-  {
+    desired_forces_.Fz = command_.F * actuators_.F.max; // this comes in normalized between 0 and 1
+  } else if (command_.mode == rosflight_msgs::Command::MODE_ROLL_PITCH_YAWRATE_THROTTLE) {
     desired_forces_.l = roll_controller_.computePID(command_.x, phi, sampling_time_, p);
     desired_forces_.m = pitch_controller_.computePID(command_.y, theta, sampling_time_, q);
     desired_forces_.n = yaw_controller_.computePID(command_.z, r, sampling_time_);
-    desired_forces_.Fz = command_.F*actuators_.F.max;
-  }
-  else if (command_.mode == rosflight_msgs::Command::MODE_ROLL_PITCH_YAWRATE_ALTITUDE)
-  {
-    desired_forces_.l = roll_controller_.computePID(command_.x, phi,  sampling_time_, p);
+    desired_forces_.Fz = command_.F * actuators_.F.max;
+  } else if (command_.mode == rosflight_msgs::Command::MODE_ROLL_PITCH_YAWRATE_ALTITUDE) {
+    desired_forces_.l = roll_controller_.computePID(command_.x, phi, sampling_time_, p);
     desired_forces_.m = pitch_controller_.computePID(command_.y, theta, sampling_time_, q);
     desired_forces_.n = yaw_controller_.computePID(command_.z, r, sampling_time_);
-    double pddot = -sin(theta)*u + sin(phi)*cos(theta)*v + cos(phi)*cos(theta)*w;
+    double pddot = -sin(theta) * u + sin(phi) * cos(theta) * v + cos(phi) * cos(theta) * w;
     double p1 = alt_controller_.computePID(command_.F, -pd, sampling_time_, -pddot);
-    desired_forces_.Fz = p1  + (mass_*9.80665)/(cos(command_.x)*cos(command_.y));
+    desired_forces_.Fz = p1 + (mass_ * 9.80665) / (cos(command_.x) * cos(command_.y));
   }
 
   // calculate the actual output force using low-pass-filters to introduce a first-order
@@ -268,43 +258,53 @@ void MultiRotorForcesAndMoments::UpdateForcesAndMoments()
   // x(t+1) = Ce^(-t/tau)dt <- transfer to z-domain using backward differentiation
 
   // first get the appropriate tau for this situation
-  double taul = (desired_forces_.l > applied_forces_.l ) ? actuators_.l.tau_up : actuators_.l.tau_down;
-  double taum = (desired_forces_.m > applied_forces_.m ) ? actuators_.m.tau_up : actuators_.m.tau_down;
-  double taun = (desired_forces_.n > applied_forces_.n ) ? actuators_.n.tau_up : actuators_.n.tau_down;
-  double tauF = (desired_forces_.Fz > applied_forces_.Fz ) ? actuators_.F.tau_up : actuators_.F.tau_down;
+  double taul =
+    (desired_forces_.l > applied_forces_.l) ? actuators_.l.tau_up : actuators_.l.tau_down;
+  double taum =
+    (desired_forces_.m > applied_forces_.m) ? actuators_.m.tau_up : actuators_.m.tau_down;
+  double taun =
+    (desired_forces_.n > applied_forces_.n) ? actuators_.n.tau_up : actuators_.n.tau_down;
+  double tauF =
+    (desired_forces_.Fz > applied_forces_.Fz) ? actuators_.F.tau_up : actuators_.F.tau_down;
 
   // calulate the alpha for the filter
-  double alphal = sampling_time_/(taul + sampling_time_);
-  double alpham = sampling_time_/(taum + sampling_time_);
-  double alphan = sampling_time_/(taun + sampling_time_);
-  double alphaF = sampling_time_/(tauF + sampling_time_);
+  double alphal = sampling_time_ / (taul + sampling_time_);
+  double alpham = sampling_time_ / (taum + sampling_time_);
+  double alphan = sampling_time_ / (taun + sampling_time_);
+  double alphaF = sampling_time_ / (tauF + sampling_time_);
 
   // Apply the discrete first-order filter
-  applied_forces_.l = sat((1 - alphal)*applied_forces_.l + alphal *desired_forces_.l, actuators_.l.max, -1.0*actuators_.l.max);
-  applied_forces_.m = sat((1 - alpham)*applied_forces_.m + alpham *desired_forces_.m, actuators_.m.max, -1.0*actuators_.m.max);
-  applied_forces_.n = sat((1 - alphan)*applied_forces_.n + alphan *desired_forces_.n, actuators_.n.max, -1.0*actuators_.n.max);
-  applied_forces_.Fz = sat((1 - alphaF)*applied_forces_.Fz + alphaF *desired_forces_.Fz, actuators_.F.max, 0.0);
+  applied_forces_.l = sat((1 - alphal) * applied_forces_.l + alphal * desired_forces_.l,
+                          actuators_.l.max, -1.0 * actuators_.l.max);
+  applied_forces_.m = sat((1 - alpham) * applied_forces_.m + alpham * desired_forces_.m,
+                          actuators_.m.max, -1.0 * actuators_.m.max);
+  applied_forces_.n = sat((1 - alphan) * applied_forces_.n + alphan * desired_forces_.n,
+                          actuators_.n.max, -1.0 * actuators_.n.max);
+  applied_forces_.Fz =
+    sat((1 - alphaF) * applied_forces_.Fz + alphaF * desired_forces_.Fz, actuators_.F.max, 0.0);
 
   // calculate ground effect
   double z = -pd;
-  double ground_effect = max(ground_effect_.a*z*z*z*z + ground_effect_.b*z*z*z + ground_effect_.c*z*z + ground_effect_.d*z + ground_effect_.e, 0);
+  double ground_effect = max(ground_effect_.a * z * z * z * z + ground_effect_.b * z * z * z
+                               + ground_effect_.c * z * z + ground_effect_.d * z + ground_effect_.e,
+                             0);
 
   // Apply other forces (wind) <- follows "Quadrotors and Accelerometers - State Estimation With an Improved Dynamic Model"
   // By Rob Leishman et al. (Remember NED)
-  actual_forces_.Fx = -1.0*linear_mu_*ur;
-  actual_forces_.Fy = -1.0*linear_mu_*vr;
-  actual_forces_.Fz = -1.0*linear_mu_*wr - applied_forces_.Fz - ground_effect;
-  actual_forces_.l = -1.0*angular_mu_*p + applied_forces_.l;
-  actual_forces_.m = -1.0*angular_mu_*q + applied_forces_.m;
-  actual_forces_.n = -1.0*angular_mu_*r + applied_forces_.n;
+  actual_forces_.Fx = -1.0 * linear_mu_ * ur;
+  actual_forces_.Fy = -1.0 * linear_mu_ * vr;
+  actual_forces_.Fz = -1.0 * linear_mu_ * wr - applied_forces_.Fz - ground_effect;
+  actual_forces_.l = -1.0 * angular_mu_ * p + applied_forces_.l;
+  actual_forces_.m = -1.0 * angular_mu_ * q + applied_forces_.m;
+  actual_forces_.n = -1.0 * angular_mu_ * r + applied_forces_.n;
 
   // publish attitude like ROSflight
   rosflight_msgs::Attitude attitude_msg;
-  common::Time current_time  = GZ_COMPAT_GET_SIM_TIME(world_);
+  common::Time current_time = GZ_COMPAT_GET_SIM_TIME(world_);
   attitude_msg.header.stamp.sec = current_time.sec;
   attitude_msg.header.stamp.nsec = current_time.nsec;
-  attitude_msg.attitude.w =  GZ_COMPAT_GET_W(GZ_COMPAT_GET_ROT(W_pose_W_C));
-  attitude_msg.attitude.x =  GZ_COMPAT_GET_X(GZ_COMPAT_GET_ROT(W_pose_W_C));
+  attitude_msg.attitude.w = GZ_COMPAT_GET_W(GZ_COMPAT_GET_ROT(W_pose_W_C));
+  attitude_msg.attitude.x = GZ_COMPAT_GET_X(GZ_COMPAT_GET_ROT(W_pose_W_C));
   attitude_msg.attitude.y = -GZ_COMPAT_GET_Y(GZ_COMPAT_GET_ROT(W_pose_W_C));
   attitude_msg.attitude.z = -GZ_COMPAT_GET_Z(GZ_COMPAT_GET_ROT(W_pose_W_C));
 
@@ -317,19 +317,16 @@ void MultiRotorForcesAndMoments::UpdateForcesAndMoments()
 
 double MultiRotorForcesAndMoments::sat(double x, double max, double min)
 {
-  if(x > max)
+  if (x > max)
     return max;
-  else if(x < min)
+  else if (x < min)
 
     return min;
   else
     return x;
 }
 
-double MultiRotorForcesAndMoments::max(double x, double y)
-{
-  return (x > y) ? x : y;
-}
+double MultiRotorForcesAndMoments::max(double x, double y) { return (x > y) ? x : y; }
 
 GZ_REGISTER_MODEL_PLUGIN(MultiRotorForcesAndMoments);
-}
+} // namespace gazebo

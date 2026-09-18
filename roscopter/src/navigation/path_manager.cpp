@@ -1,21 +1,22 @@
 #include "navigation/path_manager.hpp"
 
-namespace roscopter 
+namespace roscopter
 {
 
 // =========== UTILITY FUNCTIONS ===========
-double dist(const std::array<float, 3>& array1, const std::array<float, 3>& array2)
+double dist(const std::array<float, 3> & array1, const std::array<float, 3> & array2)
 {
-  return sqrt(pow(array1[0] - array2[0], 2) + pow(array1[1] - array2[1], 2) + pow(array1[2] - array2[2], 2));
+  return sqrt(pow(array1[0] - array2[0], 2) + pow(array1[1] - array2[1], 2)
+              + pow(array1[2] - array2[2], 2));
 }
 
-PathManager::PathManager() 
-  : PathManagerROS()
-  , output_cmd_{roscopter_msgs::msg::TrajectoryCommand()}
-  , prev_wp_{roscopter_msgs::msg::Waypoint()}
-  , T_(0.0)
-  , sigma_{Eigen::Vector2f::Zero()}
-  , initial_leg_time_(0.0)
+PathManager::PathManager()
+    : PathManagerROS()
+    , output_cmd_{roscopter_msgs::msg::TrajectoryCommand()}
+    , prev_wp_{roscopter_msgs::msg::Waypoint()}
+    , T_(0.0)
+    , sigma_{Eigen::Vector2f::Zero()}
+    , initial_leg_time_(0.0)
 {
   declare_params();
 }
@@ -25,7 +26,7 @@ void PathManager::declare_params()
   params.declare_double("default_altitude", 2.0);
   params.declare_double("waypoint_tolerance", 1.0);
   params.declare_bool("hold_last", false);
-  params.declare_double("max_velocity", 10.0); // meters per second
+  params.declare_double("max_velocity", 10.0);    // meters per second
   params.declare_double("max_acceleration", 5.0); // meters per second per second
   params.declare_bool("do_linear_interpolation", false);
 }
@@ -43,7 +44,9 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_path()
   // Check the number of waypoints - do we have enough to do path management?
   if (waypoint_list_.size() < 1) {
     output_cmd_ = create_default_output();
-    RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "No waypoints received! Orbiting the origin at " << std::to_string(output_cmd_.position[2]) << " meters!");
+    RCLCPP_WARN_STREAM_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                                "No waypoints received! Orbiting the origin at "
+                                  << std::to_string(output_cmd_.position[2]) << " meters!");
     return output_cmd_;
   }
 
@@ -52,15 +55,16 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_path()
 
   if (curr_wp.type == roscopter_msgs::msg::Waypoint::TYPE_GOTO) {
     return manage_goto_wp(curr_wp);
-  }
-  else {    // Type HOLD
+  } else { // Type HOLD
     return manage_hold_wp(curr_wp);
   }
 }
 
-roscopter_msgs::msg::TrajectoryCommand PathManager::manage_goto_wp(roscopter_msgs::msg::Waypoint &curr_wp) {
+roscopter_msgs::msg::TrajectoryCommand
+PathManager::manage_goto_wp(roscopter_msgs::msg::Waypoint & curr_wp)
+{
   double waypoint_tolerance = params.get_double("waypoint_tolerance");
-  const std::array<float,3> position_array{xhat_.p_n,xhat_.p_e,xhat_.p_d};
+  const std::array<float, 3> position_array{xhat_.p_n, xhat_.p_e, xhat_.p_d};
   if (dist(position_array, curr_wp.w) <= waypoint_tolerance) {
     // If we are close enough to the target wayoint, increment the index in the waypoint list
     increment_wp_index();
@@ -70,14 +74,18 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_goto_wp(roscopter_msg
   return output_cmd_;
 }
 
-roscopter_msgs::msg::TrajectoryCommand PathManager::manage_hold_wp(roscopter_msgs::msg::Waypoint &curr_wp) {
+roscopter_msgs::msg::TrajectoryCommand
+PathManager::manage_hold_wp(roscopter_msgs::msg::Waypoint & curr_wp)
+{
   double waypoint_tolerance = params.get_double("waypoint_tolerance");
-  const std::array<float,3> position_array{xhat_.p_n,xhat_.p_e,xhat_.p_d};
+  const std::array<float, 3> position_array{xhat_.p_n, xhat_.p_e, xhat_.p_d};
   if (dist(position_array, curr_wp.w) <= waypoint_tolerance && !curr_wp.hold_indefinitely) {
     // Start the hold timer, if applicable
-    std::chrono::microseconds timer_period_ = std::chrono::microseconds(static_cast<long long>(curr_wp.hold_seconds * 1'000'000));
+    std::chrono::microseconds timer_period_ =
+      std::chrono::microseconds(static_cast<long long>(curr_wp.hold_seconds * 1'000'000));
     if (!timer_started_) {
-      hold_timer_ = this->create_wall_timer(timer_period_, std::bind(&PathManager::hold_timer_callback, this));
+      hold_timer_ =
+        this->create_wall_timer(timer_period_, std::bind(&PathManager::hold_timer_callback, this));
       timer_started_ = true;
     }
   }
@@ -87,15 +95,19 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::manage_hold_wp(roscopter_msg
   return output_cmd_;
 }
 
-void PathManager::hold_timer_callback() {
+void PathManager::hold_timer_callback()
+{
   increment_wp_index();
 
   hold_timer_->cancel();
   timer_started_ = false;
 }
 
-void PathManager::increment_wp_index() {
-  if (waypoint_list_.size() <= 1) { return; }
+void PathManager::increment_wp_index()
+{
+  if (waypoint_list_.size() <= 1) {
+    return;
+  }
 
   if ((current_wp_index_ + 1) % waypoint_list_.size() == 0) {
     if (!params.get_bool("hold_last")) {
@@ -103,8 +115,7 @@ void PathManager::increment_wp_index() {
       current_wp_index_ = 0;
       initialize_path();
     }
-  }
-  else {
+  } else {
     previous_wp_index_ = current_wp_index_;
     current_wp_index_++;
     initialize_path();
@@ -128,12 +139,13 @@ void PathManager::initialize_path()
   // The constants in the sigma derivatives come from finding the max of those functions
   // on the interval [0,1]
   double T_vel_limited = sigma_prime(0.5) * norm / max_vel;
-  double T_acc_limited = sqrt(sigma_double_prime((3-sqrt(3))/6) * norm / max_accel);
+  double T_acc_limited = sqrt(sigma_double_prime((3 - sqrt(3)) / 6) * norm / max_accel);
 
   T_ = std::max(T_vel_limited, T_acc_limited);
 }
 
-roscopter_msgs::msg::Waypoint PathManager::compute_previous_waypoint() {
+roscopter_msgs::msg::Waypoint PathManager::compute_previous_waypoint()
+{
   if (previous_wp_index_ != current_wp_index_) {
     return waypoint_list_[previous_wp_index_];
   }
@@ -153,7 +165,8 @@ roscopter_msgs::msg::Waypoint PathManager::compute_previous_waypoint() {
   return previous_wp;
 }
 
-void PathManager::clear_waypoints_internally() {
+void PathManager::clear_waypoints_internally()
+{
   waypoint_list_.clear();
   current_wp_index_ = 0;
   previous_wp_index_ = 0;
@@ -175,7 +188,6 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::create_trajectory()
 
   // Compute the control according to Algorithm 15 in Ch. 14 of Beard, McLain textbook
   prev_wp_ = compute_previous_waypoint();
-
 
   if (params.get_bool("do_linear_interpolation")) {
     return linear_interpolation();
@@ -199,7 +211,7 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::quintic_interpolation()
   // Compute the trajectory commands from a quintic interpolation between points.
   // This guarantees that velocity and acceleration are zero at the endpoints.
   // See the 5th-order smoothstep function on Wikipedia.
-  for (int i=0; i<3; ++i) {
+  for (int i = 0; i < 3; ++i) {
     output_cmd_.position[i] = s * curr_wp.w[i] + (1 - s) * prev_wp_.w[i];
     output_cmd_.velocity[i] = s_p * (curr_wp.w[i] - prev_wp_.w[i]) / T_;
     output_cmd_.acceleration[i] = s_pp * (curr_wp.w[i] - prev_wp_.w[i]) / T_ / T_;
@@ -211,10 +223,7 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::quintic_interpolation()
   return output_cmd_;
 }
 
-double PathManager::get_t()
-{
-  return this->get_clock()->now().seconds() - initial_leg_time_;
-}
+double PathManager::get_t() { return this->get_clock()->now().seconds() - initial_leg_time_; }
 
 double PathManager::sigma(double tau)
 {
@@ -265,7 +274,7 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::linear_interpolation()
   velocity = sigma_(1) * difference;
   acceleration = sigma_dot_1 * difference;
 
-  for (int i=0; i<3; ++i) {
+  for (int i = 0; i < 3; ++i) {
     output_cmd_.position[i] = position[i];
     output_cmd_.velocity[i] = velocity[i];
     output_cmd_.acceleration[i] = acceleration[i];
@@ -275,7 +284,6 @@ roscopter_msgs::msg::TrajectoryCommand PathManager::linear_interpolation()
   output_cmd_.psi_dot_dot = 0.0;
 
   return output_cmd_;
-
 }
 
 void PathManager::rk4_step()
@@ -287,7 +295,7 @@ void PathManager::rk4_step()
   Eigen::Vector2f F3 = F(sigma_ + dt / 2 * F2);
   Eigen::Vector2f F4 = F(sigma_ + dt * F3);
 
-  sigma_ = sigma_ + dt / 6 * (F1 + 2*F2 + 2*F3 + F4);
+  sigma_ = sigma_ + dt / 6 * (F1 + 2 * F2 + 2 * F3 + F4);
 }
 
 Eigen::Vector2f PathManager::F(Eigen::Vector2f sig)

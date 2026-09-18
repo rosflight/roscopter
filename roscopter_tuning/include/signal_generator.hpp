@@ -44,10 +44,10 @@
 
 #include <unordered_set>
 
-#include <roscopter_msgs/msg/controller_command.hpp>
-#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rcl_interfaces/msg/parameter_descriptor.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <roscopter_msgs/msg/controller_command.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
 namespace roscopter
@@ -97,19 +97,20 @@ private:
     TRIANGLE,
     SINE
   };
-  std::unordered_set<std::string> signal_types_ = {"step", "square", "sawtooth", "triangle", "sine"};
+  std::unordered_set<std::string> signal_types_ = {"step", "square", "sawtooth", "triangle",
+                                                   "sine"};
 
   // Parameters
   RosCopterControllerMode controller_mode_; ///< Controller mode to output command signals to.
-  ControllerOutput controller_output_; ///< Which channel the controller outputs to
-  SignalType signal_type_;             ///< Signal type to output.
-  double publish_rate_hz_;             ///< Frequency to publish commands.
-  double signal_magnitude_;            ///< The the magnitude of the signal being generated.
-  double frequency_hz_;                ///< Frequency of the signal.
-  double default_cmd1_;               ///< Default cmd1 value.
-  double default_cmd2_;               ///< Default cmd2 value.
-  double default_cmd3_;               ///< Default cmd3 value.
-  double default_cmd4_;               ///< Default cmd4 value.
+  ControllerOutput controller_output_;      ///< Which channel the controller outputs to
+  SignalType signal_type_;                  ///< Signal type to output.
+  double publish_rate_hz_;                  ///< Frequency to publish commands.
+  double signal_magnitude_;                 ///< The the magnitude of the signal being generated.
+  double frequency_hz_;                     ///< Frequency of the signal.
+  double default_cmd1_;                     ///< Default cmd1 value.
+  double default_cmd2_;                     ///< Default cmd2 value.
+  double default_cmd3_;                     ///< Default cmd3 value.
+  double default_cmd4_;                     ///< Default cmd4 value.
 
   // Internal values
   bool step_toggled_;               ///< Flag for when step signal has been toggled.

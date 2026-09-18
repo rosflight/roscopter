@@ -65,7 +65,8 @@ void RvizWaypointPublisher::publish_markers_to_clear_waypoints()
   rviz_wp_pub_->publish(new_marker);
 }
 
-visualization_msgs::msg::Marker RvizWaypointPublisher::create_new_waypoint_marker(const roscopter_msgs::msg::Waypoint& wp)
+visualization_msgs::msg::Marker
+RvizWaypointPublisher::create_new_waypoint_marker(const roscopter_msgs::msg::Waypoint & wp)
 {
   visualization_msgs::msg::Marker new_marker;
   new_marker.header.stamp = this->get_clock()->now();
@@ -88,7 +89,7 @@ visualization_msgs::msg::Marker RvizWaypointPublisher::create_new_waypoint_marke
   return new_marker;
 }
 
-void RvizWaypointPublisher::update_waypoint_line_list(const roscopter_msgs::msg::Waypoint& wp)
+void RvizWaypointPublisher::update_waypoint_line_list(const roscopter_msgs::msg::Waypoint & wp)
 {
   geometry_msgs::msg::Point new_p;
   new_p.x = wp.w[0];
@@ -110,7 +111,8 @@ void RvizWaypointPublisher::update_waypoint_line_list(const roscopter_msgs::msg:
   line_list_.points = line_points_;
 }
 
-visualization_msgs::msg::Marker RvizWaypointPublisher::create_new_waypoint_text_marker(const roscopter_msgs::msg::Waypoint& wp)
+visualization_msgs::msg::Marker
+RvizWaypointPublisher::create_new_waypoint_text_marker(const roscopter_msgs::msg::Waypoint & wp)
 {
   visualization_msgs::msg::Marker new_text;
   new_text.header.stamp = this->get_clock()->now();
@@ -132,7 +134,7 @@ visualization_msgs::msg::Marker RvizWaypointPublisher::create_new_waypoint_text_
   return new_text;
 }
 
-} // roscopter_gcs
+} // namespace roscopter_gcs
 
 int main(int argc, char ** argv)
 {

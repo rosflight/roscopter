@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 # Python controller for landing a multirotor using relative estimates
 
-import rospy
-from math import *
-import numpy as np
 import time
-from rosflight_msgs.msg import Command
-from nav_msgs.msg import Odometry
+from math import *
+
+import numpy as np
+import rospy
 from geometry_msgs.msg import Pose
+from nav_msgs.msg import Odometry
+from rosflight_msgs.msg import Command
+
 
 class VelocityCommander:
-
     # Init function
     def __init__(self):
 
@@ -24,7 +25,9 @@ class VelocityCommander:
         self.delay_time = 5
 
         # Init Publishers
-        self.high_lvl_commands_pub = rospy.Publisher('/leo/velocity_command', Command, queue_size=10)
+        self.high_lvl_commands_pub = rospy.Publisher(
+            '/leo/velocity_command', Command, queue_size=10
+        )
 
         # Init the command
         self.relative_cmd = Command()
@@ -89,15 +92,13 @@ class VelocityCommander:
 
         self.high_lvl_commands_pub.publish(self.relative_cmd)
 
-        print("done")
-
+        print('done')
 
 
 ##############################
 #### Main Function to Run ####
 ##############################
 if __name__ == '__main__':
-
     # Initialize Node
     rospy.init_node('velocity_commander')
 

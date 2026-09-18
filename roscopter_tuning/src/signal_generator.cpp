@@ -109,10 +109,14 @@ void TuningSignalGenerator::publish_timer_callback()
   }
 
   // Check if step toggle needs to be reset
-  if (signal_type_ != SignalType::STEP) { step_toggled_ = false; }
+  if (signal_type_ != SignalType::STEP) {
+    step_toggled_ = false;
+  }
 
   // If paused, negate passing of time but keep publishing
-  if (is_paused_) { paused_time_ += 1 / publish_rate_hz_; }
+  if (is_paused_) {
+    paused_time_ += 1 / publish_rate_hz_;
+  }
 
   // Get value for signal
   double amplitude = signal_magnitude_ / 2;
@@ -159,10 +163,14 @@ void TuningSignalGenerator::publish_timer_callback()
   command_message.mode = static_cast<uint8_t>(controller_mode_);
   command_message.cmd_valid = true;
 
-  command_message.cmd1 = default_cmd1_;;
-  command_message.cmd2 = default_cmd2_;;
-  command_message.cmd3 = default_cmd3_;;
-  command_message.cmd4 = default_cmd4_;;
+  command_message.cmd1 = default_cmd1_;
+  ;
+  command_message.cmd2 = default_cmd2_;
+  ;
+  command_message.cmd3 = default_cmd3_;
+  ;
+  command_message.cmd4 = default_cmd4_;
+  ;
 
   // Publish message
   switch (controller_output_) {
@@ -195,8 +203,9 @@ TuningSignalGenerator::param_callback(const std::vector<rclcpp::Parameter> & par
     } else if (param.get_name() == "signal_type") {
       do_reset = true;
       if (signal_types_.count(param.as_string()) == 0) {
-        RCLCPP_WARN_STREAM(this->get_logger(), "Parameter signal_type set to an invalid value: "
-                           << param.as_string() << "! Rejecting param update.");
+        RCLCPP_WARN_STREAM(this->get_logger(),
+                           "Parameter signal_type set to an invalid value: "
+                             << param.as_string() << "! Rejecting param update.");
         do_reset = false;
         result.successful = false;
       }
@@ -336,7 +345,8 @@ void TuningSignalGenerator::declare_params()
   // controller_mode_param_desc.description =
   //   "Output mode on the /high_level_command topic. See the roscopter_msgs/msg/ControllerCommand for a description of the modes.";
   std::ostringstream desc;
-  desc << "Output mode on the /high_level_command topic. From the roscopter_msgs/msg/ControllerOutput message definition: \n";
+  desc << "Output mode on the /high_level_command topic. From the "
+          "roscopter_msgs/msg/ControllerOutput message definition: \n";
   desc << "MODE_NPOS_EPOS_DPOS_YAW = 0\n";
   desc << "MODE_NVEL_EVEL_DPOS_YAWRATE = 1\n";
   desc << "MODE_FACC_RACC_DACC_YAWRATE = 2\n";
@@ -350,18 +360,22 @@ void TuningSignalGenerator::declare_params()
   desc << "MODE_ROLL_PITCH_YAWRATE_THRUST_TO_MIXER = 10\n";
   desc << "MODE_ROLLRATE_PITCHRATE_YAWRATE_THRUST_TO_MIXER = 11";
   controller_mode_param_desc.description = desc.str();
-  controller_mode_param_desc.integer_range = {rcl_interfaces::msg::IntegerRange().set__from_value(0).set__to_value(10)};
+  controller_mode_param_desc.integer_range = {
+    rcl_interfaces::msg::IntegerRange().set__from_value(0).set__to_value(10)};
   this->declare_parameter("controller_mode", 0, controller_mode_param_desc);
 
   auto controller_output_param_desc = rcl_interfaces::msg::ParameterDescriptor();
   controller_output_param_desc.type = rclcpp::PARAMETER_INTEGER;
-  controller_output_param_desc.description = "Channel the output command gets sent on. Options: 1,2,3,4.";
-  controller_output_param_desc.integer_range = {rcl_interfaces::msg::IntegerRange().set__from_value(1).set__to_value(4)};
+  controller_output_param_desc.description =
+    "Channel the output command gets sent on. Options: 1,2,3,4.";
+  controller_output_param_desc.integer_range = {
+    rcl_interfaces::msg::IntegerRange().set__from_value(1).set__to_value(4)};
   this->declare_parameter("controller_output", 1, controller_output_param_desc);
 
   auto sig_type_param_desc = rcl_interfaces::msg::ParameterDescriptor();
   sig_type_param_desc.type = rclcpp::PARAMETER_STRING;
-  sig_type_param_desc.description = "Type of the output signal. Options: step, square, sawtooth, triangle, sine.";
+  sig_type_param_desc.description =
+    "Type of the output signal. Options: step, square, sawtooth, triangle, sine.";
   this->declare_parameter("signal_type", "step", sig_type_param_desc);
   this->declare_parameter("publish_rate_hz", 100.0);
   this->declare_parameter("signal_magnitude", 1.0);
@@ -375,10 +389,12 @@ void TuningSignalGenerator::declare_params()
 void TuningSignalGenerator::update_params()
 {
   // controller_mode
-  controller_mode_ = static_cast<RosCopterControllerMode>(this->get_parameter("controller_mode").as_int());
+  controller_mode_ =
+    static_cast<RosCopterControllerMode>(this->get_parameter("controller_mode").as_int());
 
   // Controller output
-  controller_output_ = static_cast<ControllerOutput>(this->get_parameter("controller_output").as_int() - 1);
+  controller_output_ =
+    static_cast<ControllerOutput>(this->get_parameter("controller_output").as_int() - 1);
 
   // signal_type
   std::string signal_type_string = this->get_parameter("signal_type").as_string();
@@ -393,14 +409,15 @@ void TuningSignalGenerator::update_params()
   } else if (signal_type_string == "sine") {
     signal_type_ = SignalType::SINE;
   } else {
-    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Param signal_type set to invalid type %s!",
-                 signal_type_string.c_str());
+    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                          "Param signal_type set to invalid type %s!", signal_type_string.c_str());
   }
 
   // publish_rate_hz
   double publish_rate_hz_value = this->get_parameter("publish_rate_hz").as_double();
   if (publish_rate_hz_value <= 0) {
-    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Param publish_rate_hz must be greater than 0!");
+    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                          "Param publish_rate_hz must be greater than 0!");
   } else {
     // Parameter has changed, create new timer with updated value
     if (publish_rate_hz_ != publish_rate_hz_value) {
@@ -417,11 +434,11 @@ void TuningSignalGenerator::update_params()
   // frequency_hz
   double frequency_hz_value = this->get_parameter("frequency_hz").as_double();
   if (frequency_hz_value <= 0) {
-    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000, "Param frequency_hz must be greater than 0!");
+    RCLCPP_ERROR_THROTTLE(this->get_logger(), *this->get_clock(), 5000,
+                          "Param frequency_hz must be greater than 0!");
   } else {
     frequency_hz_ = frequency_hz_value;
   }
-
 
   default_cmd1_ = this->get_parameter("default_cmd1").as_double();
   default_cmd2_ = this->get_parameter("default_cmd2").as_double();

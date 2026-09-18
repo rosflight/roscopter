@@ -38,11 +38,12 @@
 #ifndef ROTOR_CONTROLLER_SIMPLE_PID_H
 #define ROTOR_CONTROLLER_SIMPLE_PID_H
 
-#include <cmath>
 #include <cfloat>
-#include <rclcpp/rclcpp.hpp>  // included temporarily for debug statements
+#include <cmath>
+#include <rclcpp/rclcpp.hpp> // included temporarily for debug statements
 
-namespace roscopter{
+namespace roscopter
+{
 /*!
  * \brief The simplePID class is a basic, tried and true PID controller.  Only P (proportional) gains are
  *  necessary, the I (integral) and D (derivative) default to zero. The I control is computed using a
@@ -67,7 +68,8 @@ public:
    * \param imax the max value accepted in the output of the integral control (saturation for integrator windup)
    * \param tau band limited differentiator to reduce noise
    */
-  SimplePID(double p, double i = 0.0, double d = 0.0, double max = DBL_MAX, double min = -DBL_MAX, double tau = 0.15);
+  SimplePID(double p, double i = 0.0, double d = 0.0, double max = DBL_MAX, double min = -DBL_MAX,
+            double tau = 0.15);
 
   /*!
    * \brief compute_pid computes the PID control for the given error and timestep (since the last control was computed!)
@@ -86,7 +88,8 @@ public:
    * \param d the derivative controller gain (defaults to zero)
    * \param tau band limited differentiator to reduce noise
    */
-  void set_gains(double p, double i = 0.0, double d = 0.0, double tau = 0.15, double max_u = DBL_MAX, double min_u = -DBL_MAX);
+  void set_gains(double p, double i = 0.0, double d = 0.0, double tau = 0.15,
+                 double max_u = DBL_MAX, double min_u = -DBL_MAX);
 
   /*!
    * \brief setgains is used to set the gains for a controller after it's been initialized.  It will rewrite
@@ -99,22 +102,19 @@ public:
   /*!
    * \brief clear_integrator allows you to clear the integrator, in case of integrator windup.
    */
-  void clear_integrator()
-  {
-    integrator_ = 0.0;
-  }
+  void clear_integrator() { integrator_ = 0.0; }
 
 protected:
-  double kp_;              //!< the proportional gain
-  double ki_;              //!< the integral gain (zero if you don't want integral control)
-  double kd_;              //!< the derivative gain (zero if you don't want derivative control)
-  double max_;             //!< Maximum Output
-  double min_;             //!< Minimum Output
-  double tau_;             //!< the noise reduction term for the derivative
-  double integrator_;      //!< the integral of p_error
-  double differentiator_;  //!< used for noise reduced differentiation
-  double last_error_;      //!< the last p_error, for computing the derivative;
-  double last_state_;      //!< the last state, for computing the derivative;
+  double kp_;             //!< the proportional gain
+  double ki_;             //!< the integral gain (zero if you don't want integral control)
+  double kd_;             //!< the derivative gain (zero if you don't want derivative control)
+  double max_;            //!< Maximum Output
+  double min_;            //!< Minimum Output
+  double tau_;            //!< the noise reduction term for the derivative
+  double integrator_;     //!< the integral of p_error
+  double differentiator_; //!< used for noise reduced differentiation
+  double last_error_;     //!< the last p_error, for computing the derivative;
+  double last_state_;     //!< the last state, for computing the derivative;
 
   /*!
    * \brief saturate saturates the variable val
@@ -123,7 +123,7 @@ protected:
    * \param max the max value
    * \return the saturated (if necessary) value
    */
-  inline double saturate(double val, double &min, double &max)
+  inline double saturate(double val, double & min, double & max)
   {
     if (val > max)
       val = max;
@@ -134,4 +134,4 @@ protected:
 };
 } // namespace roscopter
 
-#endif  // ROTOR_CONTROLLER_SIMPLE_PID_H
+#endif // ROTOR_CONTROLLER_SIMPLE_PID_H

@@ -1,17 +1,22 @@
-#include <controller/controller_ros.hpp>
 #include <controller/controller_cascading_pid.hpp>
+#include <controller/controller_ros.hpp>
 
 using std::placeholders::_1;
 
 namespace roscopter
 {
 
-ControllerROS::ControllerROS() : Node("controller"), params(this)
+ControllerROS::ControllerROS()
+    : Node("controller")
+    , params(this)
 {
   // Set up Publisher and Subscribers
-  state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&ControllerROS::state_callback, this, _1));
-  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::ControllerCommand>("high_level_command", 1, std::bind(&ControllerROS::cmd_callback, this, _1));
-  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>("status", 1, std::bind(&ControllerROS::status_callback, this, _1));
+  state_sub_ = this->create_subscription<roscopter_msgs::msg::State>(
+    "estimated_state", 1, std::bind(&ControllerROS::state_callback, this, _1));
+  cmd_sub_ = this->create_subscription<roscopter_msgs::msg::ControllerCommand>(
+    "high_level_command", 1, std::bind(&ControllerROS::cmd_callback, this, _1));
+  status_sub_ = this->create_subscription<rosflight_msgs::msg::Status>(
+    "status", 1, std::bind(&ControllerROS::status_callback, this, _1));
   command_pub_ = this->create_publisher<rosflight_msgs::msg::Command>("command", 1);
 
   // Make sure the input command is initialized correctly to avoid sending commands before the controller receives control setpoints
@@ -22,10 +27,12 @@ ControllerROS::ControllerROS() : Node("controller"), params(this)
   params.set_parameters();
 
   // Register parameter callback
-  parameter_callback_handle_ = this->add_on_set_parameters_callback(std::bind(&ControllerROS::parameters_callback, this, _1));
+  parameter_callback_handle_ =
+    this->add_on_set_parameters_callback(std::bind(&ControllerROS::parameters_callback, this, _1));
 }
 
-rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(const std::vector<rclcpp::Parameter> & parameters)
+rcl_interfaces::msg::SetParametersResult
+ControllerROS::parameters_callback(const std::vector<rclcpp::Parameter> & parameters)
 {
   rcl_interfaces::msg::SetParametersResult result;
   result.successful = false;
@@ -33,8 +40,7 @@ rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(cons
 
   // Use the ParamManager's set parameters callback
   bool success = params.set_parameters_callback(parameters);
-  if (success)
-  {
+  if (success) {
     result.successful = true;
     result.reason = "success";
   }
@@ -43,19 +49,19 @@ rcl_interfaces::msg::SetParametersResult ControllerROS::parameters_callback(cons
   update_gains();
 
   return result;
-} 
+}
 
 void ControllerROS::declare_params()
 {
   // Put any params needed in controller_base here
 }
 
-void ControllerROS::cmd_callback(const roscopter_msgs::msg::ControllerCommand &msg)
+void ControllerROS::cmd_callback(const roscopter_msgs::msg::ControllerCommand & msg)
 {
   input_cmd_ = msg;
 }
 
-void ControllerROS::state_callback(const roscopter_msgs::msg::State &msg)
+void ControllerROS::state_callback(const roscopter_msgs::msg::State & msg)
 {
   RCLCPP_INFO_ONCE(this->get_logger(), "Started receiving estimated state message.");
 
@@ -76,7 +82,7 @@ void ControllerROS::state_callback(const roscopter_msgs::msg::State &msg)
 double ControllerROS::compute_dt(double now)
 {
   static double prev_time = 0;
-  if(prev_time == 0) {
+  if (prev_time == 0) {
     prev_time = now;
     // Don't compute control since we don't have a dt calculation
     return 0;
@@ -89,12 +95,9 @@ double ControllerROS::compute_dt(double now)
   return dt;
 }
 
-void ControllerROS::status_callback(const rosflight_msgs::msg::Status &msg)
-{
-  status_ = msg;
-}
+void ControllerROS::status_callback(const rosflight_msgs::msg::Status & msg) { status_ = msg; }
 
-void ControllerROS::publish_command(rosflight_msgs::msg::Command &command)
+void ControllerROS::publish_command(rosflight_msgs::msg::Command & command)
 {
   command.header.stamp = this->get_clock()->now();
   command_pub_->publish(command);
@@ -113,10 +116,9 @@ double ControllerROS::wrap_within_180(double fixed, double angle_to_wrap)
   return angle_to_wrap - floor((angle_to_wrap - fixed) / (2 * M_PI) + 0.5) * 2 * M_PI;
 }
 
-}  // namespace controller
+} // namespace roscopter
 
-
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 

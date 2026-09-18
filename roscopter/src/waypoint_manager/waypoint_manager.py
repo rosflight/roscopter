@@ -1,32 +1,43 @@
 #!/usr/bin/env python3
 
+import csv
+
 import numpy as np
 import rospy
-import csv
 
 # from geometry_msgs import Vector3Stamped
 from nav_msgs.msg import Odometry
+
 from roscopter_msgs.msg import Command, PoseEuler
-from roscopter_msgs.srv import AddWaypoint, RemoveWaypoint, SetWaypointsFromFile, ListWaypoints, \
-                               ClearWaypoints, Hold, Release, Land, Fly, ReturnToBase
+from roscopter_msgs.srv import (
+    AddWaypoint,
+    ClearWaypoints,
+    Fly,
+    Hold,
+    Land,
+    ListWaypoints,
+    Release,
+    RemoveWaypoint,
+    ReturnToBase,
+    SetWaypointsFromFile,
+)
 
 
-class WaypointManager():
-
+class WaypointManager:
     def __init__(self):
 
         # get parameters
         try:
             default_param_namespace = rospy.get_name()
-            param_namespace = rospy.get_param('~param_namespace' , default_param_namespace)
-            if len(param_namespace) > 0 and param_namespace[0] is not "/":
-                param_namespace = "/" + param_namespace
-            self.waypoint_list = rospy.get_param( param_namespace + "/waypoints")
+            param_namespace = rospy.get_param('~param_namespace', default_param_namespace)
+            if len(param_namespace) > 0 and param_namespace[0] is not '/':
+                param_namespace = '/' + param_namespace
+            self.waypoint_list = rospy.get_param(param_namespace + '/waypoints')
         except KeyError:
             rospy.logfatal('[waypoint_manager] waypoints not set')
             rospy.signal_shutdown('[waypoint_manager] Parameters not set')
 
-        #Initialize variables
+        # Initialize variables
         self.n = None
         self.e = None
         self.d = None
@@ -49,10 +60,12 @@ class WaypointManager():
         self.poseEuler_msg.psi = self.psi
 
         # how close does the MAV need to get before going to the next waypoint?
-        self.pos_threshold = rospy.get_param("/" + param_namespace + "/threshold", 5)
-        self.heading_threshold = rospy.get_param("/" + param_namespace + "/heading_threshold", 0.035)  # radians
-        self.cyclical_path = rospy.get_param("/" + param_namespace + "/cycle", True)
-        self.print_wp_reached = rospy.get_param("/" + param_namespace + "/print_wp_reached", True)
+        self.pos_threshold = rospy.get_param('/' + param_namespace + '/threshold', 5)
+        self.heading_threshold = rospy.get_param(
+            '/' + param_namespace + '/heading_threshold', 0.035
+        )  # radians
+        self.cyclical_path = rospy.get_param('/' + param_namespace + '/cycle', True)
+        self.print_wp_reached = rospy.get_param('/' + param_namespace + '/print_wp_reached', True)
 
         # Landing Params
         self.min_landing_alt = rospy.get_param('~min_landing_alt', -1)
@@ -63,20 +76,34 @@ class WaypointManager():
         self.stop_alt = rospy.get_param('~stop_alt', -0.05)
 
         # Set up Services
-        self.add_waypoint_service = rospy.Service('add_waypoint', AddWaypoint, self.addWaypointCallback)
-        self.remove_waypoint_service = rospy.Service('remove_waypoint', RemoveWaypoint, self.removeWaypointCallback)
-        self.set_waypoints_from_file_service = rospy.Service('set_waypoints_from_file', SetWaypointsFromFile, self.setWaypointsFromFileCallback)
-        self.list_waypoints_service = rospy.Service('list_waypoints', ListWaypoints, self.listWaypointsCallback)
-        self.clear_waypoints_service = rospy.Service('clear_waypoints', ClearWaypoints, self.clearWaypointsCallback)
+        self.add_waypoint_service = rospy.Service(
+            'add_waypoint', AddWaypoint, self.addWaypointCallback
+        )
+        self.remove_waypoint_service = rospy.Service(
+            'remove_waypoint', RemoveWaypoint, self.removeWaypointCallback
+        )
+        self.set_waypoints_from_file_service = rospy.Service(
+            'set_waypoints_from_file', SetWaypointsFromFile, self.setWaypointsFromFileCallback
+        )
+        self.list_waypoints_service = rospy.Service(
+            'list_waypoints', ListWaypoints, self.listWaypointsCallback
+        )
+        self.clear_waypoints_service = rospy.Service(
+            'clear_waypoints', ClearWaypoints, self.clearWaypointsCallback
+        )
         self.hold_service = rospy.Service('hold', Hold, self.holdCallback)
         self.release_service = rospy.Service('release', Release, self.releaseCallback)
         self.land_service = rospy.Service('land', Land, self.landCallback)
         self.fly_service = rospy.Service('fly', Fly, self.flyCallback)
-        self.returntobase_service = rospy.Service('return_to_base', ReturnToBase, self.returnToBaseCallback)
+        self.returntobase_service = rospy.Service(
+            'return_to_base', ReturnToBase, self.returnToBaseCallback
+        )
 
         # Set Up Publishers and Subscribers
         self.xhat_sub_ = rospy.Subscriber('state', Odometry, self.odometryCallback, queue_size=5)
-        self.waypoint_cmd_pub_ = rospy.Publisher('high_level_command', Command, queue_size=5, latch=True)
+        self.waypoint_cmd_pub_ = rospy.Publisher(
+            'high_level_command', Command, queue_size=5, latch=True
+        )
         self.poseEuler_pub_ = rospy.Publisher('pose_euler', PoseEuler, queue_size=5, latch=True)
 
         # Wait a second before we publish the first waypoint
@@ -93,14 +120,13 @@ class WaypointManager():
             # wait for new messages and call the callback when they arrive
             rospy.spin()
 
-
     def addWaypointCallback(self, req):
         # This Function adds a waypoint to the waypoint list at the specified index.
         new_waypoint = [req.x, req.y, req.z, req.psi]
         if req.index == -1:
             index = len(self.waypoint_list)
         elif req.index > len(self.waypoint_list) or req.index < -1:
-            rospy.logwarn("[waypoint_manager] Waypoint Index Out of Range")
+            rospy.logwarn('[waypoint_manager] Waypoint Index Out of Range')
             return False
         # Valid index
         else:
@@ -109,7 +135,7 @@ class WaypointManager():
         # Increment the current index if a waypoint is added before the current
         if self.current_waypoint_index > index:
             self.current_waypoint_index += 1
-        rospy.loginfo("[waypoint_manager] Added New Waypoint")
+        rospy.loginfo('[waypoint_manager] Added New Waypoint')
         self.no_command = False
         current_waypoint = self.waypoint_list[self.current_waypoint_index]
         self.publish_command(current_waypoint)
@@ -117,39 +143,39 @@ class WaypointManager():
 
     def removeWaypointCallback(self, req):
         ##### Remove a waypoint at the requested index ####
-        #If requested index out of bounds of waypoint list
+        # If requested index out of bounds of waypoint list
         if req.index >= len(self.waypoint_list):
-            rospy.logwarn("[waypoint_manager] Waypoint Index Out of Range")
+            rospy.logwarn('[waypoint_manager] Waypoint Index Out of Range')
             return False
-        #If requested index is after the current waypoint index
+        # If requested index is after the current waypoint index
         elif req.index > self.current_waypoint_index:
-            #do nothing
+            # do nothing
             current_index = self.current_waypoint_index
-        #If the current waypoint was removed:
+        # If the current waypoint was removed:
         elif req.index == self.current_waypoint_index:
-            #If it's the last waypoint in the list
-            last_waypoint_bool = self.current_waypoint_index == (len(self.waypoint_list)-1)
+            # If it's the last waypoint in the list
+            last_waypoint_bool = self.current_waypoint_index == (len(self.waypoint_list) - 1)
             if last_waypoint_bool:
-                #If cyclical, and there remains at least one waypoint
+                # If cyclical, and there remains at least one waypoint
                 if self.cyclical_path and len(self.waypoint_list) > 1:
                     current_index = 0
-                #If not cyclical, or zero waypoints left
+                # If not cyclical, or zero waypoints left
                 else:
                     self.no_command = True
                     current_index = 0
                     rospy.sleep(0.1)
-                    rospy.loginfo("[waypoint_manager] No remaining commands, pose halted")
-            #If not last waypoint in the list
+                    rospy.loginfo('[waypoint_manager] No remaining commands, pose halted')
+            # If not last waypoint in the list
             else:
                 current_index = self.current_waypoint_index
-        #If the removed waypoint is before the current waypoint index
-        else: # req.index < self.current_waypoint_index:
+        # If the removed waypoint is before the current waypoint index
+        else:  # req.index < self.current_waypoint_index:
             current_index = self.current_waypoint_index - 1
-        #Update private variables and publish command
+        # Update private variables and publish command
         self.current_waypoint_index = current_index
-        del self.waypoint_list[req.index] # Remove the waypoint
+        del self.waypoint_list[req.index]  # Remove the waypoint
         removed_str = '[waypoint_manager] Waypoint {} Removed'.format(req.index)
-        rospy.loginfo(removed_str) # Send loginfo
+        rospy.loginfo(removed_str)  # Send loginfo
         if not self.no_command:
             current_waypoint = np.array(self.waypoint_list[self.current_waypoint_index])
             self.publish_command(current_waypoint)
@@ -173,13 +199,13 @@ class WaypointManager():
         self.current_waypoint_index = 0
         current_waypoint = np.array(self.waypoint_list[self.current_waypoint_index])
         self.publish_command(current_waypoint)
-        rospy.loginfo("[waypoint_manager] Waypoints Set from File")
+        rospy.loginfo('[waypoint_manager] Waypoints Set from File')
         return True
 
     def listWaypointsCallback(self, req):
         # Returns the waypoint list
         rospy.loginfo('[waypoint_manager] Waypoints:')
-        i = 0 # Start index at 0
+        i = 0  # Start index at 0
         for waypoint in self.waypoint_list:
             if i == self.current_waypoint_index:
                 waypoint_str = '[waypoint_manager] {}: {} (current_waypoint)'.format(i, waypoint)
@@ -196,7 +222,7 @@ class WaypointManager():
         rospy.sleep(0.1)
         self.waypoint_list = []
         self.current_waypoint_index = 0
-        rospy.loginfo("[waypoint_manager] No remaining commands, pose halted")
+        rospy.loginfo('[waypoint_manager] No remaining commands, pose halted')
         return True
 
     def holdCallback(self, req):
@@ -212,34 +238,36 @@ class WaypointManager():
 
     def releaseCallback(self, req):
         if self.hold == False:
-            rospy.logwarn("[waypoint_manager] Cannot release - Not in hold")
+            rospy.logwarn('[waypoint_manager] Cannot release - Not in hold')
             return False
         elif len(self.waypoint_list) == 0:
-            rospy.logwarn("[waypoint_manager] Cannot release - Zero Waypoints")
+            rospy.logwarn('[waypoint_manager] Cannot release - Zero Waypoints')
             return False
         else:
             self.hold = False
             current_waypoint = self.waypoint_list[self.current_waypoint_index]
             self.publish_command(current_waypoint)
-            rospy.loginfo("[waypoint_manager] Released hold - Multirotor path in progress")
+            rospy.loginfo('[waypoint_manager] Released hold - Multirotor path in progress')
             return True
 
     def landCallback(self, req):
         if self.hold == True:
-            rospy.loginfo("[waypoint_manager] Releasing hold to land")
+            rospy.loginfo('[waypoint_manager] Releasing hold to land')
             self.hold == False
-        rospy.loginfo("[waypoint_manager] Preparing to land at coordinates [{} {}]".format(self.n,self.e))
-        landing_alt = min(max(self.d, self.max_landing_alt),self.min_landing_alt)
+        rospy.loginfo(
+            '[waypoint_manager] Preparing to land at coordinates [{} {}]'.format(self.n, self.e)
+        )
+        landing_alt = min(max(self.d, self.max_landing_alt), self.min_landing_alt)
         self.landing_pose = [self.n, self.e, landing_alt, self.psi]
         self.landing = True
         return True
 
     def returnToBaseCallback(self, req):
         if self.hold == True:
-            rospy.loginfo("[waypoint_manager] Releasing hold to return to base")
+            rospy.loginfo('[waypoint_manager] Releasing hold to return to base')
             self.hold == False
-        rospy.loginfo("[waypoint_manager] Preparing to land at base coordinates [0 0]")
-        landing_alt = min(max(self.d, self.max_landing_alt),self.min_landing_alt)
+        rospy.loginfo('[waypoint_manager] Preparing to land at base coordinates [0 0]')
+        landing_alt = min(max(self.d, self.max_landing_alt), self.min_landing_alt)
         self.landing_pose = [0, 0, landing_alt, 0]
         self.landing = True
         return True
@@ -250,7 +278,11 @@ class WaypointManager():
         heading_error = np.abs(self.wrap(self.landing_pose[3] - self.psi))
         if position_error < self.pos_threshold and heading_error < self.heading_threshold:
             self.ready_to_land = True
-            rospy.loginfo("[waypoint_manager] Landing at coordinates [{} {}]".format(self.landing_pose[0], self.landing_pose[1]))
+            rospy.loginfo(
+                '[waypoint_manager] Landing at coordinates [{} {}]'.format(
+                    self.landing_pose[0], self.landing_pose[1]
+                )
+            )
         else:
             self.publish_command(self.landing_pose)
         return
@@ -264,8 +296,21 @@ class WaypointManager():
             if self.d < self.slow_alt:
                 self.cmd_msg.cmd3 = self.approach_vel
             else:
-                self.cmd_msg.cmd3 = -self.approach_vel/(1 + self.landing_vel/self.approach_vel/(-self.landing_vel/self.approach_vel + 1) \
-                                    + np.exp(10/(self.slow_alt-self.stop_alt)*(self.d - (self.slow_alt+self.stop_alt)/2))) + self.approach_vel
+                self.cmd_msg.cmd3 = (
+                    -self.approach_vel
+                    / (
+                        1
+                        + self.landing_vel
+                        / self.approach_vel
+                        / (-self.landing_vel / self.approach_vel + 1)
+                        + np.exp(
+                            10
+                            / (self.slow_alt - self.stop_alt)
+                            * (self.d - (self.slow_alt + self.stop_alt) / 2)
+                        )
+                    )
+                    + self.approach_vel
+                )
             self.cmd_msg.mode = Command.MODE_NPOS_EPOS_DVEL_YAW
             self.waypoint_cmd_pub_.publish(self.cmd_msg)
         elif self.landed == False:
@@ -276,17 +321,17 @@ class WaypointManager():
             self.cmd_msg.cmd4 = 0.0
             self.waypoint_cmd_pub_.publish(self.cmd_msg)
             self.landed = True
-            rospy.loginfo("[waypoint_manager] Landed")
+            rospy.loginfo('[waypoint_manager] Landed')
         return
 
-    def flyCallback(self,req):
+    def flyCallback(self, req):
         if self.landing == False:
-            rospy.loginfo("[waypoint_manager] Already Flying")
+            rospy.loginfo('[waypoint_manager] Already Flying')
             return False
         self.ready_to_land = False
         self.landing = False
         self.landed = False
-        rospy.loginfo("[waypoint_manager] Resuming Flight")
+        rospy.loginfo('[waypoint_manager] Resuming Flight')
         current_waypoint = self.waypoint_list[self.current_waypoint_index]
         self.publish_command(current_waypoint)
         return True
@@ -306,7 +351,7 @@ class WaypointManager():
         qz = msg.pose.pose.orientation.z
 
         # yaw from quaternion
-        self.psi = np.arctan2(2*(qw*qz + qx*qy), 1 - 2*(qy**2 + qz**2))
+        self.psi = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
 
         # publish pose Euler estimate
         self.poseEuler_msg.n = self.n
@@ -318,7 +363,7 @@ class WaypointManager():
         # Don't command/track waypoints if landing
         if self.landing == True:
             if self.landed == False:
-                self.halt_waypoint = [self.n , self.e , self.d , self.psi ]
+                self.halt_waypoint = [self.n, self.e, self.d, self.psi]
                 if self.ready_to_land == False:
                     self.prepare_to_land()
                 else:
@@ -333,21 +378,24 @@ class WaypointManager():
         ###### Check Waypoint Arrival Status & Update to Next Waypoint #######
         else:
             # Calculate error between current pose and commanded waypoint
-            self.halt_waypoint = [self.n , self.e , self.d , self.psi ]
+            self.halt_waypoint = [self.n, self.e, self.d, self.psi]
             current_waypoint = np.array(self.waypoint_list[self.current_waypoint_index])
 
             position_error = np.linalg.norm(current_waypoint[0:3] - current_position)
             heading_error = np.abs(self.wrap(current_waypoint[3] - self.psi))
-            #if error is within the threshold
+            # if error is within the threshold
             if position_error < self.pos_threshold and heading_error < self.heading_threshold:
-                #Print if we did not already print
+                # Print if we did not already print
                 if self.print_wp_reached:
                     idx = self.current_waypoint_index
                     rospy.loginfo('[waypoint_manager] Reached waypoint {}'.format(idx))
                 # stop iterating over waypoints if cycle==false and last waypoint reached
-                if not self.cyclical_path and self.current_waypoint_index == len(self.waypoint_list)-1:
+                if (
+                    not self.cyclical_path
+                    and self.current_waypoint_index == len(self.waypoint_list) - 1
+                ):
                     self.no_command = True
-                    rospy.loginfo("[waypoint_manager] No remaining commands, pose halted")
+                    rospy.loginfo('[waypoint_manager] No remaining commands, pose halted')
                     return
                 # Get new waypoint index #TODO: If cyclical == True and only one waypoint, don't keep printing
                 else:
@@ -376,7 +424,7 @@ class WaypointManager():
         return
 
     def wrap(self, angle):
-        angle -= 2*np.pi * np.floor((angle + np.pi) / (2*np.pi))
+        angle -= 2 * np.pi * np.floor((angle + np.pi) / (2 * np.pi))
         return angle
 
 

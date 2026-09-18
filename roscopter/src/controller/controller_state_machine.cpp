@@ -5,7 +5,11 @@ using std::placeholders::_1;
 namespace roscopter
 {
 
-ControllerStateMachine::ControllerStateMachine() : ControllerROS(), state_transition_(false), state_(DISARM), do_land_(false)
+ControllerStateMachine::ControllerStateMachine()
+    : ControllerROS()
+    , state_transition_(false)
+    , state_(DISARM)
+    , do_land_(false)
 {
   declare_params();
   params.set_parameters();
@@ -19,16 +23,19 @@ void ControllerStateMachine::declare_params()
   params.declare_double("takeoff_landing_pos_hold_time", 3.0);
 }
 
-void ControllerStateMachine::update_gains() {
+void ControllerStateMachine::update_gains()
+{
   // No gains in the state machine need to be updated when parameters are changed. Do nothing.
 }
 
-rosflight_msgs::msg::Command ControllerStateMachine::manage_state(roscopter_msgs::msg::ControllerCommand & input_cmd, rosflight_msgs::msg::Status & status_msg, double dt)
+rosflight_msgs::msg::Command
+ControllerStateMachine::manage_state(roscopter_msgs::msg::ControllerCommand & input_cmd,
+                                     rosflight_msgs::msg::Status & status_msg, double dt)
 {
   rosflight_msgs::msg::Command output_command;
 
   // Make sure dt is over a threshold so the PID loops don't blow up
-  if(dt <= 0.0000001) {
+  if (dt <= 0.0000001) {
     RCLCPP_WARN_STREAM(this->get_logger(), "dt <= 0.0000001");
     return output_command;
   }
@@ -49,7 +56,8 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_state(roscopter_msgs
       break;
 
     case OFFBOARD:
-      RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), state_transition_, "OFFBOARD CONTROLLER ACTIVE");
+      RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), state_transition_,
+                                    "OFFBOARD CONTROLLER ACTIVE");
       state_transition_ = false;
 
       output_command = compute_offboard_control(input_cmd, dt);
@@ -102,10 +110,9 @@ void ControllerStateMachine::manage_disarm(bool armed, bool cmd_valid)
     takeoff_n_pos_ = xhat_.p_n;
     takeoff_e_pos_ = xhat_.p_e;
     takeoff_yaw_ = xhat_.psi;
-  }
-  else {
-    RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), !state_transition_, 
-      "OFFBOARD CONTROLLER INACTIVE");
+  } else {
+    RCLCPP_WARN_STREAM_EXPRESSION(this->get_logger(), !state_transition_,
+                                  "OFFBOARD CONTROLLER INACTIVE");
     state_transition_ = true;
 
     reset_integrators();
@@ -172,16 +179,16 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_position_hold(double
   if (elapsed_time >= takeoff_landing_pos_hold_time) {
     if (do_land_) {
       start_landing = true;
+    } else {
+      start_offboard = true;
     }
-    else { start_offboard = true; }
   }
 
   // Transition states, as appropriate
   if (start_landing) {
     state_ = LANDING;
     state_transition_ = true;
-  }
-  else if (start_offboard) {
+  } else if (start_offboard) {
     state_ = OFFBOARD;
     state_transition_ = true;
   }
@@ -201,4 +208,4 @@ rosflight_msgs::msg::Command ControllerStateMachine::manage_landing()
   return output_cmd;
 }
 
-}  // namespace controller
+} // namespace roscopter

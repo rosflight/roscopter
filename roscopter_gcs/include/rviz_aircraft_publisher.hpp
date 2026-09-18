@@ -77,6 +77,6 @@ private:
   int i_;
 };
 
-} // roscopter_gcs
+} // namespace roscopter_gcs
 
 #endif

@@ -14,7 +14,7 @@
 
 namespace roscopter
 {
-    
+
 class ParamManager
 {
 public:
@@ -65,7 +65,7 @@ public:
    * Helper function to declare parameters in the ParamManager object
    * Inserts a parameter into the parameter object and declares it with the ROS system
   */
-  void declare_int(std::string param_name, int64_t value);  
+  void declare_int(std::string param_name, int64_t value);
 
   /**
    * Helper function to declare parameters in the ParamManager object
@@ -102,7 +102,7 @@ public:
    * and the ROS system.
    */
   void set_string(std::string param_name, std::string value);
-  
+
   /**
    * This function should be called in the parametersCallback function in a containing ROS node.
    * It takes in a vector of changed parameters and updates them within the params_ object.
@@ -120,5 +120,5 @@ private:
   rclcpp::Node * container_node_;
 };
 
-}   // namespace roscopter
+} // namespace roscopter
 #endif // PARAM_MANAGER_H

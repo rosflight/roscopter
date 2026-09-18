@@ -17,10 +17,10 @@
 
 #include <Eigen/Geometry>
 #include <rclcpp/rclcpp.hpp>
-#include <rosflight_msgs/msg/barometer.hpp>
-#include <rosflight_msgs/msg/status.hpp>
-#include <rosflight_msgs/msg/gnss.hpp>
 #include <roscopter_msgs/msg/state.hpp>
+#include <rosflight_msgs/msg/barometer.hpp>
+#include <rosflight_msgs/msg/gnss.hpp>
+#include <rosflight_msgs/msg/status.hpp>
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/magnetic_field.hpp>
 
@@ -101,30 +101,30 @@ protected:
   std::filesystem::path hotstart_path_;
 
   bool baro_init_ = false;
-  
+
   double rho_;
-  
+
   /**
    * @brief Indicates if the magnetometer magnetic field parameters have been initialized.
    */
   bool mag_init_ = false;
 
-  virtual void estimate(const Input & input,
-                        Output & output) = 0;
+  virtual void estimate(const Input & input, Output & output) = 0;
 
   bool parameter_changed = false;
 
   ParamManager params_;
   bool gps_init_ = false;
   bool has_fix_ = false;
-  double init_lat_ = 0.0;                 /**< Initial latitude in degrees */
-  double init_lon_ = 0.0;                 /**< Initial longitude in degrees */
-  double init_alt_ = 0.0;                  /**< Initial altitude in meters above MSL  */
-  double init_static_;                     /**< Initial static pressure (mbar)  */
-  
+  double init_lat_ = 0.0; /**< Initial latitude in degrees */
+  double init_lon_ = 0.0; /**< Initial longitude in degrees */
+  double init_alt_ = 0.0; /**< Initial altitude in meters above MSL  */
+  double init_static_;    /**< Initial static pressure (mbar)  */
+
   std::unordered_map<std::string, rclcpp::Time> time_since_last_sensor_update_;
   void set_sensor_monitoring();
   void check_sensors();
+
 private:
   void hotstart();
   void saveInitConditions();
@@ -154,8 +154,8 @@ private:
   std::string magnetometer_topic_ = "magnetometer";
 
   bool gps_new_;
-  bool armed_first_time_;                 /**< Arm before starting estimation  */
-  int baro_count_;                        /**< Used to grab the first set of baro measurements */
+  bool armed_first_time_;                  /**< Arm before starting estimation  */
+  int baro_count_;                         /**< Used to grab the first set of baro measurements */
   std::vector<double> init_static_vector_; /**< Used to grab the first set of baro measurements */
 
   /**

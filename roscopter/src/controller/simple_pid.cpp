@@ -53,8 +53,13 @@ SimplePID::SimplePID()
 //
 // Initialize the controller
 //
-SimplePID::SimplePID(double p, double i, double d, double max, double min, double tau) :
-  kp_(p), ki_(i), kd_(d), max_(max), min_(min), tau_(tau)
+SimplePID::SimplePID(double p, double i, double d, double max, double min, double tau)
+    : kp_(p)
+    , ki_(i)
+    , kd_(d)
+    , max_(max)
+    , min_(min)
+    , tau_(tau)
 {
   integrator_ = 0.0;
   differentiator_ = 0.0;
@@ -85,23 +90,21 @@ double SimplePID::compute_pid(double desired, double current, double dt, double 
     differentiator_ = 0.0;
   }
 
-  double p_term = error*kp_;
+  double p_term = error * kp_;
   double i_term = 0.0;
   double d_term = 0.0;
-
 
   // Calculate Derivative Term
   if (kd_ > 0.0) {
     if (std::isfinite(x_dot)) {
       d_term = kd_ * x_dot;
-    }
-    else if (dt > 0.0) {
+    } else if (dt > 0.0) {
       // Noise reduction (See "Small Unmanned Aircraft". Chapter 6. Slide 31/33)
       // d/dx w.r.t. error:: differentiator_ = (2*tau_ - dt)/(2*tau_ + dt)*differentiator_ + 2/(2*tau_ + dt)*(error -
       // last_error_);
-      differentiator_ =
-          (2 * tau_ - dt) / (2 * tau_ + dt) * differentiator_ + 2 / (2 * tau_ + dt) * (current - last_state_);
-      d_term = kd_* differentiator_;
+      differentiator_ = (2 * tau_ - dt) / (2 * tau_ + dt) * differentiator_
+        + 2 / (2 * tau_ + dt) * (current - last_state_);
+      d_term = kd_ * differentiator_;
     }
   }
 
@@ -134,7 +137,6 @@ double SimplePID::compute_pid(double desired, double current, double dt, double 
   return u_sat;
 }
 
-
 //
 // Late initialization or redo
 //
@@ -153,5 +155,4 @@ void SimplePID::set_gains(double p, double i, double d, double tau, double max_u
   }
 }
 
-
-}  // namespace roscopter
+} // namespace roscopter

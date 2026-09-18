@@ -3,12 +3,13 @@
 
 #include <Eigen/Core>
 
-#include <roscopter_msgs/msg/waypoint.hpp>
 #include <roscopter_msgs/msg/trajectory_command.hpp>
+#include <roscopter_msgs/msg/waypoint.hpp>
 
 #include "navigation/path_manager_ros.hpp"
 
-namespace roscopter {
+namespace roscopter
+{
 
 class PathManager : public PathManagerROS
 {
@@ -19,8 +20,8 @@ private:
   // Methods
   roscopter_msgs::msg::TrajectoryCommand manage_path() override;
   void declare_params();
-  roscopter_msgs::msg::TrajectoryCommand manage_goto_wp(roscopter_msgs::msg::Waypoint &curr_wp);
-  roscopter_msgs::msg::TrajectoryCommand manage_hold_wp(roscopter_msgs::msg::Waypoint &curr_wp);
+  roscopter_msgs::msg::TrajectoryCommand manage_goto_wp(roscopter_msgs::msg::Waypoint & curr_wp);
+  roscopter_msgs::msg::TrajectoryCommand manage_hold_wp(roscopter_msgs::msg::Waypoint & curr_wp);
   roscopter_msgs::msg::TrajectoryCommand create_trajectory();
   roscopter_msgs::msg::TrajectoryCommand create_default_output();
   roscopter_msgs::msg::TrajectoryCommand quintic_interpolation();

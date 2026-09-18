@@ -5,8 +5,8 @@
 #include <std_srvs/srv/trigger.hpp>
 
 #include <roscopter_msgs/msg/controller_command.hpp>
-#include <roscopter_msgs/msg/trajectory_command.hpp>
 #include <roscopter_msgs/msg/state.hpp>
+#include <roscopter_msgs/msg/trajectory_command.hpp>
 #include <rosflight_msgs/msg/status.hpp>
 
 #include "param_manager/param_manager.hpp"
@@ -20,14 +20,13 @@ class TrajectoryFollowerROS : public rclcpp::Node
 {
 
 public:
-
   TrajectoryFollowerROS();
 
   static double saturate(double x, double max, double min);
 
 protected:
   ParamManager params;
-  roscopter_msgs::msg::State xhat_;     /** Current estimated state of MAV */
+  roscopter_msgs::msg::State xhat_; /** Current estimated state of MAV */
   rosflight_msgs::msg::Status firmware_status_;
 
 private:
@@ -41,18 +40,21 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr clear_integrators_srvs_;
 
   // Memory for sharing information between functions
-  roscopter_msgs::msg::TrajectoryCommand input_cmd_;  /** High level, input trajectory commands to the trajectory follower */
+  roscopter_msgs::msg::TrajectoryCommand
+    input_cmd_; /** High level, input trajectory commands to the trajectory follower */
 
   // Functions
   double compute_dt(double now);
-  void state_callback(const roscopter_msgs::msg::State &msg);
-  void cmd_callback(const roscopter_msgs::msg::TrajectoryCommand &msg);
-  void status_callback(const rosflight_msgs::msg::Status &msg);
-  void publish_command(roscopter_msgs::msg::ControllerCommand &command);
-  bool clear_integrators_callback(const std_srvs::srv::Trigger::Request::SharedPtr req, const std_srvs::srv::Trigger::Response::SharedPtr res);
+  void state_callback(const roscopter_msgs::msg::State & msg);
+  void cmd_callback(const roscopter_msgs::msg::TrajectoryCommand & msg);
+  void status_callback(const rosflight_msgs::msg::Status & msg);
+  void publish_command(roscopter_msgs::msg::ControllerCommand & command);
+  bool clear_integrators_callback(const std_srvs::srv::Trigger::Request::SharedPtr req,
+                                  const std_srvs::srv::Trigger::Response::SharedPtr res);
 
   virtual void update_gains() = 0;
-  virtual roscopter_msgs::msg::ControllerCommand manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt) = 0;
+  virtual roscopter_msgs::msg::ControllerCommand
+  manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt) = 0;
   virtual void clear_integrators() = 0;
 
   /**
@@ -67,9 +69,9 @@ private:
    * 
    * @param parameters: Vector of rclcpp::Parameter objects that were changed
    */
-  rcl_interfaces::msg::SetParametersResult parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
-
+  rcl_interfaces::msg::SetParametersResult
+  parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
 };
-}
+} // namespace roscopter
 
 #endif

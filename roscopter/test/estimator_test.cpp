@@ -1,25 +1,25 @@
+#include "ekf/estimator_continuous_discrete.hpp"
+#include "ekf/geomag.h"
 #include "gtest/gtest.h"
 #include <iostream>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/utilities.hpp>
-#include "ekf/estimator_continuous_discrete.hpp"
-#include "ekf/geomag.h"
 
-class Estimator_tester : public roscopter::EstimatorContinuousDiscrete{
-public:
-  Estimator_tester()
+class Estimator_tester : public roscopter::EstimatorContinuousDiscrete
 {
-  // roscopter::EstimatorContinuousDiscrete();
-};
+public:
+  Estimator_tester() {
+    // roscopter::EstimatorContinuousDiscrete();
+  };
 
   Input input;
   Output output;
 
-  auto test_estimate(){
-    estimate(input, output) ;
+  auto test_estimate()
+  {
+    estimate(input, output);
     return output;
   };
-  
 };
 
 TEST(estimator_test, mem_test)
@@ -56,7 +56,7 @@ TEST(estimator_test, mem_test)
   estimator.input.status_armed = 0;
 
   estimator.test_estimate();
-  
+
   // std::cout << "output.pn: " << estimator.output.pn << "\n";
   // std::cout << "output.pe: " << estimator.output.pe << "\n";
   // std::cout << "output.pd: " << estimator.output.pd << "\n";
@@ -107,14 +107,8 @@ TEST(estimator_test, mag_test)
   double total_intensity;
   double grid_variation;
 
-  int mag_success = geomag_calc(gps_altitude/1000.0,
-                                gps_lat,
-                                gps_lon,
-                                decimal_year,
-                                &declination,
-                                &inclination,
-                                &total_intensity,
-                                &grid_variation);
+  int mag_success = geomag_calc(gps_altitude / 1000.0, gps_lat, gps_lon, decimal_year, &declination,
+                                &inclination, &total_intensity, &grid_variation);
 
   std::cout << "incl: " << inclination << std::endl;
   std::cout << "declination: " << declination << std::endl;

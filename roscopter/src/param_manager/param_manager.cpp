@@ -4,7 +4,9 @@
 namespace roscopter
 {
 
-ParamManager::ParamManager(rclcpp::Node * node) : container_node_{node} {}
+ParamManager::ParamManager(rclcpp::Node * node)
+    : container_node_{node}
+{}
 
 void ParamManager::declare_double(std::string param_name, double value)
 {
@@ -41,9 +43,9 @@ void ParamManager::declare_string(std::string param_name, std::string value)
 void ParamManager::set_double(std::string param_name, double value)
 {
   // Check that the parameter is in the parameter struct
-  if (params_.find(param_name) == params_.end())
-  {
-    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "Parameter not found in parameter struct: " + param_name);
+  if (params_.find(param_name) == params_.end()) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(),
+                        "Parameter not found in parameter struct: " + param_name);
     return;
   }
 
@@ -56,9 +58,9 @@ void ParamManager::set_double(std::string param_name, double value)
 void ParamManager::set_bool(std::string param_name, bool value)
 {
   // Check that the parameter is in the parameter struct
-  if (params_.find(param_name) == params_.end())
-  {
-    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "Parameter not found in parameter struct: " + param_name);
+  if (params_.find(param_name) == params_.end()) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(),
+                        "Parameter not found in parameter struct: " + param_name);
     return;
   }
 
@@ -71,9 +73,9 @@ void ParamManager::set_bool(std::string param_name, bool value)
 void ParamManager::set_int(std::string param_name, int64_t value)
 {
   // Check that the parameter is in the parameter struct
-  if (params_.find(param_name) == params_.end())
-  {
-    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "Parameter not found in parameter struct: " + param_name);
+  if (params_.find(param_name) == params_.end()) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(),
+                        "Parameter not found in parameter struct: " + param_name);
     return;
   }
 
@@ -86,9 +88,9 @@ void ParamManager::set_int(std::string param_name, int64_t value)
 void ParamManager::set_string(std::string param_name, std::string value)
 {
   // Check that the parameter is in the parameter struct
-  if (params_.find(param_name) == params_.end())
-  {
-    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "Parameter not found in parameter struct: " + param_name);
+  if (params_.find(param_name) == params_.end()) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(),
+                        "Parameter not found in parameter struct: " + param_name);
     return;
   }
 
@@ -100,75 +102,62 @@ void ParamManager::set_string(std::string param_name, std::string value)
 
 double ParamManager::get_double(std::string param_name)
 {
-    try
-    {
-      if (params_.find(param_name) == params_.end()) {
-        throw std::bad_variant_access();
-      }
-      return std::get<double>(params_[param_name]);
+  try {
+    if (params_.find(param_name) == params_.end()) {
+      throw std::bad_variant_access();
     }
-    catch (std::bad_variant_access & e)
-    {
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
-      throw std::runtime_error(e.what());
-    }
-} 
+    return std::get<double>(params_[param_name]);
+  } catch (std::bad_variant_access & e) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
+    throw std::runtime_error(e.what());
+  }
+}
 
 bool ParamManager::get_bool(std::string param_name)
 {
-    try
-    {
-      if (params_.find(param_name) == params_.end()) {
-        throw std::bad_variant_access();
-      }
-      return std::get<bool>(params_[param_name]);
+  try {
+    if (params_.find(param_name) == params_.end()) {
+      throw std::bad_variant_access();
     }
-    catch (std::bad_variant_access & e)
-    {
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
-      throw std::runtime_error(e.what());
-    }
-} 
+    return std::get<bool>(params_[param_name]);
+  } catch (std::bad_variant_access & e) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
+    throw std::runtime_error(e.what());
+  }
+}
 
 int64_t ParamManager::get_int(std::string param_name)
 {
-    try
-    {
-      if (params_.find(param_name) == params_.end()) {
-        throw std::bad_variant_access();
-      }
-      return std::get<int64_t>(params_[param_name]);
+  try {
+    if (params_.find(param_name) == params_.end()) {
+      throw std::bad_variant_access();
     }
-    catch (std::bad_variant_access & e)
-    {
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
-      throw std::runtime_error(e.what());
-    }
-} 
+    return std::get<int64_t>(params_[param_name]);
+  } catch (std::bad_variant_access & e) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
+    throw std::runtime_error(e.what());
+  }
+}
 
 std::string ParamManager::get_string(std::string param_name)
 {
-    try
-    {
-      if (params_.find(param_name) == params_.end()) {
-        throw std::bad_variant_access();
-      }
-      return std::get<std::string>(params_[param_name]);
+  try {
+    if (params_.find(param_name) == params_.end()) {
+      throw std::bad_variant_access();
     }
-    catch (std::bad_variant_access & e)
-    {
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
-      throw std::runtime_error(e.what());
-    }
-} 
+    return std::get<std::string>(params_[param_name]);
+  } catch (std::bad_variant_access & e) {
+    RCLCPP_ERROR_STREAM(container_node_->get_logger(), "ERROR GETTING PARAMETER: " + param_name);
+    throw std::runtime_error(e.what());
+  }
+}
 
 void ParamManager::set_parameters()
 {
 
   // Get the parameters from the launch file, if given.
   // If not, use the default value defined at declaration
-  for (const auto& [key, value] : params_)
-  {
+  for (const auto & [key, value] : params_) {
     auto type = container_node_->get_parameter(key).get_type();
     if (type == rclcpp::ParameterType::PARAMETER_DOUBLE)
       params_[key] = container_node_->get_parameter(key).as_double();
@@ -178,8 +167,10 @@ void ParamManager::set_parameters()
       params_[key] = container_node_->get_parameter(key).as_int();
     else if (type == rclcpp::ParameterType::PARAMETER_STRING)
       params_[key] = container_node_->get_parameter(key).as_string();
-    else  
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "Unable to set parameter: " + key + ". Error casting parameter as double, int, string, or bool!");
+    else
+      RCLCPP_ERROR_STREAM(container_node_->get_logger(),
+                          "Unable to set parameter: " + key
+                            + ". Error casting parameter as double, int, string, or bool!");
   }
 }
 
@@ -187,10 +178,13 @@ bool ParamManager::set_parameters_callback(const std::vector<rclcpp::Parameter> 
 {
   // Check each parameter in the incoming vector of parameters to change, and change the appropriate parameter.
   for (const auto & param : parameters) {
-    
+
     // Check if the parameter is in the params object or return an error
     if (params_.find(param.get_name()) == params_.end()) {
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "One of the parameters given is not a parameter of the controller node. Parameter: " + param.get_name());
+      RCLCPP_ERROR_STREAM(
+        container_node_->get_logger(),
+        "One of the parameters given is not a parameter of the controller node. Parameter: "
+          + param.get_name());
       return false;
     }
 
@@ -203,10 +197,11 @@ bool ParamManager::set_parameters_callback(const std::vector<rclcpp::Parameter> 
     else if (param.get_type() == rclcpp::ParameterType::PARAMETER_STRING)
       params_[param.get_name()] = param.as_string();
     else
-      RCLCPP_ERROR_STREAM(container_node_->get_logger(), "Unable to determine parameter type in controller. Type is " + std::to_string(param.get_type()));
-
+      RCLCPP_ERROR_STREAM(container_node_->get_logger(),
+                          "Unable to determine parameter type in controller. Type is "
+                            + std::to_string(param.get_type()));
   }
   return true;
 }
 
-}   // namespace roscopter
+} // namespace roscopter

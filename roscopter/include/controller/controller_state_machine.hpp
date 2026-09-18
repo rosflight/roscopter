@@ -17,21 +17,19 @@ namespace roscopter
 class ControllerStateMachine : public ControllerROS
 {
 
-enum
-{
-  DISARM,
-  TAKEOFF,
-  OFFBOARD,
-  POSITION_HOLD,
-  LANDING  
-};
+  enum
+  {
+    DISARM,
+    TAKEOFF,
+    OFFBOARD,
+    POSITION_HOLD,
+    LANDING
+  };
 
 public:
-
   ControllerStateMachine();
 
 private:
-
   // Paramters
   double min_altitude_;
   bool state_transition_;
@@ -45,17 +43,20 @@ private:
   // Functions
   void declare_params();
 
-  rosflight_msgs::msg::Command manage_state(roscopter_msgs::msg::ControllerCommand & input_cmd, rosflight_msgs::msg::Status & status_msg, double dt) override;
+  rosflight_msgs::msg::Command manage_state(roscopter_msgs::msg::ControllerCommand & input_cmd,
+                                            rosflight_msgs::msg::Status & status_msg,
+                                            double dt) override;
   void manage_disarm(bool armed, bool cmd_valid);
   rosflight_msgs::msg::Command manage_takeoff(double dt);
   rosflight_msgs::msg::Command manage_position_hold(double dt);
   rosflight_msgs::msg::Command manage_landing();
 
   virtual void update_gains();
-  virtual rosflight_msgs::msg::Command compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt) = 0;
+  virtual rosflight_msgs::msg::Command
+  compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt) = 0;
   virtual void reset_integrators() = 0;
 };
 
-}   // namespace controller
+} // namespace roscopter
 
 #endif

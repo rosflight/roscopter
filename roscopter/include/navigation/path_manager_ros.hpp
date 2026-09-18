@@ -6,9 +6,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <roscopter_msgs/msg/waypoint.hpp>
-#include <roscopter_msgs/msg/trajectory_command.hpp>
 #include <roscopter_msgs/msg/state.hpp>
+#include <roscopter_msgs/msg/trajectory_command.hpp>
+#include <roscopter_msgs/msg/waypoint.hpp>
 
 #include <std_srvs/srv/trigger.hpp>
 
@@ -23,12 +23,11 @@ class PathManagerROS : public rclcpp::Node
 {
 
 public:
-
   PathManagerROS();
 
 protected:
-  ParamManager params;  
-  roscopter_msgs::msg::State xhat_;     /** Current estimated state of MAV */
+  ParamManager params;
+  roscopter_msgs::msg::State xhat_; /** Current estimated state of MAV */
   std::vector<roscopter_msgs::msg::Waypoint> waypoint_list_;
 
 private:
@@ -49,11 +48,11 @@ private:
 
   // Functions
   double compute_dt(double now);
-  void state_callback(const roscopter_msgs::msg::State &msg);
-  void publish_command(roscopter_msgs::msg::TrajectoryCommand &command);
-  void single_waypoint_callback(const roscopter_msgs::msg::Waypoint &msg);
-  bool clear_waypoints(const std_srvs::srv::Trigger::Request::SharedPtr &req,
-                       const std_srvs::srv::Trigger::Response::SharedPtr &res);
+  void state_callback(const roscopter_msgs::msg::State & msg);
+  void publish_command(roscopter_msgs::msg::TrajectoryCommand & command);
+  void single_waypoint_callback(const roscopter_msgs::msg::Waypoint & msg);
+  bool clear_waypoints(const std_srvs::srv::Trigger::Request::SharedPtr & req,
+                       const std_srvs::srv::Trigger::Response::SharedPtr & res);
   bool print_path(const std_srvs::srv::Trigger::Request::SharedPtr & req,
                   const std_srvs::srv::Trigger::Response::SharedPtr & res);
 
@@ -75,11 +74,11 @@ private:
    * 
    * @param parameters: Vector of rclcpp::Parameter objects that were changed
    */
-  rcl_interfaces::msg::SetParametersResult parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
+  rcl_interfaces::msg::SetParametersResult
+  parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
 
   void set_timer();
-
 };
-}
+} // namespace roscopter
 
 #endif

@@ -2,12 +2,12 @@
 
 namespace roscopter
 {
-  
+
 TrajectoryFollower::TrajectoryFollower()
-  : TrajectoryFollowerROS()
-  , output_cmd_{roscopter_msgs::msg::ControllerCommand()}
-  , dt_{0.0}
-  , params_initialized_{false}
+    : TrajectoryFollowerROS()
+    , output_cmd_{roscopter_msgs::msg::ControllerCommand()}
+    , dt_{0.0}
+    , params_initialized_{false}
 {
   declare_params();
   params.set_parameters();
@@ -46,7 +46,9 @@ void TrajectoryFollower::declare_params()
 void TrajectoryFollower::update_gains()
 {
   // Make sure node is fully constructed before updating parameters
-  if (!params_initialized_) { return; }
+  if (!params_initialized_) {
+    return;
+  }
 
   double P, I, D, tau;
 
@@ -72,7 +74,8 @@ void TrajectoryFollower::update_gains()
   PID_yaw_to_rate_.set_gains(P, I, D, tau);
 }
 
-roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt)
+roscopter_msgs::msg::ControllerCommand
+TrajectoryFollower::manage_trajectory(roscopter_msgs::msg::TrajectoryCommand input_cmd, double dt)
 {
   // If RC has control, clear the integrators
   if (firmware_status_.rc_override) {
@@ -93,18 +96,15 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   Eigen::Vector3d inertial_vels = q_body_to_inertial * body_vels;
 
   // Compute control from controller
-  Eigen::Vector4d u_tilde = compute_control_input(input_cmd.position[0],
-                                                  input_cmd.position[1],
-                                                  input_cmd.position[2],
-                                                  input_cmd.psi,
-                                                  inertial_vels[0],
-                                                  inertial_vels[1],
-                                                  inertial_vels[2]);
+  Eigen::Vector4d u_tilde =
+    compute_control_input(input_cmd.position[0], input_cmd.position[1], input_cmd.position[2],
+                          input_cmd.psi, inertial_vels[0], inertial_vels[1], inertial_vels[2]);
 
   // Add feedforward commands to get total control vector u
   Eigen::Vector4d u_r;
   double g = params.get_double("gravity");
-  u_r << input_cmd.acceleration[0], input_cmd.acceleration[1], input_cmd.acceleration[2] - g, input_cmd.psi_dot;
+  u_r << input_cmd.acceleration[0], input_cmd.acceleration[1], input_cmd.acceleration[2] - g,
+    input_cmd.psi_dot;
   Eigen::Vector4d u = u_tilde + u_r;
 
   saturate_commmand_vector(u);
@@ -119,7 +119,8 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   double r_cmd = nu[3];
 
   // Construct output
-  output_cmd_.mode = roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THRUST_TO_MIXER;
+  output_cmd_.mode =
+    roscopter_msgs::msg::ControllerCommand::MODE_ROLL_PITCH_YAWRATE_THRUST_TO_MIXER;
   output_cmd_.cmd1 = phi_cmd;
   output_cmd_.cmd2 = theta_cmd;
   output_cmd_.cmd3 = r_cmd;
@@ -129,12 +130,13 @@ roscopter_msgs::msg::ControllerCommand TrajectoryFollower::manage_trajectory(ros
   return output_cmd_;
 }
 
-void TrajectoryFollower::saturate_commmand_vector(Eigen::Vector4d& u)
+void TrajectoryFollower::saturate_commmand_vector(Eigen::Vector4d & u)
 {
   // Saturating the down command prevents commanding extreme pitch/roll angles
   // that would otherwise occur when u[2] approaches 0.
   double g = params.get_double("gravity");
-  double max_commanded_down_accel_in_gs = params.get_double("max_commanded_down_accel_in_gs"); // TODO: Always needs to be a negative number to avoid issues with pitch/roll
+  double max_commanded_down_accel_in_gs = params.get_double(
+    "max_commanded_down_accel_in_gs"); // TODO: Always needs to be a negative number to avoid issues with pitch/roll
   u[2] = saturate(u[2], max_commanded_down_accel_in_gs * g, std::numeric_limits<double>::lowest());
 }
 
@@ -158,13 +160,14 @@ Eigen::Vector4d TrajectoryFollower::invert_control_inputs(const Eigen::Vector4d 
   return nu;
 }
 
-double TrajectoryFollower::compute_theta_dot(const Eigen::Vector3d z, double thrust, const Eigen::Vector4d u)
+double TrajectoryFollower::compute_theta_dot(const Eigen::Vector3d z, double thrust,
+                                             const Eigen::Vector4d u)
 {
   // This assumes that the accelerations are not a function of time... For small dt this is reasonably accurate.
   double mass = params.get_double("mass");
-  double z1_dot = -mass / thrust * (-u[0]*sin(xhat_.psi)*u[3] + u[1]*cos(xhat_.psi)*u[3]);
+  double z1_dot = -mass / thrust * (-u[0] * sin(xhat_.psi) * u[3] + u[1] * cos(xhat_.psi) * u[3]);
   double z3_dot = 0.0;
-  double theta_dot = 1 / (1 + pow(z[0] / z[2], 2)) * (z[2] * z1_dot - z[0]*z3_dot) / pow(z[2], 2);
+  double theta_dot = 1 / (1 + pow(z[0] / z[2], 2)) * (z[2] * z1_dot - z[0] * z3_dot) / pow(z[2], 2);
   return theta_dot;
 }
 
@@ -181,12 +184,9 @@ double TrajectoryFollower::wrap_within_180(double datum, double angle_to_wrap)
   return angle_to_wrap - floor((angle_to_wrap - datum) / (2 * M_PI) + 0.5) * 2 * M_PI;
 }
 
-Eigen::Vector4d TrajectoryFollower::compute_control_input(const double pn_cmd,
-                                                          const double pe_cmd,
-                                                          const double pd_cmd,
-                                                          const double psi_cmd,
-                                                          const double vn,
-                                                          const double ve,
+Eigen::Vector4d TrajectoryFollower::compute_control_input(const double pn_cmd, const double pe_cmd,
+                                                          const double pd_cmd, const double psi_cmd,
+                                                          const double vn, const double ve,
                                                           const double vd)
 {
   // PID controller for now

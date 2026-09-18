@@ -24,9 +24,11 @@ private:
 
   void new_wp_callback(const roscopter_msgs::msg::Waypoint & wp);
   void publish_markers_to_clear_waypoints();
-  visualization_msgs::msg::Marker create_new_waypoint_marker(const roscopter_msgs::msg::Waypoint& wp);
-  void update_waypoint_line_list(const roscopter_msgs::msg::Waypoint& wp);
-  visualization_msgs::msg::Marker create_new_waypoint_text_marker(const roscopter_msgs::msg::Waypoint& wp);
+  visualization_msgs::msg::Marker
+  create_new_waypoint_marker(const roscopter_msgs::msg::Waypoint & wp);
+  void update_waypoint_line_list(const roscopter_msgs::msg::Waypoint & wp);
+  visualization_msgs::msg::Marker
+  create_new_waypoint_text_marker(const roscopter_msgs::msg::Waypoint & wp);
 
   // Persistent rviz markers
   visualization_msgs::msg::Marker line_list_;

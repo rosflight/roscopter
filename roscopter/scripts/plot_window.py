@@ -1,21 +1,31 @@
+import signal
+import sys
+
+import matplotlib.pyplot as plt
+import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.backends.backend_qt5agg import NavigationToolbar2QT as NavigationToolbar
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib.pyplot as plt
-import numpy as np
-from PyQt5.QtWidgets import QMainWindow, QApplication, QPushButton, QWidget, QAction, QTabWidget,QVBoxLayout
-from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import pyqtSlot
-import sys
-import signal
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import (
+    QAction,
+    QApplication,
+    QMainWindow,
+    QPushButton,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
-class PlotWindow():
+
+class PlotWindow:
     def __init__(self, parent=None):
         signal.signal(signal.SIGINT, signal.SIG_DFL)
         self.app = QApplication(sys.argv)
         self.MainWindow = QMainWindow()
         self.MainWindow.__init__()
-        self.MainWindow.setWindowTitle("plot window")
+        self.MainWindow.setWindowTitle('plot window')
         self.canvases = []
         self.figure_handles = []
         self.toolbar_handles = []
@@ -50,9 +60,9 @@ class PlotWindow():
     def show(self):
         self.app.exec_()
 
+
 if __name__ == '__main__':
     import numpy as np
-
 
     pw = PlotWindow()
 
@@ -61,12 +71,12 @@ if __name__ == '__main__':
     f = plt.figure()
     ysin = np.sin(x)
     plt.plot(x, ysin, '--')
-    pw.addPlot("sin", f)
+    pw.addPlot('sin', f)
 
     f = plt.figure()
     ycos = np.cos(x)
     plt.plot(x, ycos, '--')
-    pw.addPlot("cos", f)
+    pw.addPlot('cos', f)
     pw.show()
 
     # sys.exit(app.exec_())

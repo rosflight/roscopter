@@ -14,35 +14,35 @@
  * limitations under the License.
  */
 
-
 #ifndef ROSCOPTER_SIM_MULTIROTOR_FORCES_AND_MOMENTS_H
 #define ROSCOPTER_SIM_MULTIROTOR_FORCES_AND_MOMENTS_H
 
 #include <stdio.h>
 
-#include <vector>
 #include <thread>
+#include <vector>
 
-#include <gazebo/common/common.hh>
 #include <gazebo/common/Plugin.hh>
+#include <gazebo/common/common.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
 #include <rclcpp/callback_queue.h>
 #include <rclcpp/rclcpp.hpp>
 
-#include <rosflight_msgs/Command.h>
+#include <geometry_msgs/Vector3.h>
 #include <rosflight_msgs/Attitude.h>
+#include <rosflight_msgs/Command.h>
 #include <rosflight_utils/simple_pid.h>
 #include <std_msgs/Float32.h>
-#include <geometry_msgs/Vector3.h>
 
 #include "roscopter_sim/common.h"
 #include "roscopter_sim/gz_compat.h"
 
-namespace gazebo {
+namespace gazebo
+{
 
-
-class MultiRotorForcesAndMoments : public ModelPlugin {
+class MultiRotorForcesAndMoments : public ModelPlugin
+{
 public:
   MultiRotorForcesAndMoments();
 
@@ -77,7 +77,8 @@ private:
   // physical parameters
   double linear_mu_;
   double angular_mu_;
-  struct GE_constants{
+  struct GE_constants
+  {
     double a;
     double b;
     double c;
@@ -87,7 +88,8 @@ private:
   double mass_; // for static thrust offset when in altitude mode (kg)
 
   // Container for an Actuator
-  struct Actuator{
+  struct Actuator
+  {
     double max;
     double tau_up;
     double tau_down;
@@ -95,7 +97,8 @@ private:
 
   // Struct of Actuators
   // This organizes the physical limitations of the abstract torques and Force
-  struct Actuators{
+  struct Actuators
+  {
     Actuator l;
     Actuator m;
     Actuator n;
@@ -103,7 +106,8 @@ private:
   } actuators_;
 
   // container for forces
-  struct ForcesAndTorques{
+  struct ForcesAndTorques
+  {
     double Fx;
     double Fy;
     double Fz;
@@ -125,7 +129,7 @@ private:
   double prev_sim_time_;
   bool cmd_valid_;
 
-  ros::NodeHandle* nh_;
+  ros::NodeHandle * nh_;
   ros::NodeHandle nh_private_;
   ros::Subscriber command_sub_;
   ros::Subscriber wind_sub_;
@@ -133,15 +137,15 @@ private:
 
   std::thread callback_queue_thread_;
   void QueueThread();
-  void WindCallback(const geometry_msgs::Vector3& wind);
+  void WindCallback(const geometry_msgs::Vector3 & wind);
   void CommandCallback(const rosflight_msgs::Command msg);
   void ComputeControl(void);
   double sat(double x, double max, double min);
   double max(double x, double y);
 
-  std::unique_ptr<FirstOrderFilter<double>>  rotor_velocity_filter_;
+  std::unique_ptr<FirstOrderFilter<double>> rotor_velocity_filter_;
   GazeboVector W_wind_;
 };
-}
+} // namespace gazebo
 
 #endif // ROSCOPTER_SIM_MULTIROTOR_FORCES_AND_MOMENTS_H

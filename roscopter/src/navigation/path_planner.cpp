@@ -1,8 +1,8 @@
 #include <functional>
 
 #include <rclcpp/executors.hpp>
-#include <yaml-cpp/yaml.h>
 #include <rosflight_compat/service_client.hpp>
+#include <yaml-cpp/yaml.h>
 
 #include "navigation/path_planner.hpp"
 
@@ -28,7 +28,8 @@ PathPlanner::PathPlanner()
     this->create_publisher<roscopter_msgs::msg::Waypoint>("waypoints", qos_transient_local_10_);
 
   next_waypoint_service_ = this->create_service<std_srvs::srv::Trigger>(
-    "path_planner/publish_next_waypoint", std::bind(&PathPlanner::publish_next_waypoint, this, _1, _2));
+    "path_planner/publish_next_waypoint",
+    std::bind(&PathPlanner::publish_next_waypoint, this, _1, _2));
 
   add_waypoint_service_ = this->create_service<roscopter_msgs::srv::AddWaypoint>(
     "path_planner/add_waypoint", std::bind(&PathPlanner::update_path, this, _1, _2));
@@ -67,8 +68,7 @@ PathPlanner::~PathPlanner() {}
 
 void PathPlanner::publish_initial_waypoints()
 {
-  int num_waypoints_to_publish_at_start =
-    params_.get_int("num_waypoints_to_publish_at_start");
+  int num_waypoints_to_publish_at_start = params_.get_int("num_waypoints_to_publish_at_start");
 
   RCLCPP_INFO_STREAM_ONCE(this->get_logger(),
                           "Path Planner will publish the first {"
@@ -201,7 +201,7 @@ bool PathPlanner::print_path(
   for (int i = 0; i < (int) wps_.size(); ++i) {
     roscopter_msgs::msg::Waypoint wp = wps_[i];
     output << std::endl << "----- WAYPOINT " << i << " -----" << std::endl;
-    output << "Type (HOLD/GOTO): " << (int)wp.type << std::endl;
+    output << "Type (HOLD/GOTO): " << (int) wp.type << std::endl;
 
     if (wp.use_lla) {
       output << "Position (LLA): [" << wp.w[0] << ", " << wp.w[1] << ", " << wp.w[2] << "]"
@@ -307,7 +307,7 @@ PathPlanner::parametersCallback(const std::vector<rclcpp::Parameter> & parameter
   if (success) {
     result.successful = true;
     result.reason = "success";
-  
+
     // if successful, check if we need to publish the next waypoints
     publish_initial_waypoints();
   }

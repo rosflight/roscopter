@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
-import rospy
 import time
+
 import numpy as np
 import pyqtgraph as pg
-from std_msgs.msg import Float64
+import rospy
+from geometry_msgs.msg import Vector3Stamped
 from nav_msgs.msg import Odometry
 from sensor_msgs.msg import Imu
-from geometry_msgs.msg import Vector3Stamped
+from std_msgs.msg import Float64
 
 # Enable antialiasing for prettier plots
 pg.setConfigOptions(antialias=True)
+
 
 class Plotter:
     """
     Class for plotting methods.
     """
+
     def __init__(self):
         # get parameters from server
         self.t_win = rospy.get_param('~time_window', 5.0)
@@ -33,11 +36,11 @@ class Plotter:
         # initialize Qt gui application and window
         self.app = pg.QtGui.QApplication([])
         self.w = pg.GraphicsWindow(title='States vs Time')
-        self.w.resize(1200,1000)
+        self.w.resize(1200, 1000)
 
         # initialize plots in one window
         self.p_pn = self.w.addPlot()
-        self.p_pn.addLegend(size=(1,1), offset=(1,1))
+        self.p_pn.addLegend(size=(1, 1), offset=(1, 1))
         self.p_pe = self.w.addPlot()
         self.p_pd = self.w.addPlot()
         self.w.nextRow()
@@ -185,57 +188,175 @@ class Plotter:
         self.az_e = 0
         self.mu_e = 0
 
-        self.time_max=0
+        self.time_max = 0
 
         # truth/estimate storage lists
         self.estimates = []
         self.truths = []
 
         # plot list
-        self.p_list = [self.p_pn, self.p_pe, self.p_pd, self.p_phi, self.p_theta, self.p_psi, self.p_u, self.p_v, self.p_w, self.p_p, self.p_q, self.p_r, self.p_udot, self.p_vdot, self.p_wdot, self.p_gx, self.p_gy, self.p_gz, self.p_ax, self.p_ay, self.p_az, self.p_mu]
+        self.p_list = [
+            self.p_pn,
+            self.p_pe,
+            self.p_pd,
+            self.p_phi,
+            self.p_theta,
+            self.p_psi,
+            self.p_u,
+            self.p_v,
+            self.p_w,
+            self.p_p,
+            self.p_q,
+            self.p_r,
+            self.p_udot,
+            self.p_vdot,
+            self.p_wdot,
+            self.p_gx,
+            self.p_gy,
+            self.p_gz,
+            self.p_ax,
+            self.p_ay,
+            self.p_az,
+            self.p_mu,
+        ]
 
         # curve lists
-        self.c_list_t = [self.c_pn_t, self.c_pe_t, self.c_pd_t, self.c_phi_t, self.c_theta_t, self.c_psi_t, self.c_u_t, self.c_v_t, self.c_w_t, self.c_p_t, self.c_q_t, self.c_r_t, self.c_udot_t, self.c_vdot_t, self.c_wdot_t, self.c_gx_t, self.c_gy_t, self.c_gz_t, self.c_ax_t, self.c_ay_t, self.c_az_t]
-        self.c_list_e = [self.c_pn_e, self.c_pe_e, self.c_pd_e, self.c_phi_e, self.c_theta_e, self.c_psi_e, self.c_u_e, self.c_v_e, self.c_w_e, self.c_p_e, self.c_q_e, self.c_r_e, self.c_udot_e, self.c_vdot_e, self.c_wdot_e, self.c_gx_e, self.c_gy_e, self.c_gz_e, self.c_ax_e, self.c_ay_e, self.c_az_e, self.c_mu_e]
+        self.c_list_t = [
+            self.c_pn_t,
+            self.c_pe_t,
+            self.c_pd_t,
+            self.c_phi_t,
+            self.c_theta_t,
+            self.c_psi_t,
+            self.c_u_t,
+            self.c_v_t,
+            self.c_w_t,
+            self.c_p_t,
+            self.c_q_t,
+            self.c_r_t,
+            self.c_udot_t,
+            self.c_vdot_t,
+            self.c_wdot_t,
+            self.c_gx_t,
+            self.c_gy_t,
+            self.c_gz_t,
+            self.c_ax_t,
+            self.c_ay_t,
+            self.c_az_t,
+        ]
+        self.c_list_e = [
+            self.c_pn_e,
+            self.c_pe_e,
+            self.c_pd_e,
+            self.c_phi_e,
+            self.c_theta_e,
+            self.c_psi_e,
+            self.c_u_e,
+            self.c_v_e,
+            self.c_w_e,
+            self.c_p_e,
+            self.c_q_e,
+            self.c_r_e,
+            self.c_udot_e,
+            self.c_vdot_e,
+            self.c_wdot_e,
+            self.c_gx_e,
+            self.c_gy_e,
+            self.c_gz_e,
+            self.c_ax_e,
+            self.c_ay_e,
+            self.c_az_e,
+            self.c_mu_e,
+        ]
 
     # method for updating each states
     def update(self):
         # pack stored data into lists
-        self.truths.append([self.time_t, self.pn_t, self.pe_t, self.pd_t, self.phi_t, self.theta_t, self.psi_t, self.u_t, self.v_t, self.w_t, self.p_t, self.q_t, self.r_t, self.udot_t, self.vdot_t, self.wdot_t, self.gx_t, self.gy_t, self.gz_t, self.ax_t, self.ay_t, self.az_t])
-        self.estimates.append([self.time_e, self.pn_e, self.pe_e, self.pd_e, self.phi_e, self.theta_e, self.psi_e, self.u_e, self.v_e, self.w_e, self.p_e, self.q_e, self.r_e, self.udot_e, self.vdot_e, self.wdot_e, self.gx_e, self.gy_e, self.gz_e, self.ax_e, self.ay_e, self.az_e, self.mu_e])
+        self.truths.append(
+            [
+                self.time_t,
+                self.pn_t,
+                self.pe_t,
+                self.pd_t,
+                self.phi_t,
+                self.theta_t,
+                self.psi_t,
+                self.u_t,
+                self.v_t,
+                self.w_t,
+                self.p_t,
+                self.q_t,
+                self.r_t,
+                self.udot_t,
+                self.vdot_t,
+                self.wdot_t,
+                self.gx_t,
+                self.gy_t,
+                self.gz_t,
+                self.ax_t,
+                self.ay_t,
+                self.az_t,
+            ]
+        )
+        self.estimates.append(
+            [
+                self.time_e,
+                self.pn_e,
+                self.pe_e,
+                self.pd_e,
+                self.phi_e,
+                self.theta_e,
+                self.psi_e,
+                self.u_e,
+                self.v_e,
+                self.w_e,
+                self.p_e,
+                self.q_e,
+                self.r_e,
+                self.udot_e,
+                self.vdot_e,
+                self.wdot_e,
+                self.gx_e,
+                self.gy_e,
+                self.gz_e,
+                self.ax_e,
+                self.ay_e,
+                self.az_e,
+                self.mu_e,
+            ]
+        )
 
         # discard data outside desired plot time window
-        for i in range(0,1000):
+        for i in range(0, 1000):
             if self.truths[0][0] < self.truths[-1][0] - self.t_win:
                 self.truths.pop(0)
             if self.estimates[0][0] < self.estimates[-1][0] - self.t_win:
                 self.estimates.pop(0)
-        
+
         # find the maximum time forward
-        self.time_max=np.amax([self.estimates[-1][0], self.truths[-1][0]])
+        self.time_max = np.amax([self.estimates[-1][0], self.truths[-1][0]])
 
         # set the window widths
-        for i in range(0,len(self.p_list)):
+        for i in range(0, len(self.p_list)):
             self.p_list[i].setLimits(xMin=self.time_max - self.t_win, xMax=self.time_max)
-        
+
         # stack the data lists
         truths_array = np.vstack(self.truths)
-        time_t_array = truths_array[:,0]
+        time_t_array = truths_array[:, 0]
 
         estimates_array = np.vstack(self.estimates)
-        time_e_array = estimates_array[:,0]
+        time_e_array = estimates_array[:, 0]
 
         # set the truth states
-        for i in range(0,len(self.c_list_t)):
-            self.c_list_t[i].setData(time_t_array, truths_array[:,i+1], pen=(255,0,0))
+        for i in range(0, len(self.c_list_t)):
+            self.c_list_t[i].setData(time_t_array, truths_array[:, i + 1], pen=(255, 0, 0))
 
         # set the estimated states
-        for i in range(0,len(self.c_list_e)):
-            self.c_list_e[i].setData(time_e_array, estimates_array[:,i+1], pen=(0,255,0))
+        for i in range(0, len(self.c_list_e)):
+            self.c_list_e[i].setData(time_e_array, estimates_array[:, i + 1], pen=(0, 255, 0))
 
         # update the plotted data
         self.app.processEvents()
-
 
     def truthCallback(self, msg):
         # unpack positions and linear velocities
@@ -244,7 +365,7 @@ class Plotter:
         self.pd_t = msg.pose.pose.position.z
         self.u_t = msg.twist.twist.linear.x
         self.v_t = msg.twist.twist.linear.y
-        self.w_t= msg.twist.twist.linear.z
+        self.w_t = msg.twist.twist.linear.z
 
         # orientation in quaternion form
         qw = msg.pose.pose.orientation.w
@@ -253,9 +374,9 @@ class Plotter:
         qz = msg.pose.pose.orientation.z
 
         # Convert to Euler angles from quaternion
-        self.phi_t = np.arctan2(2*(qw*qx + qy*qz), (qw**2 + qz**2 - qx**2 - qy**2))
-        self.theta_t = np.arcsin(2*(qw*qy - qx*qz))
-        self.psi_t = np.arctan2(2*(qw*qz + qx*qy), 1 - 2*(qy**2 + qz**2))
+        self.phi_t = np.arctan2(2 * (qw * qx + qy * qz), (qw**2 + qz**2 - qx**2 - qy**2))
+        self.theta_t = np.arcsin(2 * (qw * qy - qx * qz))
+        self.psi_t = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
 
         # unpack angular velocities
         self.p_t = msg.twist.twist.angular.x
@@ -267,7 +388,6 @@ class Plotter:
             self.time0 = msg.header.stamp.to_sec()
             self.init_time = False
         self.time_t = msg.header.stamp.to_sec() - self.time0
-
 
     def estimateCallback(self, msg):
         # unpack positions and linear velocities
@@ -285,9 +405,9 @@ class Plotter:
         qz = msg.pose.pose.orientation.z
 
         # Convert to Euler angles from quaternion
-        self.phi_e = np.arctan2(2*(qw*qx + qy*qz), (qw**2 + qz**2 - qx**2 - qy**2))
-        self.theta_e = np.arcsin(2*(qw*qy - qx*qz))
-        self.psi_e = np.arctan2(2*(qw*qz + qx*qy), 1 - 2*(qy**2 + qz**2))
+        self.phi_e = np.arctan2(2 * (qw * qx + qy * qz), (qw**2 + qz**2 - qx**2 - qy**2))
+        self.theta_e = np.arcsin(2 * (qw * qy - qx * qz))
+        self.psi_e = np.arctan2(2 * (qw * qz + qx * qy), 1 - 2 * (qy**2 + qz**2))
 
         # unpack angular velocities
         self.p_e = msg.twist.twist.angular.x
@@ -348,8 +468,9 @@ def main():
             # let it rest a bit
             time.sleep(0.001)
         except rospy.ROSInterruptException:
-            print("exiting....")
+            print('exiting....')
             return
+
 
 if __name__ == '__main__':
     main()

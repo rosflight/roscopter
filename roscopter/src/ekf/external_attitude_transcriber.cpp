@@ -11,16 +11,18 @@ namespace roscopter
 class ExternalAttitudeTranscriber : public rclcpp::Node
 {
 public:
-  ExternalAttitudeTranscriber() : Node("ext_att_transcriber") {
+  ExternalAttitudeTranscriber()
+      : Node("ext_att_transcriber")
+  {
     // Set up publishers and subscribers
     ext_att_pub_ = this->create_publisher<rosflight_msgs::msg::Attitude>("external_attitude", 1);
-    state_sub_ = this->create_subscription<roscopter_msgs::msg::State>("estimated_state", 1, std::bind(&ExternalAttitudeTranscriber::state_sub_callback, this, _1));
+    state_sub_ = this->create_subscription<roscopter_msgs::msg::State>(
+      "estimated_state", 1, std::bind(&ExternalAttitudeTranscriber::state_sub_callback, this, _1));
   }
 
 private:
   rclcpp::Publisher<rosflight_msgs::msg::Attitude>::SharedPtr ext_att_pub_;
   rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr state_sub_;
-
 
   void state_sub_callback(const roscopter_msgs::msg::State & msg)
   {
@@ -38,13 +40,11 @@ private:
 
     ext_att_pub_->publish(out_msg);
   }
-
 };
 
-}   // namespace roscopter
+} // namespace roscopter
 
-
-int main(int argc, char* argv[])
+int main(int argc, char * argv[])
 {
   rclcpp::init(argc, argv);
 

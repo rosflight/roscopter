@@ -1,13 +1,13 @@
 #ifndef CONTROLLER_ROS_H
 #define CONTROLLER_ROS_H
 
+#include <param_manager/param_manager.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <roscopter_msgs/msg/bool.hpp>
 #include <roscopter_msgs/msg/controller_command.hpp>
+#include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 #include <rosflight_msgs/msg/status.hpp>
-#include <roscopter_msgs/msg/state.hpp>
-#include <roscopter_msgs/msg/bool.hpp>
-#include <param_manager/param_manager.hpp>
 #include <stdint.h>
 
 using std::placeholders::_1;
@@ -15,23 +15,20 @@ using std::placeholders::_1;
 namespace roscopter
 {
 
-
 class ControllerROS : public rclcpp::Node
 {
 
 public:
-
   ControllerROS();
 
   static double saturate(double x, double max, double min);
   static double wrap_within_180(double fixed, double angle_to_wrap);
 
 protected:
-  ParamManager params;  
+  ParamManager params;
   roscopter_msgs::msg::State xhat_;
 
 private:
-
   // Publishers and Subscribers
   rclcpp::Subscription<roscopter_msgs::msg::State>::SharedPtr state_sub_;
   rclcpp::Subscription<roscopter_msgs::msg::ControllerCommand>::SharedPtr cmd_sub_;
@@ -39,17 +36,21 @@ private:
   rclcpp::Publisher<rosflight_msgs::msg::Command>::SharedPtr command_pub_;
 
   // Memory for sharing information between functions
-  roscopter_msgs::msg::ControllerCommand input_cmd_;  /** High level, input control commands to the autopilot */
-  rosflight_msgs::msg::Status status_;      /** Contains information about whether or not the vehicle is armed */
+  roscopter_msgs::msg::ControllerCommand
+    input_cmd_; /** High level, input control commands to the autopilot */
+  rosflight_msgs::msg::Status
+    status_; /** Contains information about whether or not the vehicle is armed */
 
   // Functions
   double compute_dt(double now);
-  void state_callback(const roscopter_msgs::msg::State &msg);
-  void cmd_callback(const roscopter_msgs::msg::ControllerCommand &msg);
-  void status_callback(const rosflight_msgs::msg::Status &msg);
-  void publish_command(rosflight_msgs::msg::Command &command);
+  void state_callback(const roscopter_msgs::msg::State & msg);
+  void cmd_callback(const roscopter_msgs::msg::ControllerCommand & msg);
+  void status_callback(const rosflight_msgs::msg::Status & msg);
+  void publish_command(rosflight_msgs::msg::Command & command);
 
-  virtual rosflight_msgs::msg::Command manage_state(roscopter_msgs::msg::ControllerCommand & input_cmd, rosflight_msgs::msg::Status & status_msg, double dt) = 0;
+  virtual rosflight_msgs::msg::Command
+  manage_state(roscopter_msgs::msg::ControllerCommand & input_cmd,
+               rosflight_msgs::msg::Status & status_msg, double dt) = 0;
   virtual void update_gains() = 0;
 
   /**
@@ -64,9 +65,9 @@ private:
    * 
    * @param parameters: Vector of rclcpp::Parameter objects that were changed
    */
-  rcl_interfaces::msg::SetParametersResult parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
-
+  rcl_interfaces::msg::SetParametersResult
+  parameters_callback(const std::vector<rclcpp::Parameter> & parameters);
 };
-}
+} // namespace roscopter
 
 #endif

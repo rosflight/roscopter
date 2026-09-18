@@ -59,7 +59,8 @@ RvizAircraftPublisher::RvizAircraftPublisher()
     this->create_publisher<visualization_msgs::msg::Marker>("rviz/mesh_path", 5);
 
   vehicle_state_sub_ = this->create_subscription<roscopter_msgs::msg::State>(
-    "estimated_state", 10, std::bind(&RvizAircraftPublisher::state_update_callback, this, std::placeholders::_1));
+    "estimated_state", 10,
+    std::bind(&RvizAircraftPublisher::state_update_callback, this, std::placeholders::_1));
 
   aircraft_tf2_broadcaster_ = std::make_unique<tf2_ros::TransformBroadcaster>(*this);
 
@@ -68,7 +69,8 @@ RvizAircraftPublisher::RvizAircraftPublisher()
   aircraft_.ns = "vehicle";
   aircraft_.id = 0;
   aircraft_.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
-  aircraft_.mesh_resource = "package://rosflight_sim/" + this->get_parameter("sim_aircraft_file").as_string();
+  aircraft_.mesh_resource =
+    "package://rosflight_sim/" + this->get_parameter("sim_aircraft_file").as_string();
   aircraft_.mesh_use_embedded_materials = false;
   aircraft_.action = visualization_msgs::msg::Marker::ADD;
   aircraft_.pose.position.x = 0.0;
@@ -135,7 +137,8 @@ void RvizAircraftPublisher::update_aircraft_history()
   aircraft_history_.points = aircraft_history_points_;
 
   // Restrict length of history
-  if (aircraft_history_points_.size() > (uint64_t) this->get_parameter("max_path_history").as_int()) {
+  if (aircraft_history_points_.size()
+      > (uint64_t) this->get_parameter("max_path_history").as_int()) {
     aircraft_history_points_.erase(aircraft_history_points_.begin());
   }
 }
@@ -176,7 +179,7 @@ void RvizAircraftPublisher::update_mesh()
   ++i_;
 }
 
-void RvizAircraftPublisher::state_update_callback(const roscopter_msgs::msg::State& msg)
+void RvizAircraftPublisher::state_update_callback(const roscopter_msgs::msg::State & msg)
 {
   vehicle_state_ = msg;
   update_mesh();
@@ -194,4 +197,3 @@ int main(int argc, char ** argv)
 
   return 0;
 }
-
