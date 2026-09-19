@@ -1,17 +1,11 @@
 #ifndef CONTROLLER_CASCADING_PID_HPP
 #define CONTROLLER_CASCADING_PID_HPP
 
-#include <Eigen/Geometry>
-
-#include <controller/controller_state_machine.hpp>
-#include <controller/simple_pid.hpp>
-
 #include <roscopter_msgs/msg/controller_command.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 
-using std::placeholders::_1;
-
-#define TO_RADIANS M_PI / 180.0
+#include "controller/controller_state_machine.hpp"
+#include "controller/simple_pid.hpp"
 
 namespace roscopter
 {

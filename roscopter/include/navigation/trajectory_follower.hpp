@@ -1,7 +1,7 @@
 #ifndef TRAJECTORY_FOLLOWER_HPP
 #define TRAJECTORY_FOLLOWER_HPP
 
-#include <Eigen/Geometry>
+#include <Eigen/Core>
 
 #include "controller/simple_pid.hpp"
 #include "navigation/trajectory_follower_ros.hpp"

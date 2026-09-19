@@ -1,7 +1,8 @@
 #pragma once
 
-#include "geometry/xform.h"
 #include <Eigen/Core>
+
+#include "geometry/xform.h"
 
 namespace roscopter
 {

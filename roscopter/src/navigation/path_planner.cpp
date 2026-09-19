@@ -1,10 +1,12 @@
+#include "navigation/path_planner.hpp"
+
 #include <functional>
 
 #include <rclcpp/executors.hpp>
 #include <rosflight_compat/service_client.hpp>
 #include <yaml-cpp/yaml.h>
 
-#include "navigation/path_planner.hpp"
+constexpr double EARTH_RADIUS = 6378145.0;
 
 using std::placeholders::_1;
 using std::placeholders::_2;

@@ -21,7 +21,6 @@
 #ifndef ROSCOPTER_SIM_COMMON_H_
 #define ROSCOPTER_SIM_COMMON_H_
 
-#include <Eigen/Dense>
 #include <gazebo/gazebo.hh>
 
 namespace gazebo

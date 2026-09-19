@@ -26,15 +26,12 @@
 
 #include "param_manager/param_manager.hpp"
 
-#define EARTH_RADIUS 6378145.0
-#define NOT_IN_USE -1000000.0
-#define MILLIS_TO_NANOS 1000000
-
-using std::placeholders::_1;
-using namespace std::chrono_literals;
-
 namespace roscopter
 {
+
+constexpr double EARTH_RADIUS = 6378145.0;
+constexpr double NOT_IN_USE = -1000000.0;
+constexpr int MILLIS_TO_NANOS = 1000000;
 
 class EstimatorROS : public rclcpp::Node
 {

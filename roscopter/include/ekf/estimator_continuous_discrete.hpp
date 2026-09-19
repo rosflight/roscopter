@@ -1,12 +1,9 @@
 #ifndef ESTIMATOR_CONTINUOUS_DISCRETE_H // FIXME: redefine the header guards when you rename the ekf.
 #define ESTIMATOR_CONTINUOUS_DISCRETE_H
 
-#include <Eigen/Geometry>
-#include <math.h>
+#include <Eigen/Core>
 
 #include "ekf/estimator_ekf.hpp"
-#include "ekf/estimator_ros.hpp"
-#include "ekf/geomag.h"
 
 namespace roscopter
 {

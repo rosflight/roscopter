@@ -2,7 +2,6 @@
 #define PATH_MANAGER_H
 
 #include <Eigen/Core>
-
 #include <roscopter_msgs/msg/trajectory_command.hpp>
 #include <roscopter_msgs/msg/waypoint.hpp>
 

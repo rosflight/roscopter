@@ -9,8 +9,10 @@
 #ifndef PARAM_MANAGER_H
 #define PARAM_MANAGER_H
 
-#include <rclcpp/rclcpp.hpp>
+#include <string>
 #include <variant>
+
+#include <rclcpp/rclcpp.hpp>
 
 namespace roscopter
 {

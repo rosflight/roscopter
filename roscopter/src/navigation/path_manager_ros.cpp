@@ -1,4 +1,7 @@
 #include "navigation/path_manager_ros.hpp"
+
+#include <functional>
+
 #include "navigation/path_manager.hpp"
 
 using std::placeholders::_1;
