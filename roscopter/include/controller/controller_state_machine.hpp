@@ -1,15 +1,12 @@
 #ifndef CONTROLLER_STATE_MACHINE_HPP
 #define CONTROLLER_STATE_MACHINE_HPP
 
-#include <controller/controller_ros.hpp>
-#include <controller/simple_pid.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <roscopter_msgs/msg/controller_command.hpp>
-#include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 #include <rosflight_msgs/msg/status.hpp>
 
-using std::placeholders::_1;
+#include "controller/controller_ros.hpp"
 
 namespace roscopter
 {
@@ -51,7 +48,7 @@ private:
   rosflight_msgs::msg::Command manage_position_hold(double dt);
   rosflight_msgs::msg::Command manage_landing();
 
-  virtual void update_gains();
+  virtual void update_gains() override;
   virtual rosflight_msgs::msg::Command
   compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt) = 0;
   virtual void reset_integrators() = 0;

@@ -1,16 +1,14 @@
 #ifndef CONTROLLER_ROS_H
 #define CONTROLLER_ROS_H
 
-#include <param_manager/param_manager.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include <roscopter_msgs/msg/bool.hpp>
 #include <roscopter_msgs/msg/controller_command.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 #include <rosflight_msgs/msg/status.hpp>
-#include <stdint.h>
 
-using std::placeholders::_1;
+#include "param_manager/param_manager.hpp"
 
 namespace roscopter
 {

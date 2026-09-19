@@ -40,7 +40,6 @@
 
 #include <cfloat>
 #include <cmath>
-#include <rclcpp/rclcpp.hpp> // included temporarily for debug statements
 
 namespace roscopter
 {

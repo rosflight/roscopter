@@ -1,8 +1,8 @@
+#include "rviz_waypoint_publisher.hpp"
+
 #include <rclcpp/rclcpp.hpp>
 #include <roscopter_msgs/msg/waypoint.hpp>
 #include <visualization_msgs/msg/marker.hpp>
-
-#include "rviz_waypoint_publisher.hpp"
 
 namespace roscopter_gcs
 {

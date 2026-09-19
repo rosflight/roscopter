@@ -2,16 +2,13 @@
 #define PATH_PLANNER_HPP
 
 #include <rclcpp/rclcpp.hpp>
-#include <std_srvs/srv/trigger.hpp>
-
 #include <roscopter_msgs/msg/state.hpp>
 #include <roscopter_msgs/msg/waypoint.hpp>
 #include <roscopter_msgs/srv/add_waypoint.hpp>
 #include <rosflight_msgs/srv/param_file.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 #include "param_manager/param_manager.hpp"
-
-#define EARTH_RADIUS 6378145.0f
 
 namespace roscopter
 {

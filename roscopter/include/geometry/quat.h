@@ -1,8 +1,9 @@
 #pragma once
 
+#include <cmath>
+#include <ostream>
+
 #include <Eigen/Core>
-#include <iostream>
-#include <math.h>
 
 namespace quat
 {

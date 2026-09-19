@@ -1,5 +1,6 @@
 #include "param_manager/param_manager.hpp"
-#include <variant>
+
+#include <rclcpp/logging.hpp>
 
 namespace roscopter
 {

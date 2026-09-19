@@ -1,4 +1,7 @@
 #include "navigation/trajectory_follower_ros.hpp"
+
+#include <functional>
+
 #include "navigation/trajectory_follower.hpp"
 
 using std::placeholders::_1;

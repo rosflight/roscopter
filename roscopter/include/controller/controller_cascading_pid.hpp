@@ -1,17 +1,11 @@
 #ifndef CONTROLLER_CASCADING_PID_HPP
 #define CONTROLLER_CASCADING_PID_HPP
 
-#include <Eigen/Geometry>
-
-#include <controller/controller_state_machine.hpp>
-#include <controller/simple_pid.hpp>
-
 #include <roscopter_msgs/msg/controller_command.hpp>
 #include <rosflight_msgs/msg/command.hpp>
 
-using std::placeholders::_1;
-
-#define TO_RADIANS M_PI / 180.0
+#include "controller/controller_state_machine.hpp"
+#include "controller/simple_pid.hpp"
 
 namespace roscopter
 {
@@ -52,8 +46,8 @@ private:
 
   // Functions
   rosflight_msgs::msg::Command
-  compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt);
-  void reset_integrators();
+  compute_offboard_control(roscopter_msgs::msg::ControllerCommand & input_cmd, double dt) override;
+  void reset_integrators() override;
   void update_gains() override;
   // double calculate_max_xy_accel(double max_accel_z, double equilibrium_throttle);
 

@@ -1,6 +1,4 @@
-#include <controller/controller_state_machine.hpp>
-
-using std::placeholders::_1;
+#include "controller/controller_state_machine.hpp"
 
 namespace roscopter
 {

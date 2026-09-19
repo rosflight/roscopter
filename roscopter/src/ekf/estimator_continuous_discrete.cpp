@@ -1,7 +1,9 @@
+#include "ekf/estimator_continuous_discrete.hpp"
+
 #include <cmath>
 
-#include "ekf/estimator_continuous_discrete.hpp"
-#include "ekf/estimator_ros.hpp"
+#include <Eigen/Geometry>
+
 #include "ekf/geomag.h"
 
 namespace roscopter

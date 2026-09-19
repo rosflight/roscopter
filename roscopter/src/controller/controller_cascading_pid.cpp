@@ -1,6 +1,10 @@
 #include <controller/controller_cascading_pid.hpp>
 
-using std::placeholders::_1;
+#include <cmath>
+
+#include <Eigen/Geometry>
+
+constexpr double TO_RADIANS = M_PI / 180.0;
 
 namespace roscopter
 {

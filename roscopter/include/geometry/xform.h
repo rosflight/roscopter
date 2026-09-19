@@ -1,9 +1,9 @@
 #pragma once
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <cmath>
 #include <iostream>
-#include <math.h>
+
+#include <Eigen/Core>
 
 #include "geometry/quat.h"
 #include "geometry/support.h"

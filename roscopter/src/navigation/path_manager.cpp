@@ -1,5 +1,9 @@
 #include "navigation/path_manager.hpp"
 
+#include <cmath>
+
+#include <rclcpp/logging.hpp>
+
 namespace roscopter
 {
 

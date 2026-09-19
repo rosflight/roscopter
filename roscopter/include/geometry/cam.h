@@ -1,7 +1,6 @@
 #pragma once
 
 #include <Eigen/Core>
-#include <vector>
 
 template<typename T>
 class Camera

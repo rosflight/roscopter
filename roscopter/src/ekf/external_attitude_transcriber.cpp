@@ -1,5 +1,6 @@
-#include <rclcpp/rclcpp.hpp>
+#include <functional>
 
+#include <rclcpp/rclcpp.hpp>
 #include <roscopter_msgs/msg/state.hpp>
 #include <rosflight_msgs/msg/attitude.hpp>
 

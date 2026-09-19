@@ -30,6 +30,9 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
+
+#include "rviz_aircraft_publisher.hpp"
+
 #include <vector>
 
 #include <geometry_msgs/msg/point.hpp>
@@ -39,8 +42,6 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2_ros/transform_broadcaster.hpp>
 #include <visualization_msgs/msg/marker.hpp>
-
-#include "rviz_aircraft_publisher.hpp"
 
 namespace roscopter_gcs
 {

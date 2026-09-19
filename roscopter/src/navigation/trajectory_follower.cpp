@@ -1,5 +1,7 @@
 #include "navigation/trajectory_follower.hpp"
 
+#include <Eigen/Geometry>
+
 namespace roscopter
 {
 

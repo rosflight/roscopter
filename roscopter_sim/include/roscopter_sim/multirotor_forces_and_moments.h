@@ -17,10 +17,7 @@
 #ifndef ROSCOPTER_SIM_MULTIROTOR_FORCES_AND_MOMENTS_H
 #define ROSCOPTER_SIM_MULTIROTOR_FORCES_AND_MOMENTS_H
 
-#include <stdio.h>
-
 #include <thread>
-#include <vector>
 
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/common/common.hh>
