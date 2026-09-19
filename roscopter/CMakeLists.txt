@@ -83,6 +83,7 @@ target_link_libraries(roscopter_estimation
 add_executable(estimator src/ekf/estimator_node.cpp)
 target_compile_features(estimator PRIVATE cxx_std_17)
 target_compile_options(estimator PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(estimator PRIVATE include)
 target_link_libraries(estimator PRIVATE roscopter::estimation)
 
 # External attitude transcriber
@@ -104,6 +105,7 @@ add_executable(controller
 )
 target_compile_features(controller PRIVATE cxx_std_17)
 target_compile_options(controller PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(controller PRIVATE include)
 target_link_libraries(controller PRIVATE
   roscopter::param_manager
   rclcpp::rclcpp
@@ -120,6 +122,7 @@ add_executable(trajectory_follower
 )
 target_compile_features(trajectory_follower PRIVATE cxx_std_17)
 target_compile_options(trajectory_follower PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(trajectory_follower PRIVATE include)
 target_link_libraries(trajectory_follower PRIVATE
   roscopter::param_manager
   rclcpp::rclcpp
@@ -136,6 +139,7 @@ add_executable(path_manager
 )
 target_compile_features(path_manager PRIVATE cxx_std_17)
 target_compile_options(path_manager PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(path_manager PRIVATE include)
 target_link_libraries(path_manager PRIVATE
   roscopter::param_manager
   rclcpp::rclcpp
@@ -148,6 +152,7 @@ target_link_libraries(path_manager PRIVATE
 add_executable(path_planner src/navigation/path_planner.cpp)
 target_compile_features(path_planner PRIVATE cxx_std_17)
 target_compile_options(path_planner PRIVATE -Wall -Wextra -Wpedantic)
+target_include_directories(path_planner PRIVATE include)
 target_link_libraries(path_planner PRIVATE
   roscopter::param_manager
   rosflight_compat::compat_headers
